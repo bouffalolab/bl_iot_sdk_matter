@@ -667,7 +667,7 @@ extern const struct net_buf_data_cb net_buf_fixed_cb;
 		.alloc_data = (void *)&net_buf_fixed_##_name,                 \
 	};                                                                    \
 	struct net_buf_pool _name __net_buf_align                             \
-			=          \
+			__in_section(_net_buf_pool, static, _name) =            \
 		NET_BUF_POOL_INITIALIZER(_name, &net_buf_fixed_alloc_##_name, \
 					 net_buf_##_name, _count, _destroy)
 
@@ -1163,6 +1163,20 @@ static inline void *net_buf_user_data(const struct net_buf *buf)
 #define net_buf_pull(buf, len) net_buf_simple_pull(&(buf)->b, len)
 
 /**
+ * @def net_buf_pull_mem
+ * @brief Remove data from the beginning of the buffer.
+ *
+ * Removes data from the beginning of the buffer by modifying the data
+ * pointer and buffer length.
+ *
+ * @param buf Buffer to update.
+ * @param len Number of bytes to remove.
+ *
+ * @return Pointer to the old beginning of the buffer data.
+ */
+#define net_buf_pull_mem(buf, len) net_buf_simple_pull_mem(&(buf)->b, len)
+
+/**
  *  @def net_buf_pull_u8
  *  @brief Remove a 8-bit value from the beginning of the buffer
  *
@@ -1328,8 +1342,8 @@ struct net_buf *net_buf_frag_del(struct net_buf *parent, struct net_buf *frag);
  * @return number of bytes copied if everything is ok
  * @return -ENOMEM on error
  */
-int net_buf_linearize(void *dst, size_t dst_len,
-		      struct net_buf *src, u16_t offset, u16_t len);
+size_t net_buf_linearize(void *dst, size_t dst_len, struct net_buf *src,
+                size_t offset, size_t len);
 
 /**
  * @typedef net_buf_allocator_cb
@@ -1367,9 +1381,9 @@ typedef struct net_buf *(*net_buf_allocator_cb)(s32_t timeout, void *user_data);
  *         length if other timeout than K_FOREVER was used, and there
  *         were no free fragments in a pool to accommodate all data.
  */
-u16_t net_buf_append_bytes(struct net_buf *buf, u16_t len,
-			   const u8_t *value, s32_t timeout,
-			   net_buf_allocator_cb allocate_cb, void *user_data);
+size_t net_buf_append_bytes(struct net_buf *buf, size_t len,
+			    const void *value, s32_t timeout,
+			    net_buf_allocator_cb allocate_cb, void *user_data);
 
 /**
  * @brief Skip N number of bytes in a net_buf

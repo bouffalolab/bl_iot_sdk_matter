@@ -21,10 +21,12 @@ ble_stack_srcs_dirs+= src/cli_cmds
 endif
 
 ble_stack_srcs_include_dirs    += src/port/include \
+                src/common \
 								src/common/include \
 								src/common/include/zephyr  \
 								src/common/include/misc  \
 								src/common/include/common  \
+								src/common/include/toolchain \
 								src/common/tinycrypt/include/tinycrypt  \
 								src/hci_onchip   \
 								src/bl_hci_wrapper \
@@ -57,6 +59,8 @@ ble_stack_srcs  := src/port/bl_port.c \
 					src/common/rpa.c \
 					src/common/work_q.c \
 					src/common/utils.c \
+					src/common/dec.c \
+					src/common/dummy.c \
 					src/common/tinycrypt/source/aes_decrypt.c \
 					src/common/tinycrypt/source/aes_encrypt.c \
 					src/common/tinycrypt/source/cbc_mode.c \
@@ -83,11 +87,14 @@ ble_stack_srcs  := src/port/bl_port.c \
 					src/host/keys.c \
 					src/host/l2cap.c \
 					src/host/smp.c \
-					src/host/settings.c \
 					src/host/uuid.c \
 					
 ifeq ($(CONFIG_BT_OAD_CLIENT),1)
 ble_stack_srcs   += src/host_cmdproc/oadc_cmdproc.c
+endif
+
+ifneq ($(CONFIG_DBG_RUN_ON_FPGA), 1)
+ble_stack_srcs   += src/host/settings.c
 endif
 
 ifeq ($(CONFIG_BT_OAD_SERVER),1)
@@ -97,10 +104,6 @@ endif
 
 ifeq ($(CONFIG_BT_STACK_CLI),1)
 ble_stack_srcs   += src/cli_cmds/stack_cli_cmds.c
-endif
-
-ifeq ($(CONFIG_BT_HOG_SERVER),1)
-ble_stack_srcs   += src/services/hog.c
 endif
 
 ifeq ($(CONFIG_BT_BAS_SERVER),1)
@@ -134,18 +137,23 @@ CFLAGS   += -DCONFIG_BT_SMP \
  			-DCONFIG_BT_GATT_DIS_SERIAL_NUMBER \
  			-DCONFIG_BT_GATT_DIS_FW_REV \
  			-DCONFIG_BT_GATT_DIS_HW_REV \
- 			-DCONFIG_BT_GATT_DIS_SW_REV
-#CFLAGS += -DCONFIG_BT_SETTINGS
+ 			-DCONFIG_BT_GATT_DIS_SW_REV \
+ 			-DCONFIG_BT_ECC \
+ 			-DCONFIG_BT_GATT_DYNAMIC_DB \
+ 			-DCONFIG_BT_GATT_SERVICE_CHANGED \
+ 			-DCONFIG_BT_KEYS_OVERWRITE_OLDEST \
+ 			-DCONFIG_BT_KEYS_SAVE_AGING_COUNTER_ON_PAIRING \
+ 			-DCONFIG_BT_GAP_PERIPHERAL_PREF_PARAMS \
+ 			-DCONFIG_BT_SIGNING \
+ 			-DCONFIG_BT_BONDABLE \
+ 			-DCONFIG_BT_HCI_VS_EVT_USER \
+ 			-DCONFIG_BT_ASSERT 
 
-ifeq ($(CONFIG_BT_CENTRAL),1)
-CFLAGS += -DCONFIG_BT_CENTRAL
+ifneq ($(CONFIG_DBG_RUN_ON_FPGA), 1)
+CFLAGS += -DCONFIG_BT_SETTINGS_CCC_LAZY_LOADING \
+ 			-DCONFIG_BT_SETTINGS_USE_PRINTK
 endif
-ifeq ($(CONFIG_BT_OBSERVER),1)
-CFLAGS += -DCONFIG_BT_OBSERVER
-endif
-ifeq ($(CONFIG_BT_PERIPHERAL),1)
-CFLAGS += -DCONFIG_BT_PERIPHERAL
-endif
+
 ifeq ($(CONFIG_BLE_STACK_DBG_PRINT),1)
 CFLAGS += -DCFG_BLE_STACK_DBG_PRINT
 endif
@@ -166,7 +174,9 @@ endif
 ifeq ($(CONFIG_BT_MESH),1)
 CFLAGS += -DCONFIG_BT_MESH
 endif
-
+ifeq ($(CONFIG_BT_STACK_PTS),1)
+CFLAGS += -DCONFIG_BT_STACK_PTS
+endif
 CFLAGS   += -Wno-unused-const-variable  \
             -Wno-unused-but-set-variable \
             -Wno-format

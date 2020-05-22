@@ -233,6 +233,7 @@ int bl_sec_aes_init(void)
 
 int bl_sec_aes_test(void)
 {
+    bl_irq_register(SEC_AES_IRQn, bl_sec_aes_IRQHandler);
     bl_irq_enable(SEC_AES_IRQn);
     puts("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
     Sec_Eng_AES_Link_Case_CBC_128(SEC_ENG_AES_ID0);

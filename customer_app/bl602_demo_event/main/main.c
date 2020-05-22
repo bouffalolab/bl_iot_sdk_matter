@@ -22,6 +22,7 @@
 #include <bl602_glb.h>
 #include <bl602_hbn.h>
 
+#include <bl_sys.h>
 #include <bl_uart.h>
 #include <bl_chip.h>
 #include <bl_wifi.h>
@@ -193,7 +194,9 @@ static void _connect_wifi()
 {
     /*XXX caution for BIG STACK*/
     char pmk[66], bssid[32], chan[10];
-    char ssid[33], password[66], *val;
+    char ssid[33], password[66];
+    char val_buf[66];
+    char val_len = sizeof(val_buf) - 1;
     uint8_t mac[6];
     uint8_t band = 0;
     uint16_t freq = 0;
@@ -214,10 +217,11 @@ static void _connect_wifi()
     memset(mac, 0, sizeof(mac));
     memset(chan, 0, sizeof(chan));
 
-    val = ef_get_env(WIFI_AP_PSM_INFO_SSID);
-    if (val) {
+    memset(val_buf, 0, sizeof(val_buf));
+    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_SSID, val_buf, val_len, NULL);
+    if (val_buf[0]) {
         /*We believe that when ssid is set, wifi_confi is OK*/
-        strncpy(ssid, val, sizeof(ssid) - 1);
+        strncpy(ssid, val_buf, sizeof(ssid) - 1);
     } else {
         /*Won't connect, since ssid config is empty*/
         puts("[APP]    Empty Config\r\n");
@@ -228,13 +232,17 @@ static void _connect_wifi()
         puts("[APP]    env(optinal): " WIFI_AP_PSM_INFO_PMK "\r\n");
         return;
     }
-    val = ef_get_env(WIFI_AP_PSM_INFO_PASSWORD);
-    if (val) {
-        strncpy(password, val, sizeof(password) - 1);
+
+    memset(val_buf, 0, sizeof(val_buf));
+    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PASSWORD, val_buf, val_len, NULL);
+    if (val_buf[0]) {
+        strncpy(password, val_buf, sizeof(password) - 1);
     }
-    val = ef_get_env(WIFI_AP_PSM_INFO_PMK);
-    if (val) {
-        strncpy(pmk, val, sizeof(pmk) - 1);
+
+    memset(val_buf, 0, sizeof(val_buf));
+    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PMK, val_buf, val_len, NULL);
+    if (val_buf[0]) {
+        strncpy(pmk, val_buf, sizeof(pmk) - 1);
     }
     if (0 == pmk[0]) {
         printf("[APP] [WIFI] [T] %lld\r\n",
@@ -252,15 +260,17 @@ static void _connect_wifi()
         ef_set_env(WIFI_AP_PSM_INFO_PMK, pmk);
         ef_save_env();
     }
-    val = ef_get_env(WIFI_AP_PSM_INFO_CHANNEL);
-    if (val) {
-        strncpy(chan, val, sizeof(chan) - 1);
+    memset(val_buf, 0, sizeof(val_buf));
+    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_CHANNEL, val_buf, val_len, NULL);
+    if (val_buf[0]) {
+        strncpy(chan, val_buf, sizeof(chan) - 1);
         printf("connect wifi channel = %s\r\n", chan);
         _chan_str_to_hex(&band, &freq, chan);
     }
-    val = ef_get_env(WIFI_AP_PSM_INFO_BSSID);
-    if (val) {
-        strncpy(bssid, val, sizeof(bssid) - 1);
+    memset(val_buf, 0, sizeof(val_buf));
+    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
+    if (val_buf[0]) {
+        strncpy(bssid, val_buf, sizeof(bssid) - 1);
         printf("connect wifi bssid = %s\r\n", bssid);
         bssid_str_to_mac(mac, bssid, strlen(bssid));
         printf("mac = %02X:%02X:%02X:%02X:%02X:%02X\r\n",
@@ -645,7 +655,7 @@ static void cmd_stack_wifi(char *buf, int len, int argc, char **argv)
 
 static void cmd_stack_ble(char *buf, int len, int argc, char **argv)
 {
-    //ble_stack_start();
+    ble_stack_start();
 }
 
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
@@ -891,10 +901,13 @@ void bfl_main()
     static StackType_t proc_hellow_stack[512];
     static StaticTask_t proc_hellow_task;
 
+    bl_sys_early_init();
+
     /*Init UART In the first place*/
     bl_uart_init(0, 16, 7, 255, 255, 2 * 1000 * 1000);
     puts("Starting bl602 now....\r\n");
-    GLB_Set_EM_Sel(0);
+
+    bl_sys_init();
 
     __update_rom_api();
     _dump_boot_info();

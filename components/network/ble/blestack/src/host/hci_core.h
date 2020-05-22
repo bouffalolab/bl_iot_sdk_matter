@@ -22,7 +22,6 @@
 /* k_poll event tags */
 enum {
 	BT_EVENT_CMD_TX,
-	BT_EVENT_CONN_TX_NOTIFY,
 	BT_EVENT_CONN_TX_QUEUE,
 };
 
@@ -43,6 +42,8 @@ enum {
 	BT_DEV_EXPLICIT_SCAN,
 	BT_DEV_ACTIVE_SCAN,
 	BT_DEV_SCAN_FILTER_DUP,
+	BT_DEV_SCAN_WL,
+	BT_DEV_AUTO_CONN,
 
 	BT_DEV_RPA_VALID,
 
@@ -53,6 +54,10 @@ enum {
 	BT_DEV_PSCAN,
 	BT_DEV_INQUIRY,
 #endif /* CONFIG_BT_BREDR */
+
+#if defined(CONFIG_BT_STACK_PTS)
+	BT_DEV_ADV_ADDRESS_IS_PUBLIC,
+#endif
 
 	/* Total number of flags - must be at the end of the enum */
 	BT_DEV_NUM_FLAGS,
@@ -83,6 +88,13 @@ struct bt_dev_le {
 	 */
 	u8_t                    rl_entries;
 #endif /* CONFIG_BT_SMP */
+
+#if defined(CONFIG_BT_WHITELIST)
+	/* Size of the controller whitelist. */
+	u8_t			wl_size;
+	/* Number of entries in the resolving list. */
+	u8_t			wl_entries;
+#endif /* CONFIG_BT_WHITELIST */
 };
 
 #if defined(CONFIG_BT_BREDR)
@@ -172,9 +184,32 @@ struct bt_dev {
 
 	/* Local Name */
 #if defined(CONFIG_BT_DEVICE_NAME_DYNAMIC)
-	char			name[CONFIG_BT_DEVICE_NAME_MAX];
+	char			name[CONFIG_BT_DEVICE_NAME_MAX + 1];
 #endif
 };
+
+#if defined (CONFIG_BT_STACK_PTS)
+typedef enum __packed{
+	dir_connect_req 		= 0x01, /*Send a direct connection require while the Lower test enters direct mode .*/
+
+	ad_type_service_uuid 	= 0x02,    
+	ad_type_local_name   	= 0x03,
+	ad_type_flags     	 	= 0x04,
+	ad_type_manu_data   	= 0x05,
+	ad_type_tx_power_level 	= 0x06,
+	ad_type_service_data 	= 0x07,
+	ad_type_appearance 		= 0x08,
+
+	gatt_discover_chara		= 0x09,
+	gatt_exec_write_req		= 0x0a,
+	gatt_cancel_write_req	= 0x0b,
+	att_read_by_group_type_ind = 0x0c, /* CASE : GATT/SR/GAD/BV-01-C. Indicate PTS sends a GATT discover all primary services request to iut */ 
+	att_find_by_type_value_ind = 0x0d, /* CASE : GATT/SR/GAD/BV-02-C. Indicate PTS sends a request to iut for discover it contains Primary Services by Service UUID */ 
+	att_read_by_type_ind = 0x0e /* CASE : GATT/SR/GAD/BV-04-C. Indicate PTS sends a request to iut for discover all characteristics of a specified service.*/ 
+}event_id;
+
+#endif 
+
 
 #if defined(CFG_SLEEP)
 struct bt_dev* bt_get_dev_info(void);
@@ -190,11 +225,13 @@ bool bt_le_conn_params_valid(const struct bt_le_conn_param *param);
 
 int bt_le_scan_update(bool fast_scan);
 
+int bt_le_auto_conn(const struct bt_le_conn_param *conn_param);
+int bt_le_auto_conn_cancel(void);
+
 bool bt_addr_le_is_bonded(u8_t id, const bt_addr_le_t *addr);
+const bt_addr_le_t *bt_lookup_id_addr(u8_t id, const bt_addr_le_t *addr);
 
 int bt_send(struct net_buf *buf);
-
-u16_t bt_hci_get_cmd_opcode(struct net_buf *buf);
 
 /* Don't require everyone to include keys.h */
 struct bt_keys;
@@ -202,8 +239,7 @@ void bt_id_add(struct bt_keys *keys);
 void bt_id_del(struct bt_keys *keys);
 
 int bt_setup_id_addr(void);
-
-void bt_dev_show_info(void);
+void bt_finalize_init(void);
 
 int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
 			     const struct bt_data *ad, size_t ad_len,

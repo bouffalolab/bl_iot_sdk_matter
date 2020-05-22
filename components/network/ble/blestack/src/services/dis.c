@@ -28,7 +28,7 @@
 #if !defined(BFLB_BLE)
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_SERVICE)
 #define LOG_MODULE_NAME bt_dis
-#include "common/log.h"
+#include "log.h"
 #endif
 
 #if CONFIG_BT_GATT_DIS_PNP

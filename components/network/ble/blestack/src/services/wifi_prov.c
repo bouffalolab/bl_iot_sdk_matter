@@ -15,7 +15,7 @@
 u8_t local_seq_num = 0x00;
 u8_t remote_seq_num = WIFIPROV_INVALID_SEQ;
 static struct conn_callback *callback;
-static struct bt_gatt_ccc_cfg  wifiprov_ccc_cfg[BT_GATT_CCC_MAX] = {};
+//static struct bt_gatt_ccc_cfg  wifiprov_ccc_cfg[BT_GATT_CCC_MAX] = {};
 static ssize_t write_data(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
 			       u16_t len, u16_t offset, u8_t flags);
 
@@ -49,7 +49,7 @@ static struct bt_gatt_attr attrs[]= {
 								NULL,
 								NULL),
 								
-	BT_GATT_CCC(wifiprov_ccc_cfg, wifiprov_ccc_cfg_changed),
+	BT_GATT_CCC(wifiprov_ccc_cfg_changed, BT_GATT_PERM_READ_AUTHEN | BT_GATT_PERM_WRITE_AUTHEN),
 
 	BT_GATT_CHARACTERISTIC(BT_UUID_WIFIPROV_WRITE,
 							   	BT_GATT_CHRC_WRITE | BT_GATT_CHRC_WRITE_WITHOUT_RESP,

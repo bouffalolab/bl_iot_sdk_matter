@@ -7,8 +7,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef __BT_L2CAP_H
-#define __BT_L2CAP_H
+#ifndef ZEPHYR_INCLUDE_BLUETOOTH_L2CAP_H_
+#define ZEPHYR_INCLUDE_BLUETOOTH_L2CAP_H_
 
 /**
  * @brief L2CAP
@@ -17,14 +17,13 @@
  * @{
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <atomic.h>
 #include <../bluetooth/buf.h>
 #include <conn.h>
 #include <hci_host.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* L2CAP header size, used for buffer size calculations */
 #define BT_L2CAP_HDR_SIZE               4
@@ -38,7 +37,7 @@ extern "C" {
  *
  *   @return Needed buffer size to match the requested L2CAP MTU.
  */
-#define BT_L2CAP_BUF_SIZE(mtu) (CONFIG_BT_HCI_RESERVE + \
+#define BT_L2CAP_BUF_SIZE(mtu) (BT_BUF_RESERVE + \
 				BT_HCI_ACL_HDR_SIZE + BT_L2CAP_HDR_SIZE + \
 				(mtu))
 
@@ -66,7 +65,17 @@ typedef enum bt_l2cap_chan_state {
 	BT_L2CAP_CONNECTED,
 	/** Channel in disconnecting state */
 	BT_L2CAP_DISCONNECT,
+
 } __packed bt_l2cap_chan_state_t;
+
+/** @brief Status of L2CAP channel. */
+typedef enum bt_l2cap_chan_status {
+	/** Channel output status */
+	BT_L2CAP_STATUS_OUT,
+
+	/* Total number of status - must be at the end of the enum */
+	BT_L2CAP_NUM_STATUS,
+} __packed bt_l2cap_chan_status_t;
 
 /** @brief L2CAP Channel structure. */
 struct bt_l2cap_chan {
@@ -78,10 +87,12 @@ struct bt_l2cap_chan {
 	bt_l2cap_chan_destroy_t		destroy;
 	/* Response Timeout eXpired (RTX) timer */
 	struct k_delayed_work		rtx_work;
+	ATOMIC_DEFINE(status, BT_L2CAP_NUM_STATUS);
+
 #if defined(CONFIG_BT_L2CAP_DYNAMIC_CHANNEL)
 	bt_l2cap_chan_state_t		state;
 	/** Remote PSM to be connected */
-	u16_t			psm;
+	u16_t				psm;
 	/** Helps match request context during CoC */
 	u8_t				ident;
 	bt_security_t			required_sec_level;
@@ -91,13 +102,13 @@ struct bt_l2cap_chan {
 /** @brief LE L2CAP Endpoint structure. */
 struct bt_l2cap_le_endpoint {
 	/** Endpoint CID */
-	u16_t			cid;
+	u16_t				cid;
 	/** Endpoint Maximum Transmission Unit */
-	u16_t			mtu;
+	u16_t				mtu;
 	/** Endpoint Maximum PDU payload Size */
-	u16_t			mps;
+	u16_t				mps;
 	/** Endpoint initial credits */
-	u16_t			init_credits;
+	u16_t				init_credits;
 	/** Endpoint credits */
 	struct k_sem			credits;
 };
@@ -117,6 +128,9 @@ struct bt_l2cap_le_chan {
 	/** Segment SDU packet from upper layer */
 	struct net_buf			*_sdu;
 	u16_t				_sdu_len;
+
+	struct k_work			rx_work;
+	struct k_fifo			rx_queue;
 };
 
 /** @def BT_L2CAP_LE_CHAN(_ch)
@@ -133,9 +147,9 @@ struct bt_l2cap_le_chan {
 /** @brief BREDR L2CAP Endpoint structure. */
 struct bt_l2cap_br_endpoint {
 	/** Endpoint CID */
-	u16_t			cid;
+	u16_t				cid;
 	/** Endpoint Maximum Transmission Unit */
-	u16_t			mtu;
+	u16_t				mtu;
 };
 
 /** @brief BREDR L2CAP Channel structure. */
@@ -203,14 +217,39 @@ struct bt_l2cap_chan_ops {
 	 *
 	 *  @param chan The channel receiving data.
 	 *  @param buf Buffer containing incoming data.
+	 *
+	 *  @return 0 in case of success or negative value in case of error.
+	 *  If -EINPROGRESS is returned user has to confirm once the data has
+	 *  been processed by calling bt_l2cap_chan_recv_complete passing back
+	 *  the buffer received with its original user_data which contains the
+	 *  number of segments/credits used by the packet.
 	 */
-	void (*recv)(struct bt_l2cap_chan *chan, struct net_buf *buf);
+	int (*recv)(struct bt_l2cap_chan *chan, struct net_buf *buf);
+
+	/*  Channel sent callback
+	 *
+	 *  If this callback is provided it will be called whenever a SDU has
+	 *  been completely sent.
+	 *
+	 *  @param chan The channel which has sent data.
+	 */
+	void (*sent)(struct bt_l2cap_chan *chan);
+
+	/*  Channel status callback
+	 *
+	 *  If this callback is provided it will be called whenever the
+	 *  channel status changes.
+	 *
+	 *  @param chan The channel which status changed
+	 *  @param status The channel status
+	 */
+	void (*status)(struct bt_l2cap_chan *chan, atomic_t *status);
 };
 
 /** @def BT_L2CAP_CHAN_SEND_RESERVE
  *  @brief Headroom needed for outgoing buffers
  */
-#define BT_L2CAP_CHAN_SEND_RESERVE (CONFIG_BT_HCI_RESERVE + 4 + 4)
+#define BT_L2CAP_CHAN_SEND_RESERVE (BT_BUF_RESERVE + 4 + 4)
 
 /** @brief L2CAP Server structure. */
 struct bt_l2cap_server {
@@ -240,6 +279,10 @@ struct bt_l2cap_server {
 	 *  @param chan Pointer to received the allocated channel
 	 *
 	 *  @return 0 in case of success or negative value in case of error.
+	 *  Possible return values:
+	 *  -ENOMEM if no available space for new channel.
+	 *  -EACCES if application did not authorize the connection.
+	 *  -EPERM if encryption key size is too short.
 	 */
 	int (*accept)(struct bt_conn *conn, struct bt_l2cap_chan **chan);
 
@@ -324,6 +367,21 @@ int bt_l2cap_chan_disconnect(struct bt_l2cap_chan *chan);
  */
 int bt_l2cap_chan_send(struct bt_l2cap_chan *chan, struct net_buf *buf);
 
+/** @brief Complete receiving L2CAP channel data
+ *
+ * Complete the reception of incoming data. This shall only be called if the
+ * channel recv callback has returned -EINPROGRESS to process some incoming
+ * data. The buffer shall contain the original user_data as that is used for
+ * storing the credits/segments used by the packet.
+ *
+ * @param chan Channel object.
+ * @param buf Buffer containing the data.
+ *
+ *  @return 0 in case of success or negative value in case of error.
+ */
+int bt_l2cap_chan_recv_complete(struct bt_l2cap_chan *chan,
+				struct net_buf *buf);
+
 #ifdef __cplusplus
 }
 #endif
@@ -332,4 +390,4 @@ int bt_l2cap_chan_send(struct bt_l2cap_chan *chan, struct net_buf *buf);
  * @}
  */
 
-#endif /* __BT_L2CAP_H */
+#endif /* ZEPHYR_INCLUDE_BLUETOOTH_L2CAP_H_ */

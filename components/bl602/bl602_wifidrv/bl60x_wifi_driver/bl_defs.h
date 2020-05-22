@@ -179,6 +179,10 @@ struct bl_sta {
                                belongs to */
     u8 vlan_idx;            /* Identifier of the VLAN VIF (fw id) the station
                                belongs to (= vif_idx if no vlan in used) */
+    int8_t rssi;
+    uint32_t tsflo;
+    uint32_t tsfhi;
+    uint8_t data_rate;
 };
 
 /**

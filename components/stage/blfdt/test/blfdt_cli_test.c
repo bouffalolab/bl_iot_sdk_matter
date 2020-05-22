@@ -12,8 +12,6 @@
 #include <utils_log.h>
 #include <utils_fec.h>
 
-#include <bl60x_fw_api.h>
-
 void blfdt(char *buf, int len, int argc, char **argv)
 {
     int tc_fdt_wifi(void);

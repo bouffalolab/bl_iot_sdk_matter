@@ -29,7 +29,6 @@ static int findch_sum(char *str, char ch)
 
     return ret;
 }
-
 static int set_level(int argc, char **argv)
 {
     extern char _ld_bl_static_blogcomponent_code_start;
@@ -43,6 +42,10 @@ static int set_level(int argc, char **argv)
     blog_info_t *end;
     blog_info_t *info;
 
+    int          left;
+    int          right;
+    uint32_t     mid;
+    int          cmp_val;
     blog_level_t level;
 
     int ch_sum;
@@ -89,14 +92,22 @@ static int set_level(int argc, char **argv)
         return -1;
     }
 
-    /* compare name */
-    for (info = start; (uint32_t)info < (uint32_t)end; info++) {
-        if (0 == strcmp(argv[2], info->name)) {
+    left  = 0;
+    right = end - start - 1;
+    while (left <= right) {
+        mid = (left + right) >> 1;
+        cmp_val = strcmp(start[mid].name, argv[2]);
+        if (cmp_val < 0) {
+            left = mid + 1;
+        } else if (cmp_val > 0) {
+            right = mid - 1;
+        } else {
+            info = &start[mid];
             break;
         }
     }
 
-    if ((uint32_t)info >= (uint32_t)end) {
+    if (left > right) {
         printf("input name = %s not find.\r\n", argv[2]);
         return -1;
     }
@@ -116,12 +127,9 @@ void cmd_blog_set_level(char *buf, int len, int argc, char **argv)
 
 void cmd_blog_info_dump(char *buf, int len, int argc, char **argv)
 {
-    blog_info_t *info;
-    char name_buf[BLOG_NAMELEN_MAX];
-#if BLOG_DUMP_DEDUPLICATE
-    int name_len;
-#endif
-
+    blog_info_t *info_c, *info_f, *info_p;
+    char         name_buf[BLOG_NAMELEN_MAX] = {0};
+    
     extern char _ld_bl_static_blogcomponent_code_start;
     extern char _ld_bl_static_blogcomponent_code_end;
     extern char _ld_bl_static_blogfile_code_start;
@@ -133,36 +141,45 @@ void cmd_blog_info_dump(char *buf, int len, int argc, char **argv)
     printf("blog code2 = %p - %p\r\n", &_ld_bl_static_blogfile_code_start, &_ld_bl_static_blogfile_code_end);
     printf("blog code3 = %p - %p\r\n", &_ld_bl_static_blogpri_code_start, &_ld_bl_static_blogpri_code_end);
 
-    memset(name_buf, 0, sizeof(name_buf));
-    for ( info = (blog_info_t *)&_ld_bl_static_blogcomponent_code_start;
-          (uint32_t)info < (uint32_t)&_ld_bl_static_blogcomponent_code_end; info++ ) {
-#if BLOG_DUMP_DEDUPLICATE
+    for (info_c = (blog_info_t *)&_ld_bl_static_blogcomponent_code_start;
+         (uint32_t)info_c < (uint32_t)&_ld_bl_static_blogcomponent_code_end; info_c++) {
+        if (strlen(info_c->name) > BLOG_NAMELEN_MAX) {
+            printf("name too long.\r\n");
+            return;
+        }
         if (name_buf[0] != 0) {
-            if (0 == strcmp(name_buf, info->name)) {
-                continue;
+            if (0 == strcmp(name_buf, info_c->name)) {
+#if BLOG_DUMP_DEDUPLICATE
+              continue;
+#endif              
             } else {
                 memset(name_buf, 0, strlen(name_buf));
             }
         }
-
-        name_len = strlen(info->name);
-        if (name_len >= BLOG_NAMELEN_MAX) {
-            printf("name too long.\r\n");
-            return;
+        
+        printf("[%-48s] = [%d]\r\n", info_c->name, *(info_c->level));
+        
+        if ((name_buf[0] != 0) && (strcmp(info_c->name, name_buf) == 0)) {
+            continue;
         }
-        memcpy(name_buf, info->name, name_len);
-#endif
-        printf("[%-48s] = [%d]\r\n", info->name, *(info->level));
-    }
+        strcpy(name_buf, info_c->name);
 
-    for ( info = (blog_info_t *)&_ld_bl_static_blogfile_code_start;
-          (uint32_t)info < (uint32_t)&_ld_bl_static_blogfile_code_end; info++ ) {
-        printf("[%-48s] = [%d]\r\n", info->name, *(info->level));
-    }
+        for (info_f = (blog_info_t *)&_ld_bl_static_blogfile_code_start;
+            (uint32_t)info_f < (uint32_t)&_ld_bl_static_blogfile_code_end; info_f++) {
 
-    for ( info = (blog_info_t *)&_ld_bl_static_blogpri_code_start;
-          (uint32_t)info < (uint32_t)&_ld_bl_static_blogpri_code_end; info++ ) {
-        printf("[%-48s] = [%d]\r\n", info->name, *(info->level));
+            if (strstr(info_f->name, info_c->name) == info_f->name) {
+
+                printf("[%-48s] = [%d]\r\n", info_f->name, *(info_f->level));
+
+                for (info_p = (blog_info_t *)&_ld_bl_static_blogpri_code_start;
+                    (uint32_t)info_p < (uint32_t)&_ld_bl_static_blogpri_code_end; info_p++) {
+
+                    if (strstr(info_p->name, info_f->name) == info_p->name) {
+                        printf("[%-48s] = [%d]\r\n", info_p->name, *(info_p->level));
+                    }
+                }
+            }
+        }
     }
 }
 

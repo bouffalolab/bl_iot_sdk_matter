@@ -40,6 +40,35 @@ bl602_start:
 	bltu a1, a2, 1b
 2:
 
+#ifndef RUN_IN_RAM
+	/* Load boot2 partition address */
+	la a0, __boot2_pt_addr_src
+	la a1, __boot2_pt_addr_start
+	la a2, __boot2_pt_addr_end
+	bgeu a1, a2, 2f
+1:
+	lw t0, (a0)
+	sw t0, (a1)
+	addi a0, a0, 4
+	addi a1, a1, 4
+	bltu a1, a2, 1b
+2:
+
+
+	/* Load boot2 flashCfg address */
+	la a0, __boot2_flashCfg_src
+	la a1, __boot2_flashCfg_start
+	la a2, __boot2_flashCfg_end
+	bgeu a1, a2, 2f
+1:
+	lw t0, (a0)
+	sw t0, (a1)
+	addi a0, a0, 4
+	addi a1, a1, 4
+	bltu a1, a2, 1b
+2:
+#endif
+
 	/* Clear bss section */
 	la a0, __bss_start
 	la a1, __bss_end

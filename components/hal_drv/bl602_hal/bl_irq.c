@@ -4,12 +4,8 @@
 #include <bl602.h>
 
 #include <clic.h>
+#include <blog.h>
 #include "bl_irq.h"
-
-/*Fixmed Currently we pu all the UART0_IRQHandler here*/
-void UART0_IRQHandler(void);
-void UART1_IRQHandler(void);
-void sec_trng_IRQHandler(void);
 
 void bl_irq_enable(unsigned int source)
 {
@@ -75,30 +71,48 @@ void bl_irq_default(void)
     }
 }
 
-/*XXX
- *
- * Use default IRQ handler by default
- * 
- * */
-void mac_irq(void)          __attribute__((weak, alias ("bl_irq_default")));
-void rwble_isr(void)        __attribute__((weak, alias ("bl_irq_default")));
-void bl_irq_handler(void)   __attribute__((weak, alias ("bl_irq_default")));
+//XXX magic number used here
+static void (*handler_list[16 + 64])(void) = {
+
+};
+
+static inline void _irq_num_check(int irqnum)
+{
+    if (irqnum < 0 || irqnum >= sizeof(handler_list)/sizeof(handler_list[0])) {
+        blog_error("illegal irqnum %d\r\n", irqnum);
+        while (1) {
+            /*Deap loop here, TODO ass blog_assert*/
+        }
+    }
+}
+
+void bl_irq_register(int irqnum, void *handler)
+{
+    _irq_num_check(irqnum);
+    if (handler_list[irqnum] && handler_list[irqnum] != handler) {
+        blog_warn("IRQ %d already registered with %p\r\n",
+            irqnum,
+            handler_list[irqnum]
+        );
+    }
+    handler_list[irqnum] = handler;
+}
+
+void bl_irq_unregister(int irqnum, void *handler)
+{
+    _irq_num_check(irqnum);
+    if (handler_list[irqnum] != handler) {
+        blog_warn("IRQ %d:%p Not match with registered %p\r\n",
+            irqnum,
+            handler,
+            handler_list[irqnum]
+        );
+    }
+    handler_list[irqnum] = handler;
+}
 
 void interrupt_entry(uint32_t mcause) 
 {
-    //XXX magic number used here
-    static void (*handler_list[16 + 64])(void) = {
-        [UART0_IRQn]            = UART0_IRQHandler,
-        [UART1_IRQn]            = UART1_IRQHandler,
-        [SEC_PKA_IRQn]          = bl_sec_pka_IRQHandler,
-        [SEC_TRNG_IRQn]         = sec_trng_IRQHandler,
-        [SEC_AES_IRQn]          = bl_sec_aes_IRQHandler,
-        [SEC_SHA_IRQn]          = bl_sec_sha_IRQHandler,
-        [DMA_ALL_IRQn]          = bl_dma_IRQHandler,
-        [WIFI_IRQn]             = mac_irq,
-        [WIFI_IPC_PUBLIC_IRQn]  = bl_irq_handler,
-        [BLE_IRQn]              = rwble_isr, //FIXME rename rwble_isr
-    };
     void (*handler)(void) = NULL;
 
     mcause &= 0x7FFFFFF;

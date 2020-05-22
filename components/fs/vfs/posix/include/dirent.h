@@ -7,7 +7,6 @@
 #ifndef __INC_DIRENT_H__
 #define __INC_DIRENT_H__
 
-#include <k_api.h>
 #include <vfs.h>
 #include <stdio.h>
 #include <vfs_inode.h>

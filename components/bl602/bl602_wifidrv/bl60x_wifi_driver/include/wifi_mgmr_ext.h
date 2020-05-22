@@ -22,6 +22,16 @@ typedef struct wifi_mgmr_sta_connect_ind_stat_info {
     uint8_t chan_band;
 } wifi_mgmr_sta_connect_ind_stat_info_t;
 
+typedef struct wifi_sta_basic_info {
+    uint8_t sta_idx;
+    uint8_t is_used;
+    uint8_t sta_mac[6];
+    uint32_t tsfhi;
+    uint32_t tsflo;
+    int rssi;
+    uint8_t data_rate;
+} wifi_sta_basic_info_t;
+
 typedef void *wifi_interface_t;
 typedef void (*sniffer_cb_t)(void *env, uint8_t *pkt, int len);
 typedef void (*scan_item_cb_t)(wifi_mgmr_ap_item_t *env, uint32_t *param1, wifi_mgmr_ap_item_t *item);
@@ -84,6 +94,10 @@ int wifi_mgmr_ap_mac_get(uint8_t mac[6]);
 int wifi_mgmr_ap_ip_get(uint32_t *ip, uint32_t *gw, uint32_t *mask);
 int wifi_mgmr_ap_stop(wifi_interface_t *interface);
 int wifi_mgmr_ap_start(wifi_interface_t *interface, char *ssid, int md, char *passwd, int channel);
+int wifi_mgmr_ap_sta_cnt_get(uint8_t *sta_cnt);
+int wifi_mgmr_ap_sta_info_get(struct wifi_sta_basic_info *sta_info, uint8_t idx);
+int wifi_mgmr_ap_sta_delete(uint8_t sta_idx);
+int wifi_mgmr_ap_set_gateway(char *gateway);
 int wifi_mgmr_sniffer_enable(void);
 int wifi_mgmr_sniffer_disable(void);
 int wifi_mgmr_rate_config(uint16_t config);

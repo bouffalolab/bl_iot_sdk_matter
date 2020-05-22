@@ -16,8 +16,11 @@
 //TODO use header file from project
 #define FW_XIP_ADDRESS                  (0x23000000)
 
-static PtTable_Stuff_Config partition_table;
-static uint8_t partition_active_idx;
+static struct {
+    uint8_t partition_active_idx;
+    uint8_t pad[3];
+    PtTable_Stuff_Config table;
+} boot2_partition_table;//XXX Dont change the name of varaible, since we refer this boot2_partition_table in linker script
 
 void hal_boot2_set_ptable_opt(HALpPtTable_Flash_Erase erase, HALpPtTable_Flash_Write write)
 {
@@ -32,13 +35,14 @@ int hal_boot2_update_ptable(HALPartition_Entry_Config *ptEntry_hal)
 
     ptEntry->activeIndex = !ptEntry->activeIndex;
     (ptEntry->age)++;
-    ret = PtTable_Update_Entry(NULL,!partition_active_idx, &partition_table, ptEntry);
+    ret = PtTable_Update_Entry(NULL,!boot2_partition_table.partition_active_idx, &boot2_partition_table.table, ptEntry);
     return ret;
 }
 
-static void _dump_partition(PtTable_Stuff_Config *part)
+static void _dump_partition(void)
 {
     int i;
+    PtTable_Stuff_Config *part = &boot2_partition_table.table;
 
     printf("======= PtTable_Config @%p=======\r\n", part);
     printf("magicCode 0x%08X;", (unsigned int)(part->ptTable.magicCode));
@@ -67,47 +71,47 @@ int hal_boot2_partition_bus_addr(const char *name, uint32_t *addr0, uint32_t *ad
     int i;
     uint32_t addr0_t, addr1_t;
 
-    if (PARTITION_MAGIC != partition_table.ptTable.magicCode) {
+    if (PARTITION_MAGIC != boot2_partition_table.table.ptTable.magicCode) {
         return -EIO;
     }
 
     /*Get Target partition*/
-    for (i = 0; i < partition_table.ptTable.entryCnt; i++) {
-        if (0 == strcmp((char *)&(partition_table.ptEntries[i].name[0]), name)) {
+    for (i = 0; i < boot2_partition_table.table.ptTable.entryCnt; i++) {
+        if (0 == strcmp((char *)&(boot2_partition_table.table.ptEntries[i].name[0]), name)) {
             break;
         }
     }
-    if (partition_table.ptTable.entryCnt == i) {
+    if (boot2_partition_table.table.ptTable.entryCnt == i) {
         return -ENOENT;
     }
-    addr0_t = partition_table.ptEntries[i].Address[0];
-    addr1_t = partition_table.ptEntries[i].Address[1];
-    *active = partition_table.ptEntries[i].activeIndex;
-    *size0 = partition_table.ptEntries[i].maxLen[0];
-    *size1 = partition_table.ptEntries[i].maxLen[1];
+    addr0_t = boot2_partition_table.table.ptEntries[i].Address[0];
+    addr1_t = boot2_partition_table.table.ptEntries[i].Address[1];
+    *active = boot2_partition_table.table.ptEntries[i].activeIndex;
+    *size0 = boot2_partition_table.table.ptEntries[i].maxLen[0];
+    *size1 = boot2_partition_table.table.ptEntries[i].maxLen[1];
 
     /*cal partition address*/
-    for (i = 0; i < partition_table.ptTable.entryCnt; i++) {
-        if (0 == strcmp((char *)&(partition_table.ptEntries[i].name[0]), PARTITION_FW_PART_NAME)) {
+    for (i = 0; i < boot2_partition_table.table.ptTable.entryCnt; i++) {
+        if (0 == strcmp((char *)&(boot2_partition_table.table.ptEntries[i].name[0]), PARTITION_FW_PART_NAME)) {
             break;
         }
     }
-    if (partition_table.ptTable.entryCnt == i) {
+    if (boot2_partition_table.table.ptTable.entryCnt == i) {
         return -ECANCELED;
     }
     /*Make sure target partition is after FW partition*/
-    if ( (addr0_t && (addr0_t < partition_table.ptEntries[i].Address[0])) ||
-         (addr0_t && (addr0_t < partition_table.ptEntries[i].Address[1])) ||
-         (addr1_t && (addr1_t < partition_table.ptEntries[i].Address[0])) ||
-         (addr1_t && (addr1_t < partition_table.ptEntries[i].Address[1]))) {
+    if ( (addr0_t && (addr0_t < boot2_partition_table.table.ptEntries[i].Address[0])) ||
+         (addr0_t && (addr0_t < boot2_partition_table.table.ptEntries[i].Address[1])) ||
+         (addr1_t && (addr1_t < boot2_partition_table.table.ptEntries[i].Address[0])) ||
+         (addr1_t && (addr1_t < boot2_partition_table.table.ptEntries[i].Address[1]))) {
         return -EINVAL;
     }
-    if ((0 != partition_table.ptEntries[i].activeIndex) &&
-        (1 != partition_table.ptEntries[i].activeIndex)) {
+    if ((0 != boot2_partition_table.table.ptEntries[i].activeIndex) &&
+        (1 != boot2_partition_table.table.ptEntries[i].activeIndex)) {
         return -EFAULT;
     }
-    *addr0 = addr0_t - partition_table.ptEntries[i].Address[partition_table.ptEntries[i].activeIndex] - PARTITION_FW_PART_HEADER_SIZE + FW_XIP_ADDRESS;
-    *addr1 = addr1_t - partition_table.ptEntries[i].Address[partition_table.ptEntries[i].activeIndex] - PARTITION_FW_PART_HEADER_SIZE + FW_XIP_ADDRESS;
+    *addr0 = addr0_t - boot2_partition_table.table.ptEntries[i].Address[boot2_partition_table.table.ptEntries[i].activeIndex] - PARTITION_FW_PART_HEADER_SIZE + FW_XIP_ADDRESS;
+    *addr1 = addr1_t - boot2_partition_table.table.ptEntries[i].Address[boot2_partition_table.table.ptEntries[i].activeIndex] - PARTITION_FW_PART_HEADER_SIZE + FW_XIP_ADDRESS;
 
     return 0;
 }
@@ -146,24 +150,24 @@ int hal_boot2_partition_addr(const char *name, uint32_t *addr0, uint32_t *addr1,
 {
     int i;
 
-    if (PARTITION_MAGIC != partition_table.ptTable.magicCode) {
+    if (PARTITION_MAGIC != boot2_partition_table.table.ptTable.magicCode) {
         return -EIO;
     }
 
     /*Get Target partition*/
-    for (i = 0; i < partition_table.ptTable.entryCnt; i++) {
-        if (0 == strcmp((char *)&(partition_table.ptEntries[i].name[0]), name)) {
+    for (i = 0; i < boot2_partition_table.table.ptTable.entryCnt; i++) {
+        if (0 == strcmp((char *)&(boot2_partition_table.table.ptEntries[i].name[0]), name)) {
             break;
         }
     }
-    if (partition_table.ptTable.entryCnt == i) {
+    if (boot2_partition_table.table.ptTable.entryCnt == i) {
         return -ENOENT;
     }
-    *addr0 = partition_table.ptEntries[i].Address[0];
-    *addr1 = partition_table.ptEntries[i].Address[1];
-    *size0 = partition_table.ptEntries[i].maxLen[0];
-    *size1 = partition_table.ptEntries[i].maxLen[1];
-    *active = partition_table.ptEntries[i].activeIndex;
+    *addr0 = boot2_partition_table.table.ptEntries[i].Address[0];
+    *addr1 = boot2_partition_table.table.ptEntries[i].Address[1];
+    *size0 = boot2_partition_table.table.ptEntries[i].maxLen[0];
+    *size1 = boot2_partition_table.table.ptEntries[i].maxLen[1];
+    *active = boot2_partition_table.table.ptEntries[i].activeIndex;
 
     return 0;
 }
@@ -200,13 +204,13 @@ int hal_boot2_partition_addr_inactive(const char *name, uint32_t *addr, uint32_t
 
 uint8_t hal_boot2_get_active_partition(void)
 {
-    return partition_active_idx;
+    return boot2_partition_table.partition_active_idx;
 }
 
 int hal_boot2_get_active_entries(int type, HALPartition_Entry_Config *ptEntry_hal)
 {
     PtTable_Entry_Config *ptEntry = (PtTable_Entry_Config*)ptEntry_hal;
-    if (PtTable_Get_Active_Entries(&partition_table, type, ptEntry)) {
+    if (PtTable_Get_Active_Entries(&boot2_partition_table.table, type, ptEntry)) {
         return -1;
     }
     return 0;
@@ -214,24 +218,20 @@ int hal_boot2_get_active_entries(int type, HALPartition_Entry_Config *ptEntry_ha
 
 int hal_boot2_dump(void)
 {
-    _dump_partition(&partition_table);
+    _dump_partition();
     return 0;
 }
 
 int hal_boot2_init(void)
 {
-    PtTable_Stuff_Config *part_ram = (PtTable_Stuff_Config*)PARTITION_HEADER_BOOT2_RAM_ADDR;
-    partition_active_idx = *(uint8_t*)PARTITION_BOOT2_RAM_ADDR_ACTIVE;
-
-    _dump_partition(part_ram);
+    boot2_partition_table.partition_active_idx = *(uint8_t*)PARTITION_BOOT2_RAM_ADDR_ACTIVE;
 
     printf("[HAL] [BOOT2] Active Partition[%u] consumed %d Bytes\r\n",
-            partition_active_idx,
+            boot2_partition_table.partition_active_idx,
             sizeof(PtTable_Stuff_Config)
     );
-    partition_table = *part_ram;
-    _dump_partition(&partition_table);
-    bl_flash_config_update((void*)PARTITION_BOOT2_FLASH_HEADER);
+    _dump_partition();
+    bl_flash_config_update();
 
     return 0;
 }

@@ -60,6 +60,7 @@ void sha256_test_case0(void)
     };
 
 
+    bl_irq_register(SEC_SHA_IRQn, bl_sec_sha_IRQHandler);
     bl_irq_enable(SEC_SHA_IRQn);
 
     Sec_Eng_SHA_Enable_Link(shaId);

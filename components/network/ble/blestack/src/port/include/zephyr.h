@@ -15,12 +15,13 @@ extern "C"
 #endif
 
 #define _STRINGIFY(x) #x
-
+#if 0
 #define ___in_section(a, b, c) \
     __attribute__((section("." _STRINGIFY(a)            \
                            "." _STRINGIFY(b)           \
                            "." _STRINGIFY(c))))
 
+#endif
 #define ARG_UNUSED(x) (void)(x)
 
 #ifndef __aligned
@@ -132,7 +133,7 @@ struct k_poll_signal {
         { .obj = event_obj }, \
         }
 
-extern int k_poll_signal(struct k_poll_signal *signal, int result);
+extern int k_poll_signal_raise(struct k_poll_signal *signal, int result);
 extern int k_poll(struct k_poll_event *events, int num_events, s32_t timeout);
 extern void k_poll_event_init(struct k_poll_event *event, u32_t type, int mode, void *obj);
 

@@ -20,17 +20,6 @@ typedef struct _bl_wifi_env {
 bl_wifi_env_t wifi_env;
 
 
-static int wifi_mac_addr_is_vaild(uint8_t mac[6])
-{
-    uint8_t mac_idx = 0;
-    for (mac_idx = 0; mac_idx < 6; ++mac_idx) {
-        if (mac[mac_idx] != 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 int bl_wifi_clock_enable(void)
 {
     static int called = 0;
@@ -42,8 +31,13 @@ int bl_wifi_clock_enable(void)
     return 0;
 }
 
+void mac_irq(void);
+void bl_irq_handler(void);
+
 int bl_wifi_enable_irq(void)
 {
+    bl_irq_register(WIFI_IRQn, mac_irq);
+    bl_irq_register(WIFI_IPC_PUBLIC_IRQn, bl_irq_handler);
     bl_irq_enable(WIFI_IRQn);
     bl_irq_enable(WIFI_IPC_PUBLIC_IRQn);
 
@@ -81,36 +75,8 @@ int bl_wifi_mac_addr_set(uint8_t mac[6])
 
 int bl_wifi_mac_addr_get(uint8_t mac[6])
 {
-    static int init = 0;
-
-    /*Use mac provided by user API as first priority*/
-    if (wifi_mac_addr_is_vaild(wifi_env.sta_mac_addr_usr)) {
-        if (0 == init) {
-            init = 1;
-            puts("[MAC from user]");
-        }
-        memcpy(mac, wifi_env.sta_mac_addr_usr, 6);
-        return 0;
-    }
-    /*efuse mac address as second priority*/
-    bl_efuse_read_mac(mac);
-    if (wifi_mac_addr_is_vaild(mac)) {
-        if (0 == init) {
-            init = 1;
-            puts("[MAC from EFUSE]");
-        }
-        return 0;
-    }
-    /*board mac address as third priority*/
-    if (wifi_mac_addr_is_vaild(wifi_env.sta_mac_addr_board)) {
-        memcpy(mac, wifi_env.sta_mac_addr_board, 6);
-        if (0 == init) {
-            init = 1;
-            puts("[MAC from Flash]");
-        }
-        return 0;
-    }
-    return -1;
+    memcpy(mac, wifi_env.sta_mac_addr_board, 6);
+    return 0;
 }
 
 

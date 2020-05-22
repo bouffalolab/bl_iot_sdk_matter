@@ -12,6 +12,8 @@ MEMORY
 SECTIONS
 {
   __stack_size = DEFINED(__stack_size) ? __stack_size : 2K;
+  BOOT2_PT_ADDR = 0x42049C00;
+  BOOT2_FLASHCFG_ADDR = 0x42049d14;
 
   .init           :
   {
@@ -90,7 +92,32 @@ SECTIONS
     *(.srodata.cst4)
     *(.srodata.cst2)
     *(.srodata .srodata.*)
+    
+    . = ALIGN(8);
+    *(._k_queue.static.*)
+    *(._k_sem.static.*)
+    *(._k_mutex.static.*)
+    _net_buf_pool_list = .;
+    KEEP(*(SORT_BY_NAME("._net_buf_pool.static.*")))
+    _bt_gatt_service_static_list_start = .;
+    KEEP(*(SORT_BY_NAME("._bt_gatt_service_static.static.*")))
+    _bt_gatt_service_static_list_end = .;
+    _bt_l2cap_fixed_chan_list_start = .;
+    KEEP(*(SORT_BY_NAME("._bt_l2cap_fixed_chan.static.*")))
+    _bt_l2cap_fixed_chan_list_end = .;
   } > ram_tcm AT > flash
+
+  .boot2 (NOLOAD) :
+  {
+      PROVIDE ( __boot2_pt_addr_start = . );
+      *(.bss.boot2_partition_table)
+      PROVIDE ( __boot2_pt_addr_end   = . );
+
+      PROVIDE ( __boot2_flashCfg_start = . );
+      *(.bss.boot2_flashCfg)
+      PROVIDE ( __boot2_flashCfg_end = . );
+
+  } > ram_tcm
 
   .bss (NOLOAD)   :
   {
@@ -125,4 +152,8 @@ SECTIONS
   PROVIDE( _ld_ram_addr1 = ORIGIN(ram_tcm) );
   PROVIDE( _ld_ram_size2 = LENGTH(ram_wifi) );
   PROVIDE( _ld_ram_addr2 = ORIGIN(ram_wifi) );
+
+  /*BOOT2 sections*/
+  PROVIDE ( __boot2_pt_addr_src = BOOT2_PT_ADDR );
+  PROVIDE ( __boot2_flashCfg_src = BOOT2_FLASHCFG_ADDR ); 
 }

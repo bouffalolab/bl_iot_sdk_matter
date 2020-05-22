@@ -316,6 +316,89 @@ int bl_main_apm_stop(uint8_t vif_index)
     return error;
 }
 
+int bl_main_apm_sta_cnt_get(uint8_t *sta_cnt)
+{
+    struct bl_hw *bl_hw = &wifi_hw;
+    uint8_t cnt = 0, i;
+    struct bl_sta *sta;
+    uint8_t total_sta_cnt = sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0]);
+
+    for (i = 0; i < total_sta_cnt; i++) {
+        sta = &(bl_hw->sta_table[i]);
+        if (0 == sta->is_used) {
+            /*empty entry*/
+            continue;
+        }
+        cnt++;
+    }
+    (*sta_cnt) = total_sta_cnt;
+    printf("Max limit sta cnt = %u, valid sta cnt = %u\r\n", total_sta_cnt, cnt);
+    return 0;
+}
+
+int bl_main_apm_sta_info_get(struct wifi_apm_sta_info *apm_sta_info, uint8_t idx)
+{
+    struct bl_hw *bl_hw = &wifi_hw;
+    struct bl_sta *sta;
+
+    sta = &(bl_hw->sta_table[idx]);
+    if (0 == sta->is_used) {
+        /*empty entry*/
+        return 0;
+    }
+    apm_sta_info->sta_idx = sta->sta_idx;
+    apm_sta_info->is_used = sta->is_used;
+    apm_sta_info->rssi = sta->rssi;
+    apm_sta_info->tsflo = sta->tsflo;
+    apm_sta_info->tsfhi = sta->tsfhi;
+    apm_sta_info->data_rate = sta->data_rate;
+    memcpy(apm_sta_info->sta_mac, sta->sta_addr.array, 6);
+
+    return 0;
+}
+
+int bl_main_apm_sta_delete(uint8_t sta_idx)
+{
+    struct bl_hw *bl_hw = &wifi_hw;
+    struct bl_sta *sta;
+    struct apm_sta_del_cfm sta_del_cfm;
+    uint8_t vif_idx = 0;
+
+    sta = &(bl_hw->sta_table[sta_idx]);
+    if (sta == NULL)
+        return -1;
+
+    memset(&sta_del_cfm, 0, sizeof(struct apm_sta_del_cfm));
+    vif_idx = sta->vif_idx;
+    os_printf("[WF] APM_STA_DEL_REQ: sta_idx = %u, vif_idx = %u\r\n", sta_idx, vif_idx);
+
+    bl_send_apm_sta_del_req(bl_hw, &sta_del_cfm, sta_idx, vif_idx);
+    if (sta_del_cfm.status != 0) {
+        printf("del sta failure, cfm status = 0x%x\r\n", sta_del_cfm.status);
+        return -1;
+    }
+
+    memset(sta, 0, sizeof(struct bl_sta));
+    return 0;
+}
+
+int bl_main_apm_remove_all_sta()
+{
+    struct bl_hw *bl_hw = &wifi_hw;
+    struct bl_sta *sta;
+    uint8_t total_sta_cnt = sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0]);
+    uint8_t i;
+
+    for (i = 0; i < total_sta_cnt; i++) {
+        sta = &(bl_hw->sta_table[i]);
+        if (1 == sta->is_used) {
+            printf("del sta[%u]\r\n", i);
+            bl_main_apm_sta_delete(i);
+        }
+    }
+    return 0;
+}
+
 int bl_main_scan()
 {
     bl_send_scanu_req(&wifi_hw);

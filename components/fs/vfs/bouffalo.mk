@@ -1,7 +1,7 @@
 # Component Makefile
 #
 ## These include paths would be exported to project level
-COMPONENT_ADD_INCLUDEDIRS +=
+COMPONENT_ADD_INCLUDEDIRS += posix/include
 
 ## not be exported to project level
 COMPONENT_PRIV_INCLUDEDIRS :=

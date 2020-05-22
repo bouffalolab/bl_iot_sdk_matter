@@ -164,16 +164,16 @@ struct bt_l2cap_le_conn_req {
 } __packed;
 
 /* valid results in conn response on LE */
-#define BT_L2CAP_SUCCESS		0x0000
-#define BT_L2CAP_ERR_PSM_NOT_SUPP	0x0002
-#define BT_L2CAP_ERR_NO_RESOURCES	0x0004
-#define BT_L2CAP_ERR_AUTHENTICATION	0x0005
-#define BT_L2CAP_ERR_AUTHORIZATION	0x0006
-#define BT_L2CAP_ERR_KEY_SIZE		0x0007
-#define BT_L2CAP_ERR_ENCRYPTION		0x0008
-#define BT_L2CAP_ERR_INVALID_SCID	0x0009
-#define BT_L2CAP_ERR_SCID_IN_USE	0x000A
-#define BT_L2CAP_ERR_UNACCEPT_PARAMS	0x000B
+#define BT_L2CAP_LE_SUCCESS		0x0000
+#define BT_L2CAP_LE_ERR_PSM_NOT_SUPP	0x0002
+#define BT_L2CAP_LE_ERR_NO_RESOURCES	0x0004
+#define BT_L2CAP_LE_ERR_AUTHENTICATION	0x0005
+#define BT_L2CAP_LE_ERR_AUTHORIZATION	0x0006
+#define BT_L2CAP_LE_ERR_KEY_SIZE	0x0007
+#define BT_L2CAP_LE_ERR_ENCRYPTION	0x0008
+#define BT_L2CAP_LE_ERR_INVALID_SCID	0x0009
+#define BT_L2CAP_LE_ERR_SCID_IN_USE	0x000A
+#define BT_L2CAP_LE_ERR_UNACCEPT_PARAMS	0x000B
 
 #define BT_L2CAP_LE_CONN_RSP		0x15
 struct bt_l2cap_le_conn_rsp {
@@ -205,6 +205,25 @@ struct bt_l2cap_fixed_chan {
 	sys_snode_t	node;
 };
 
+#define BT_L2CAP_CHANNEL_DEFINE(_name, _cid, _accept)		\
+	const Z_STRUCT_SECTION_ITERABLE(bt_l2cap_fixed_chan, _name) = { \
+				.cid = _cid,			\
+				.accept = _accept,		\
+			}
+
+/* Need a name different than bt_l2cap_fixed_chan for a different section */
+struct bt_l2cap_br_fixed_chan {
+	u16_t		cid;
+	int (*accept)(struct bt_conn *conn, struct bt_l2cap_chan **chan);
+};
+
+#define BT_L2CAP_BR_CHANNEL_DEFINE(_name, _cid, _accept)		\
+	const Z_STRUCT_SECTION_ITERABLE(bt_l2cap_br_fixed_chan, _name) = { \
+				.cid = _cid,			\
+				.accept = _accept,		\
+			}
+
+void l2cap_chan_sdu_sent(struct bt_conn *conn, void *user_data);
 /* Register a fixed L2CAP channel for L2CAP */
 void bt_l2cap_le_fixed_chan_register(struct bt_l2cap_fixed_chan *chan);
 
@@ -244,19 +263,30 @@ void bt_l2cap_chan_set_state(struct bt_l2cap_chan *chan,
 void bt_l2cap_encrypt_change(struct bt_conn *conn, u8_t hci_status);
 
 /* Prepare an L2CAP PDU to be sent over a connection */
-struct net_buf *bt_l2cap_create_pdu(struct net_buf_pool *pool, size_t reserve);
+struct net_buf *bt_l2cap_create_pdu_timeout(struct net_buf_pool *pool,
+					    size_t reserve, s32_t timeout);
+
+#define bt_l2cap_create_pdu(_pool, _reserve) \
+	bt_l2cap_create_pdu_timeout(_pool, _reserve, K_FOREVER)
 
 /* Prepare a L2CAP Response PDU to be sent over a connection */
 struct net_buf *bt_l2cap_create_rsp(struct net_buf *buf, size_t reserve);
 
-/* Send L2CAP PDU over a connection */
-void bt_l2cap_send_cb(struct bt_conn *conn, u16_t cid, struct net_buf *buf,
-		      bt_conn_tx_cb_t cb);
+/* Send L2CAP PDU over a connection
+ *
+ * Buffer ownership is transferred to stack so either in case of success
+ * or error the buffer will be unref internally.
+ *
+ * Calling this from RX thread is assumed to never fail so the return can be
+ * ignored.
+ */
+int bt_l2cap_send_cb(struct bt_conn *conn, u16_t cid, struct net_buf *buf,
+		     bt_conn_tx_cb_t cb, void *user_data);
 
 static inline void bt_l2cap_send(struct bt_conn *conn, u16_t cid,
 				 struct net_buf *buf)
 {
-	bt_l2cap_send_cb(conn, cid, buf, NULL);
+	bt_l2cap_send_cb(conn, cid, buf, NULL, NULL);
 }
 
 /* Receive a new L2CAP PDU from a connection */

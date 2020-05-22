@@ -57,8 +57,10 @@
 #include "constants.h"
 #include "ecc.h"
 #include "ecc_dh.h"
+#if defined(BFLB_BLE)
+#include "utils.h"
+#endif
 #include <string.h>
-#include "ecc_platform_specific.h"
 
 #if default_RNG_defined
 static uECC_RNG_Function g_rng_function = &default_CSPRNG;
@@ -93,7 +95,7 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 				       _public + curve->num_words);
 
 		/* erasing temporary buffer used to store secret: */
-		memset(_private, 0, NUM_ECC_BYTES);
+		_set_secure(_private, 0, NUM_ECC_BYTES);
 
 		return 1;
 	}
@@ -134,7 +136,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 					       _public + curve->num_words);
 
 			/* erasing temporary buffer that stored secret: */
-			memset(_private, 0, NUM_ECC_BYTES);
+			_set_secure(_private, 0, NUM_ECC_BYTES);
 
       			return 1;
     		}
@@ -190,12 +192,9 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	memset(p2, 0, sizeof(p2));
-	/*__asm volatile("" :: "g"(p2) : "memory");*/
-	memset(tmp, 0, sizeof(tmp));
-	/*__asm volatile("" :: "g"(tmp) : "memory");*/
-	memset(_private, 0, sizeof(_private));
-	/*__asm volatile("" :: "g"(_private) : "memory");*/
+	_set_secure(p2, 0, sizeof(p2));
+	_set_secure(tmp, 0, sizeof(tmp));
+	_set_secure(_private, 0, sizeof(_private));
 
 	return r;
 }

@@ -171,6 +171,16 @@ typedef struct wifi_mgmr_connect_ind_stat_info {
     uint8_t chan_band;
 } wifi_mgmr_connect_ind_stat_info_t;
 
+typedef struct wifi_mgmr_sta_basic_info {
+    uint8_t  sta_idx;
+    uint8_t  is_used;;
+    uint8_t  sta_mac[6];
+    uint32_t tsfhi;
+    uint32_t tsflo;
+    int      rssi;
+    uint8_t  data_rate;
+} wifi_mgmr_sta_basic_info_t;
+
 typedef struct wifi_mgmr {
     uint8_t ready;//TODO mgmr init process
     /*filed for PHY*/
@@ -194,6 +204,9 @@ typedef struct wifi_mgmr {
 
 int wifi_mgmr_event_notify(wifi_mgmr_msg_t *msg);
 int wifi_mgmr_state_get_internal(int *state);
+int wifi_mgmr_ap_sta_cnt_get_internal(uint8_t *sta_cnt);
+int wifi_mgmr_ap_sta_info_get_internal(wifi_mgmr_sta_basic_info_t *sta_info_internal, uint8_t idx);
+int wifi_mgmr_ap_sta_delete_internal(uint8_t sta_idx);
 int wifi_mgmr_scan_complete_notify();
 extern wifi_mgmr_t wifiMgmr;
 #endif

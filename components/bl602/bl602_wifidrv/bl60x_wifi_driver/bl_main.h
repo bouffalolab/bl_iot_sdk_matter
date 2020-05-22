@@ -11,6 +11,17 @@
 #include <stdint.h>
 #include <lwip/netif.h>
 
+struct wifi_apm_sta_info
+{
+    uint8_t  sta_idx;
+    uint8_t  is_used;
+    uint8_t  sta_mac[6];
+    uint32_t tsfhi;
+    uint32_t tsflo;
+    int      rssi;
+    uint8_t  data_rate;
+};
+
 int bl_main_powersaving(int mode);
 int bl_main_disconnect(void);
 int bl_main_phy_up(void);
@@ -23,6 +34,10 @@ int bl_main_monitor(void);
 int bl_main_connect(const uint8_t* ssid, int ssid_len, const uint8_t *psk, int psk_len, const uint8_t *pmk, int pmk_len, const uint8_t *mac, const uint8_t band, const uint16_t freq);
 int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index);
 int bl_main_apm_stop(uint8_t vif_index);
+int bl_main_apm_sta_cnt_get(uint8_t *sta_cnt);
+int bl_main_apm_sta_info_get(struct wifi_apm_sta_info *apm_sta_info, uint8_t idx);
+int bl_main_apm_sta_delete(uint8_t sta_idx);
+int bl_main_apm_remove_all_sta();
 int bl_main_scan(void);
 int bl_main_raw_send(uint8_t *pkt , int len);
 

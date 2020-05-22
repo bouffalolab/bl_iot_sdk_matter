@@ -236,13 +236,22 @@ struct bt_att_signed_write_cmd {
 	u8_t  value[0];
 } __packed;
 
+void att_pdu_sent(struct bt_conn *conn, void *user_data);
+
+void att_cfm_sent(struct bt_conn *conn, void *user_data);
+
+void att_rsp_sent(struct bt_conn *conn, void *user_data);
+
+void att_req_sent(struct bt_conn *conn, void *user_data);
+
 void bt_att_init(void);
 u16_t bt_att_get_mtu(struct bt_conn *conn);
 struct net_buf *bt_att_create_pdu(struct bt_conn *conn, u8_t op,
 				  size_t len);
 
 /* Send ATT PDU over a connection */
-int bt_att_send(struct bt_conn *conn, struct net_buf *buf);
+int bt_att_send(struct bt_conn *conn, struct net_buf *buf, bt_conn_tx_cb_t cb,
+		void *user_data);
 
 /* Send ATT Request over a connection */
 int bt_att_req_send(struct bt_conn *conn, struct bt_att_req *req);

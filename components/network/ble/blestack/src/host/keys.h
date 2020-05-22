@@ -24,6 +24,7 @@ enum {
 	BT_KEYS_DEBUG           = BIT(1),
 	BT_KEYS_ID_PENDING_ADD  = BIT(2),
 	BT_KEYS_ID_PENDING_DEL  = BIT(3),
+	BT_KEYS_SC              = BIT(4),
 };
 
 struct bt_ltk {
@@ -57,9 +58,12 @@ struct bt_keys {
 	struct bt_csrk		local_csrk;
 	struct bt_csrk		remote_csrk;
 #endif /* BT_SIGNING */
-#if !defined(CONFIG_BT_SMP_SC_ONLY)
+#if !defined(CONFIG_BT_SMP_SC_PAIR_ONLY)
 	struct bt_ltk		slave_ltk;
-#endif /* CONFIG_BT_SMP_SC_ONLY */
+#endif /* CONFIG_BT_SMP_SC_PAIR_ONLY */
+#if (defined(CONFIG_BT_KEYS_OVERWRITE_OLDEST))
+	u32_t			aging_counter;
+#endif /* CONFIG_BT_KEYS_OVERWRITE_OLDEST */
 };
 
 #if !defined(BFLB_BLE)
@@ -109,3 +113,8 @@ struct bt_keys_link_key *bt_keys_get_link_key(const bt_addr_t *addr);
 struct bt_keys_link_key *bt_keys_find_link_key(const bt_addr_t *addr);
 void bt_keys_link_key_clear(struct bt_keys_link_key *link_key);
 void bt_keys_link_key_clear_addr(const bt_addr_t *addr);
+
+/* This function is used to signal that the key has been used for paring */
+/* It updates the aging counter and saves it to flash if configuration option */
+/* BT_KEYS_SAVE_AGING_COUNTER_ON_PAIRING is enabled */
+void bt_keys_update_usage(u8_t id, const bt_addr_le_t *addr);

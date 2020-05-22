@@ -359,6 +359,8 @@ static bool stateGlobalGuard_stop(void *ev, struct event *event )
 
     os_printf(DEBUG_HEADER "Stoping AP interface...\r\n");
     bl_main_apm_stop(wifiMgmr.wlan_ap.vif_index);
+    os_printf(DEBUG_HEADER "Removing and deauth all sta client...\r\n");
+    bl_main_apm_remove_all_sta();
     os_printf(DEBUG_HEADER "Removing AP interface...\r\n");
     bl_main_if_remove(wifiMgmr.wlan_ap.vif_index);
     os_printf(DEBUG_HEADER "Stopping DHCP on AP interface...\r\n");
@@ -1078,6 +1080,32 @@ void wifi_mgmr_set_connect_stat_info(struct wifi_event_sm_connect_ind *ind, uint
     printf("[RX]   type_ind %u\r\n", wifiMgmr.wifi_mgmr_stat_info.type_ind);
 }
 
+int wifi_mgmr_ap_sta_cnt_get_internal(uint8_t *sta_cnt)
+{
+    bl_main_apm_sta_cnt_get(sta_cnt);
+    return 0;
+}
+
+int wifi_mgmr_ap_sta_info_get_internal(wifi_mgmr_sta_basic_info_t *sta_info_internal, uint8_t idx)
+{
+    struct wifi_apm_sta_info apm_sta_info;
+    memset(&apm_sta_info, 0, sizeof(struct wifi_apm_sta_info));
+    bl_main_apm_sta_info_get(&apm_sta_info, idx);
+    sta_info_internal->sta_idx = apm_sta_info.sta_idx;
+    sta_info_internal->is_used = apm_sta_info.is_used;
+    sta_info_internal->rssi = apm_sta_info.rssi;
+    sta_info_internal->tsflo = apm_sta_info.tsflo;
+    sta_info_internal->tsfhi = apm_sta_info.tsfhi;
+    sta_info_internal->data_rate = apm_sta_info.data_rate;
+    memcpy(sta_info_internal->sta_mac, apm_sta_info.sta_mac, 6);
+    return 0;
+}
+
+int wifi_mgmr_ap_sta_delete_internal(uint8_t sta_idx)
+{
+    bl_main_apm_sta_delete(sta_idx);
+    return 0;
+}
 
 int wifi_mgmr_scan_complete_notify()
 {

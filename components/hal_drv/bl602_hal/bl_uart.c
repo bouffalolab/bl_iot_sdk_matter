@@ -4,6 +4,11 @@
 #include "bl_uart.h"
 #include "bl_irq.h"
 
+#ifdef BL602_USE_HAL_DRIVER
+void UART0_IRQHandler(void);
+void UART1_IRQHandler(void);
+#endif
+
 //TODO Do in std driver
 #define UART_NUMBER_SUPPORTED   2
 #define UART_FIFO_TX_CNT        (32)
@@ -228,6 +233,7 @@ int bl_uart_int_enable(uint8_t id, uint8_t *rx_buffer, uint8_t *rx_idx_write, ui
         {
             bl_uart_int_rx_enable(0);
             bl_uart_int_tx_enable(0);
+            bl_irq_register(UART0_IRQn, UART0_IRQHandler);
             bl_irq_enable(UART0_IRQn);
         }
         break;
@@ -235,6 +241,7 @@ int bl_uart_int_enable(uint8_t id, uint8_t *rx_buffer, uint8_t *rx_idx_write, ui
         {
             bl_uart_int_rx_enable(1);
             bl_uart_int_tx_enable(1);
+            bl_irq_register(UART1_IRQn, UART1_IRQHandler);
             bl_irq_enable(UART1_IRQn);
         }
         break;

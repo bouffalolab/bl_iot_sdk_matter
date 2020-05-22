@@ -34,6 +34,7 @@ struct bt_smp_hdr {
 #define BT_SMP_IO_NO_INPUT_OUTPUT		0x03
 #define BT_SMP_IO_KEYBOARD_DISPLAY		0x04
 
+#define BT_SMP_OOB_DATA_MASK			0x01
 #define BT_SMP_OOB_NOT_PRESENT			0x00
 #define BT_SMP_OOB_PRESENT			0x01
 
@@ -122,10 +123,11 @@ struct bt_smp_dhkey_check {
 	u8_t e[16];
 } __packed;
 
-int bt_smp_send_pairing_req(struct bt_conn *conn);
-int bt_smp_send_security_req(struct bt_conn *conn);
+int bt_smp_start_security(struct bt_conn *conn);
+bool bt_smp_request_ltk(struct bt_conn *conn, u64_t rand, u16_t ediv,
+			u8_t *ltk);
+
 void bt_smp_update_keys(struct bt_conn *conn);
-bool bt_smp_get_tk(struct bt_conn *conn, u8_t *tk);
 
 int bt_smp_br_send_pairing_req(struct bt_conn *conn);
 
@@ -135,6 +137,14 @@ int bt_smp_auth_passkey_entry(struct bt_conn *conn, unsigned int passkey);
 int bt_smp_auth_passkey_confirm(struct bt_conn *conn);
 int bt_smp_auth_pairing_confirm(struct bt_conn *conn);
 int bt_smp_auth_cancel(struct bt_conn *conn);
+
+int bt_smp_le_oob_generate_sc_data(struct bt_le_oob_sc_data *le_sc_oob);
+int bt_smp_le_oob_set_sc_data(struct bt_conn *conn,
+			      const struct bt_le_oob_sc_data *oobd_local,
+			      const struct bt_le_oob_sc_data *oobd_remote);
+int bt_smp_le_oob_get_sc_data(struct bt_conn *conn,
+			      const struct bt_le_oob_sc_data **oobd_local,
+			      const struct bt_le_oob_sc_data **oobd_remote);
 
 /** brief Verify signed message
  *

@@ -4,13 +4,196 @@
 #include <task.h>
 #include <cli.h>
 
-#include <bl_efuse.h>
+#include <bl_wifi.h>
 #include <hal_sys.h>
 #include <bl60x_fw_api.h>
 #include <wifi_mgmr.h>
 #include <wifi_mgmr_api.h>
 #include <utils_hexdump.h>
 #include <wifi_mgmr_ext.h>
+
+#define WIFI_AP_DATA_RATE_1Mbps      0x00
+#define WIFI_AP_DATA_RATE_2Mbps      0x01
+#define WIFI_AP_DATA_RATE_5_5Mbps    0x02
+#define WIFI_AP_DATA_RATE_11Mbps     0x03
+#define WIFI_AP_DATA_RATE_6Mbps      0x0b
+#define WIFI_AP_DATA_RATE_9Mbps      0x0f
+#define WIFI_AP_DATA_RATE_12Mbps     0x0a
+#define WIFI_AP_DATA_RATE_18Mbps     0x0e
+#define WIFI_AP_DATA_RATE_24Mbps     0x09
+#define WIFI_AP_DATA_RATE_36Mbps     0x0d
+#define WIFI_AP_DATA_RATE_48Mbps     0x08
+#define WIFI_AP_DATA_RATE_54Mbps     0x0c
+
+struct wifi_ap_data_rate {
+    uint8_t data_rate;
+    const char *val;
+};
+
+static const struct wifi_ap_data_rate data_rate_list[] = {
+    {WIFI_AP_DATA_RATE_1Mbps, "1.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_2Mbps, "2.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_5_5Mbps, "5.5 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_11Mbps, "11.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_6Mbps, "6.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_9Mbps, "9.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_12Mbps, "12.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_18Mbps, "18.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_24Mbps, "24.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_36Mbps, "36.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_48Mbps, "48.0 Mbit/s, 20Mhz"},
+    {WIFI_AP_DATA_RATE_54Mbps, "54.0 Mbit/s, 20Mhz"},
+};
+
+static unsigned char char_to_hex(char asccode)
+{
+    unsigned char ret;
+
+    if('0'<=asccode && asccode<='9')
+        ret=asccode-'0';
+    else if('a'<=asccode && asccode<='f')
+        ret=asccode-'a'+10;
+    else if('A'<=asccode && asccode<='F')
+        ret=asccode-'A'+10;
+    else
+        ret=0;
+
+    return ret;
+}
+
+static void chan_str_to_hex(uint8_t *sta_num, char *sta_str)
+{
+    int i, str_len, base=1;
+    uint16_t val = 0;
+    char *q;
+
+    str_len = strlen(sta_str);
+    q = sta_str;
+    q[str_len] = '\0';
+    for (i=0; i< str_len; i++) {
+        val = val + char_to_hex(q[str_len-1-i]) * base;
+        base = base * 10;
+    }
+    (*sta_num) = val;
+    printf("sta_str: %s, str_len: %d, sta_num: %d, q: %s\r\n", sta_str, str_len, (*sta_num), q);
+
+}
+
+static void wifi_ap_sta_list_get_cmd(char *buf, int len, int argc, char **argv)
+{
+    int state = WIFI_STATE_UNKNOWN;
+    uint8_t sta_cnt = 0, i, j;
+    struct wifi_sta_basic_info sta_info;
+    long long sta_time;
+    uint8_t index = 0;
+
+    wifi_mgmr_state_get(&state);
+    if (!WIFI_STATE_AP_IS_ENABLED(state)){
+        printf("wifi AP is not enabled, state = %d\r\n", state);
+        return;
+    }
+
+    wifi_mgmr_ap_sta_cnt_get(&sta_cnt);
+    if (!sta_cnt){
+        printf("no sta connect current AP, sta_cnt = %d\r\n", sta_cnt);
+        return;
+    }
+
+    memset(&sta_info, 0, sizeof(struct wifi_sta_basic_info));
+    printf("sta list:\r\n");
+    printf("-----------------------------------------------------------------------------------\r\n");
+    printf("No.      StaIndex      Mac-Address       Signal      DateRate            TimeStamp\r\n");
+    printf("-----------------------------------------------------------------------------------\r\n");
+    for(i = 0;i < sta_cnt;i++){
+        wifi_mgmr_ap_sta_info_get(&sta_info, i);
+        if (!sta_info.is_used || (sta_info.sta_idx == 0xef)){
+            continue;
+        }
+
+        sta_time = (long long)sta_info.tsfhi;
+        sta_time = (sta_time << 32) | sta_info.tsflo;
+
+        for(j = 0;j < sizeof(data_rate_list)/sizeof(data_rate_list[0]);j++) {
+            if(data_rate_list[j].data_rate == sta_info.data_rate) {
+                index = j;
+                break;
+            }
+        }
+
+        printf(" %u       "
+            "   %u        "
+            "%02X:%02X:%02X:%02X:%02X:%02X    "
+            "%d      "
+            "%s      "
+            "0x%llx"
+            "\r\n",
+            i,
+            sta_info.sta_idx,
+            sta_info.sta_mac[0],
+            sta_info.sta_mac[1],
+            sta_info.sta_mac[2],
+            sta_info.sta_mac[3],
+            sta_info.sta_mac[4],
+            sta_info.sta_mac[5],
+            sta_info.rssi,
+            data_rate_list[index].val,
+            sta_time
+        );
+    }
+}
+
+static void wifi_ap_sta_delete_cmd(char *buf, int len, int argc, char **argv)
+{
+    int state = WIFI_STATE_UNKNOWN;
+    uint8_t sta_cnt = 0;
+    struct wifi_sta_basic_info sta_info;
+    uint8_t sta_num = 0;
+
+    if (2 != argc) {
+        printf("[USAGE]: %s sta_num\r\n", argv[0]);
+        return;
+    }
+
+    wifi_mgmr_state_get(&state);
+    if (!WIFI_STATE_AP_IS_ENABLED(state)){
+        printf("wifi AP is not enabled, state = %d\r\n", state);
+        return;
+    }
+
+    printf("Delete Sta No.%s \r\n", argv[1]);
+    chan_str_to_hex(&sta_num, argv[1]);
+    printf("sta num = %d \r\n", sta_num);
+
+    wifi_mgmr_ap_sta_cnt_get(&sta_cnt);
+    if (!sta_cnt || (sta_num > sta_cnt)){
+        printf("no valid sta in list or sta idx(%d) is invalid\r\n", sta_cnt);
+        return;
+    }
+
+    memset(&sta_info, 0, sizeof(struct wifi_sta_basic_info));
+    wifi_mgmr_ap_sta_info_get(&sta_info, sta_num);
+    if (!sta_info.is_used || (sta_info.sta_idx == 0xef)){
+        printf("No.%d sta is invalid\r\n", sta_num);
+        return;
+    }
+
+    printf("sta info: No.%u,"
+        "sta_idx = %u,"
+        "mac = %02X:%02X:%02X:%02X:%02X:%02X,"
+        "rssi = %d"
+        "\r\n",
+        sta_num,
+        sta_info.sta_idx,
+        sta_info.sta_mac[0],
+        sta_info.sta_mac[1],
+        sta_info.sta_mac[2],
+        sta_info.sta_mac[3],
+        sta_info.sta_mac[4],
+        sta_info.sta_mac[5],
+        sta_info.rssi
+    );
+    wifi_mgmr_ap_sta_delete(sta_info.sta_idx);
+}
 
 
 int wifi_mgmr_cli_powersaving_on()
@@ -218,10 +401,11 @@ static void cmd_wifi_ap_start(char *buf, int len, int argc, char **argv)
 {
     uint8_t mac[6];
     char ssid_name[32];
+    int channel;
     wifi_interface_t wifi_interface;
 
     memset(mac, 0, sizeof(mac));
-    bl_efuse_read_mac(mac);
+    bl_wifi_mac_addr_get(mac);
     memset(ssid_name, 0, sizeof(ssid_name));
     snprintf(ssid_name, sizeof(ssid_name), "BL60X_uAP_%02X%02X%02X", mac[3], mac[4], mac[5]);
     ssid_name[sizeof(ssid_name) - 1] = '\0';
@@ -232,7 +416,11 @@ static void cmd_wifi_ap_start(char *buf, int len, int argc, char **argv)
         wifi_mgmr_ap_start(wifi_interface, ssid_name, 0, NULL, 1);
     } else {
         /*hardcode password*/
-        wifi_mgmr_ap_start(wifi_interface, ssid_name, 0, "bouffalolab", 1);
+        channel = atoi(argv[1]);
+        if (channel <=0 || channel > 11) {
+            return;
+        }
+        wifi_mgmr_ap_start(wifi_interface, ssid_name, 0, "12345678", channel);
     }
 }
 
@@ -341,6 +529,8 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_coex_pti_force_off", "wifi coex PTI forece off", cmd_wifi_coex_pti_force_off},
         { "wifi_coex_pta_force_on", "wifi coex PTA forece on", cmd_wifi_coex_pta_force_on},
         { "wifi_coex_pta_force_off", "wifi coex PTA forece off", cmd_wifi_coex_pta_force_off},
+        { "wifi_sta_list", "get sta list in AP mode", wifi_ap_sta_list_get_cmd},
+        { "wifi_sta_del", "delete one sta in AP mode", wifi_ap_sta_delete_cmd},
 };                                                                                   
 
 int wifi_mgmr_cli_init(void)

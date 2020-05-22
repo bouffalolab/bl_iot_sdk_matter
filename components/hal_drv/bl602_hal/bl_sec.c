@@ -122,6 +122,7 @@ int bl_sec_init(void)
     /*Trigger again*/
     _trng_trigger();
     wait_trng4feed();
+    bl_irq_register(SEC_TRNG_IRQn, sec_trng_IRQHandler);
     bl_irq_enable(SEC_TRNG_IRQn);
 
     return 0;
@@ -711,6 +712,7 @@ static void _pka_test_case_xgcd(void)
 
 int bl_pka_test(void)
 {
+    bl_irq_register(SEC_PKA_IRQn, bl_sec_pka_IRQHandler);
     bl_irq_enable(SEC_PKA_IRQn);
 
     _pka_test_case2();

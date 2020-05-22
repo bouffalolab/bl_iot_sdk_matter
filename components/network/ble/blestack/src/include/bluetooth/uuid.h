@@ -7,8 +7,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef __BT_UUID_H
-#define __BT_UUID_H
+#ifndef ZEPHYR_INCLUDE_BLUETOOTH_UUID_H_
+#define ZEPHYR_INCLUDE_BLUETOOTH_UUID_H_
 
 /**
  * @brief UUIDs
@@ -52,19 +52,19 @@ struct bt_uuid_128 {
 
 #define BT_UUID_INIT_16(value)		\
 {					\
-	.uuid.type = BT_UUID_TYPE_16,	\
+	.uuid = { BT_UUID_TYPE_16 },	\
 	.val = (value),			\
 }
 
 #define BT_UUID_INIT_32(value)		\
 {					\
-	.uuid.type = BT_UUID_TYPE_32,	\
+	.uuid = { BT_UUID_TYPE_32 },	\
 	.val = (value),			\
 }
 
 #define BT_UUID_INIT_128(value...)	\
 {					\
-	.uuid.type = BT_UUID_TYPE_128,	\
+	.uuid = { BT_UUID_TYPE_128 },	\
 	.val = { value },		\
 }
 
@@ -79,6 +79,56 @@ struct bt_uuid_128 {
 #define BT_UUID_32(__u) CONTAINER_OF(__u, struct bt_uuid_32, uuid)
 #define BT_UUID_128(__u) CONTAINER_OF(__u, struct bt_uuid_128, uuid)
 
+
+/**
+ * @brief Encode 128 bit UUID into an array values
+ *
+ * Helper macro to initialize a 128-bit UUID value from the UUID format.
+ * Can be combined with BT_UUID_DECLARE_128 to declare a 128-bit UUID from
+ * the readable form of UUIDs.
+ *
+ * Example for how to declare the UUID `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`
+ *
+ * @code
+ * BT_UUID_DECLARE_128(
+ *       BT_UUID_128_ENCODE(0x6E400001, 0xB5A3, 0xF393, 0xE0A9, 0xE50E24DCCA9E))
+ * @endcode
+ *
+ * Just replace the hyphen by the comma and add `0x` prefixes.
+ *
+ * @param w32 First part of the UUID (32 bits)
+ * @param w1  Second part of the UUID (16 bits)
+ * @param w2  Third part of the UUID (16 bits)
+ * @param w3  Fourth part of the UUID (16 bits)
+ * @param w48 Fifth part of the UUID (48 bits)
+ *
+ * @return The comma separated values for UUID 128 initializer that
+ *         may be used directly as an argument for
+ *         @ref BT_UUID_INIT_128 or @ref BT_UUID_DECLARE_128
+ */
+#define BT_UUID_128_ENCODE(w32, w1, w2, w3, w48) \
+	(((w48) >>  0) & 0xFF), \
+	(((w48) >>  8) & 0xFF), \
+	(((w48) >> 16) & 0xFF), \
+	(((w48) >> 24) & 0xFF), \
+	(((w48) >> 32) & 0xFF), \
+	(((w48) >> 40) & 0xFF), \
+	(((w3)  >>  0) & 0xFF), \
+	(((w3)  >>  8) & 0xFF), \
+	(((w2)  >>  0) & 0xFF), \
+	(((w2)  >>  8) & 0xFF), \
+	(((w1)  >>  0) & 0xFF), \
+	(((w1)  >>  8) & 0xFF), \
+	(((w32) >>  0) & 0xFF), \
+	(((w32) >>  8) & 0xFF), \
+	(((w32) >> 16) & 0xFF), \
+	(((w32) >> 24) & 0xFF)
+
+
+
+#define BT_UUID_SCPS                      BT_UUID_DECLARE_16(0x1813)
+
+
 /** @def BT_UUID_GAP
  *  @brief Generic Access
  */
@@ -91,6 +141,10 @@ struct bt_uuid_128 {
  *  @brief Current Time Service
  */
 #define BT_UUID_CTS                       BT_UUID_DECLARE_16(0x1805)
+/** @def BT_UUID_HTS
+ *  @brief Health Thermometer Service
+ */
+#define BT_UUID_HTS                       BT_UUID_DECLARE_16(0x1809)
 /** @def BT_UUID_DIS
  *  @brief Device Information Service
  */
@@ -107,12 +161,6 @@ struct bt_uuid_128 {
  *  @brief HID Service
  */
 #define BT_UUID_HIDS                      BT_UUID_DECLARE_16(0x1812)
-
-/** @def BT_UUID_SCPS
- *  @brief Scan Parameters Service
- */
-#define BT_UUID_SCPS                      BT_UUID_DECLARE_16(0x1813)
-
 /** @def BT_UUID_CSC
  *  @brief Cycling Speed and Cadence Service
  */
@@ -213,6 +261,10 @@ struct bt_uuid_128 {
  *  @brief BAS Characteristic Battery Level
  */
 #define BT_UUID_BAS_BATTERY_LEVEL         BT_UUID_DECLARE_16(0x2a19)
+/** @def BT_UUID_HTS_MEASUREMENT
+ *  @brief HTS Characteristic Measurement Value
+ */
+#define BT_UUID_HTS_MEASUREMENT           BT_UUID_DECLARE_16(0x2a1c)
 /** @def BT_UUID_HIDS_BOOT_KB_IN_REPORT
  *  @brief HID Characteristic Boot Keyboard Input Report
  */
@@ -248,6 +300,9 @@ struct bt_uuid_128 {
 /** @def BT_UUID_DIS_PNP_ID
  *  @brief DIS Characteristic PnP ID
  */
+
+#define BT_UUID_SCPS_SCAN_INTVL_WIN       BT_UUID_DECLARE_16(0x2a4f)
+
 #define BT_UUID_DIS_PNP_ID                BT_UUID_DECLARE_16(0x2a50)
 /** @def BT_UUID_CTS_CURRENT_TIME
  *  @brief CTS Characteristic Current Time
@@ -297,11 +352,6 @@ struct bt_uuid_128 {
  *  @brief HID Protocol Mode Characteristic
  */
 #define BT_UUID_HIDS_PROTOCOL_MODE        BT_UUID_DECLARE_16(0x2a4e)
-/** @def BT_UUID_SCPS_SCAN_INTVL_WIN
- *  @brief SCPS Scan interval window Characteristic
- */
-#define BT_UUID_SCPS_SCAN_INTVL_WIN       BT_UUID_DECLARE_16(0x2a4f)
-
 /** @def BT_UUID_CSC_MEASUREMENT
  *  @brief CSC Measurement Characteristic
  */
@@ -418,6 +468,44 @@ struct bt_uuid_128 {
  *  @brief Mesh Proxy Data Out
  */
 #define BT_UUID_MESH_PROXY_DATA_OUT       BT_UUID_DECLARE_16(0x2ade)
+/** @def BT_UUID_GATT_CLIENT_FEATURES
+ *  @brief Client Supported Features
+ */
+#define BT_UUID_GATT_CLIENT_FEATURES      BT_UUID_DECLARE_16(0x2b29)
+/** @def BT_UUID_GATT_DB_HASH
+ *  @brief Database Hash
+ */
+#define BT_UUID_GATT_DB_HASH              BT_UUID_DECLARE_16(0x2b2a)
+
+#if defined(CONFIG_BT_STACK_PTS) && defined(PTS_GAP_SLAVER_CONFIG_READ_CHARC)
+#define BT_UUID_PTS  					  BT_UUID_DECLARE_16(0x2b2b) 	
+#define BT_UUID_PTS_CHAR_READ_AUTHEN	  BT_UUID_DECLARE_16(0x2b2c) 
+#define BT_UUID_PTS_CHAR_READ_NOPERM	  BT_UUID_DECLARE_16(0x2b2d)
+#define BT_UUID_PTS_CHAR_READ_LONGVAL	  BT_UUID_DECLARE_16(0x2b2e)
+#define BT_UUID_PTS_CHAR_READ_L_NOPERM	  BT_UUID_DECLARE_16(0x2b2f)
+#define BT_UUID_PTS_CHAR_READ_LVAL_REF	  BT_UUID_DECLARE_16(0x2b30)
+#endif
+
+#if defined(CONFIG_BT_STACK_PTS)&& defined(PTS_GAP_SLAVER_CONFIG_WRITE_CHARC)
+#define BT_UUID_PTS_CHAR_WRITE_VALUE	  BT_UUID_DECLARE_16(0x2b31) 
+#define BT_UUID_PTS_CHAR_WRITE_AUTHEN	  BT_UUID_DECLARE_16(0x2b32) 
+#define BT_UUID_PTS_CHAR_WRITE_LONGVAL	  BT_UUID_DECLARE_16(0x2b33)
+#define BT_UUID_PTS_CHAR_WRITE_NORSP	  BT_UUID_DECLARE_16(0x2b34) 
+#define BT_UUID_PTS_CHAR_WRITE_2LONGVAL	  BT_UUID_DECLARE_16(0x2b35)
+#define BT_UUID_PTS_CHAR_WRITE_L_DES	  BT_UUID_DECLARE_16(0x2b36)
+#endif
+
+#if defined(CONFIG_BT_STACK_PTS)&& defined(PTS_GAP_SLAVER_CONFIG_NOTIFY_CHARC)
+#define BT_UUID_PTS_CHAR_NOTIFY_CHAR	  BT_UUID_DECLARE_16(0x2b37)
+#endif
+
+#if defined(CONFIG_BT_STACK_PTS)&& defined(PTS_GAP_SLAVER_CONFIG_INDICATE_CHARC)
+#define BT_UUID_PTS_CHAR_INDICATE_CHAR	  BT_UUID_DECLARE_16(0x2b38)
+#endif
+
+#if defined(CONFIG_BT_STACK_PTS)
+#define BT_UUID_PTS_AUTH_CHAR	  		  BT_UUID_DECLARE_16(0x2b39)
+#endif
 
 /*
  * Protocol UUIDs
@@ -448,6 +536,8 @@ struct bt_uuid_128 {
 #define BT_UUID_L2CAP                     BT_UUID_DECLARE_16(0x0100)
 
 
+
+
 /** @brief Compare Bluetooth UUIDs.
  *
  *  Compares 2 Bluetooth UUIDs, if the types are different both UUIDs are
@@ -459,6 +549,20 @@ struct bt_uuid_128 {
  *  @return negative value if @a u1 < @a u2, 0 if @a u1 == @a u2, else positive
  */
 int bt_uuid_cmp(const struct bt_uuid *u1, const struct bt_uuid *u2);
+
+/** @brief Create a bt_uuid from a little-endian data buffer.
+ *
+ *  Create a bt_uuid from a little-endian data buffer. The data_len parameter
+ *  is used to determine whether the UUID is in 16, 32 or 128 bit format
+ *  (length 2, 4 or 16). Note: 32 bit format is not allowed over the air.
+ *
+ *  @param uuid Pointer to the bt_uuid variable
+ *  @param data pointer to UUID stored in little-endian data buffer
+ *  @param data_len length of the UUID in the data buffer
+ *
+ *  @return true if the data was valid and the UUID was successfully created.
+ */
+bool bt_uuid_create(struct bt_uuid *uuid, const u8_t *data, u8_t data_len);
 
 #if defined(CONFIG_BT_DEBUG)
 /** @brief Convert Bluetooth UUID to string.
@@ -474,7 +578,10 @@ int bt_uuid_cmp(const struct bt_uuid *u1, const struct bt_uuid *u2);
  */
 void bt_uuid_to_str(const struct bt_uuid *uuid, char *str, size_t len);
 
-/** @brief Convert Bluetooth UUID to string in place.
+const char *bt_uuid_str_real(const struct bt_uuid *uuid);
+
+/** @def bt_uuid_str
+ *  @brief Convert Bluetooth UUID to string in place.
  *
  *  Converts Bluetooth UUID to string in place. UUID has to be in 16 bits or
  *  128 bits format.
@@ -483,7 +590,7 @@ void bt_uuid_to_str(const struct bt_uuid *uuid, char *str, size_t len);
  *
  *  @return String representation of the UUID given
  */
-const char *bt_uuid_str(const struct bt_uuid *uuid);
+#define bt_uuid_str(_uuid) log_strdup(bt_uuid_str_real(_uuid))
 #else
 static inline void bt_uuid_to_str(const struct bt_uuid *uuid, char *str,
 				  size_t len)
@@ -507,4 +614,4 @@ static inline const char *bt_uuid_str(const struct bt_uuid *uuid)
  * @}
  */
 
-#endif /* __BT_UUID_H */
+#endif /* ZEPHYR_INCLUDE_BLUETOOTH_UUID_H_ */

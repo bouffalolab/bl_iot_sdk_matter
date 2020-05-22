@@ -10,25 +10,21 @@
 #include <conn.h>
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_SETTINGS)
-#include "common/log.h"
+#define LOG_MODULE_NAME bt_settings
+#include "log.h"
+
 #include "hci_core.h"
 #include "settings.h"
 #include "keys.h"
 #include "gatt.h"
 #if defined(BFLB_BLE)
 #include <stdlib.h>
-//#include "easyflash.h"
+#include "easyflash.h"
 #include <FreeRTOS.h>
 #include "portable.h"
 #endif
 
-
-#if defined(CONFIG_BT_SETTINGS)
-/* Linker-defined symbols bound to the bt_settings_handler structs */
-extern const struct bt_settings_handler _bt_settings_start[];
-extern const struct bt_settings_handler _bt_settings_end[];
-
-#if !defined(BFLB_BLE)
+#if defined(CONFIG_BT_SETTINGS_USE_PRINTK)
 void bt_settings_encode_key(char *path, size_t path_size, const char *subsys,
 			    bt_addr_le_t *addr, const char *key)
 {
@@ -46,15 +42,63 @@ void bt_settings_encode_key(char *path, size_t path_size, const char *subsys,
 			 addr->type);
 	}
 
-	BT_DBG("Encoded path %s", path);
+	BT_DBG("Encoded path %s", log_strdup(path));
 }
-
-int bt_settings_decode_key(char *key, bt_addr_le_t *addr)
+#else
+void bt_settings_encode_key(char *path, size_t path_size, const char *subsys,
+			    bt_addr_le_t *addr, const char *key)
 {
-	bool high;
-	int i;
+	size_t len = 3;
 
-	if (strlen(key) != 13) {
+	/* Skip if path_size is less than 3; strlen("bt/") */
+	if (len < path_size) {
+		/* Key format:
+		 *  "bt/<subsys>/<addr><type>/<key>", "/<key>" is optional
+		 */
+		strcpy(path, "bt/");
+		strncpy(&path[len], subsys, path_size - len);
+		len = strlen(path);
+		if (len < path_size) {
+			path[len] = '/';
+			len++;
+		}
+
+		for (s8_t i = 5; i >= 0 && len < path_size; i--) {
+			len += bin2hex(&addr->a.val[i], 1, &path[len],
+				       path_size - len);
+		}
+
+		if (len < path_size) {
+			/* Type can be either BT_ADDR_LE_PUBLIC or
+			 * BT_ADDR_LE_RANDOM (value 0 or 1)
+			 */
+			path[len] = '0' + addr->type;
+			len++;
+		}
+
+		if (key && len < path_size) {
+			path[len] = '/';
+			len++;
+			strncpy(&path[len], key, path_size - len);
+			len += strlen(&path[len]);
+		}
+
+		if (len >= path_size) {
+			/* Truncate string */
+			path[path_size - 1] = '\0';
+		}
+	} else if (path_size > 0) {
+		*path = '\0';
+	}
+
+	BT_DBG("Encoded path %s", log_strdup(path));
+}
+#endif
+
+#if !defined(BFLB_BLE)
+int bt_settings_decode_key(const char *key, bt_addr_le_t *addr)
+{
+	if (settings_name_next(key, NULL) != 13) {
 		return -EINVAL;
 	}
 
@@ -66,73 +110,54 @@ int bt_settings_decode_key(char *key, bt_addr_le_t *addr)
 		return -EINVAL;
 	}
 
-	for (i = 5, high = true; i >= 0; key++) {
-		u8_t nibble;
-
-		if (*key >= '0' && *key <= '9') {
-			nibble = *key - '0';
-		} else if (*key >= 'a' && *key <= 'f') {
-			nibble = *key - 'a' + 10;
-		} else {
-			return -EINVAL;
-		}
-
-		if (high) {
-			addr->a.val[i] = nibble << 4;
-			high = false;
-		} else {
-			addr->a.val[i] |= nibble;
-			high = true;
-			i--;
-		}
+	for (u8_t i = 0; i < 6; i++) {
+		hex2bin(&key[i * 2], 2, &addr->a.val[5 - i], 1);
 	}
 
-	BT_DBG("Decoded %s as %s", key, bt_addr_le_str(addr));
+	BT_DBG("Decoded %s as %s", log_strdup(key), bt_addr_le_str(addr));
 
 	return 0;
 }
 
-static int set(int argc, char **argv, char *val)
+static int set(const char *name, size_t len_rd, settings_read_cb read_cb,
+	       void *cb_arg)
 {
-	int len;
+	ssize_t len;
+	const char *next;
 
-	BT_DBG("argc %d argv[0] %s argv[1] %s val %s", argc, argv[0],
-	       argc > 1 ? argv[1] : "(null)", val ? val : "(null)");
-
-	if (argc > 1) {
-		const struct bt_settings_handler *h;
-
-		for (h = _bt_settings_start; h < _bt_settings_end; h++) {
-			if (!strcmp(argv[0], h->name)) {
-				argc--;
-				argv++;
-
-				return h->set(argc, argv, val);
-			}
-		}
-
+	if (!name) {
+		BT_ERR("Insufficient number of arguments");
 		return -ENOENT;
 	}
 
-	if (!strcmp(argv[0], "id")) {
+	len = settings_name_next(name, &next);
+
+	if (!strncmp(name, "id", len)) {
 		/* Any previously provided identities supersede flash */
 		if (atomic_test_bit(bt_dev.flags, BT_DEV_PRESET_ID)) {
 			BT_WARN("Ignoring identities stored in flash");
 			return 0;
 		}
 
-		len = sizeof(bt_dev.id_addr);
-		settings_bytes_from_str(val, &bt_dev.id_addr, &len);
+		len = read_cb(cb_arg, &bt_dev.id_addr, sizeof(bt_dev.id_addr));
 		if (len < sizeof(bt_dev.id_addr[0])) {
-			BT_ERR("Invalid length ID address in storage");
-			memset(bt_dev.id_addr, 0, sizeof(bt_dev.id_addr));
-			bt_dev.id_count = 0;
+			if (len < 0) {
+				BT_ERR("Failed to read ID address from storage"
+				       " (err %zu)", len);
+			} else {
+				BT_ERR("Invalid length ID address in storage");
+				BT_HEXDUMP_DBG(&bt_dev.id_addr, len,
+					       "data read");
+			}
+			(void)memset(bt_dev.id_addr, 0,
+				     sizeof(bt_dev.id_addr));
+			bt_dev.id_count = 0U;
 		} else {
 			int i;
 
 			bt_dev.id_count = len / sizeof(bt_dev.id_addr[0]);
 			for (i = 0; i < bt_dev.id_count; i++) {
-				BT_DBG("ID Addr %d %s", i,
+				BT_DBG("ID[%d] %s", i,
 				       bt_addr_le_str(&bt_dev.id_addr[i]));
 			}
 		}
@@ -141,68 +166,65 @@ static int set(int argc, char **argv, char *val)
 	}
 
 #if defined(CONFIG_BT_DEVICE_NAME_DYNAMIC)
-	if (!strcmp(argv[0], "name")) {
-		len = sizeof(bt_dev.name) - 1;
-		settings_bytes_from_str(val, &bt_dev.name, &len);
-		bt_dev.name[len] = '\0';
+	if (!strncmp(name, "name", len)) {
+		len = read_cb(cb_arg, &bt_dev.name, sizeof(bt_dev.name) - 1);
+		if (len < 0) {
+			BT_ERR("Failed to read device name from storage"
+			       " (err %zu)", len);
+		} else {
+			bt_dev.name[len] = '\0';
 
-		BT_DBG("Name set to %s", bt_dev.name);
+			BT_DBG("Name set to %s", log_strdup(bt_dev.name));
+		}
 		return 0;
 	}
 #endif
 
 #if defined(CONFIG_BT_PRIVACY)
-	if (!strcmp(argv[0], "irk")) {
-		len = sizeof(bt_dev.irk);
-		settings_bytes_from_str(val, bt_dev.irk, &len);
+	if (!strncmp(name, "irk", len)) {
+		len = read_cb(cb_arg, bt_dev.irk, sizeof(bt_dev.irk));
 		if (len < sizeof(bt_dev.irk[0])) {
-			BT_ERR("Invalid length IRK in storage");
-			memset(bt_dev.irk, 0, sizeof(bt_dev.irk));
+			if (len < 0) {
+				BT_ERR("Failed to read IRK from storage"
+				       " (err %zu)", len);
+			} else {
+				BT_ERR("Invalid length IRK in storage");
+				(void)memset(bt_dev.irk, 0, sizeof(bt_dev.irk));
+			}
 		} else {
-			BT_DBG("IRK set to %s", bt_hex(bt_dev.irk[0], 16));
+			int i, count;
+
+			count = len / sizeof(bt_dev.irk[0]);
+			for (i = 0; i < count; i++) {
+				BT_DBG("IRK[%d] %s", i,
+				       bt_hex(bt_dev.irk[i], 16));
+			}
 		}
 
 		return 0;
 	}
 #endif /* CONFIG_BT_PRIVACY */
 
-	return 0;
+	return -ENOENT;
 }
-
-#if defined(CONFIG_BT_PRIVACY)
-#define ID_SIZE_MAX sizeof(bt_dev.irk)
-#else
-#define ID_SIZE_MAX sizeof(bt_dev.id_addr)
-#endif
 
 #define ID_DATA_LEN(array) (bt_dev.id_count * sizeof(array[0]))
 
 static void save_id(struct k_work *work)
 {
-	char buf[BT_SETTINGS_SIZE(ID_SIZE_MAX)];
-	char *str;
-
-	str = settings_str_from_bytes(&bt_dev.id_addr,
-				      ID_DATA_LEN(bt_dev.id_addr),
-				      buf, sizeof(buf));
-	if (!str) {
-		BT_ERR("Unable to encode ID Addr as value");
-		return;
+	int err;
+	BT_INFO("Saving ID");
+	err = settings_save_one("bt/id", &bt_dev.id_addr,
+				ID_DATA_LEN(bt_dev.id_addr));
+	if (err) {
+		BT_ERR("Failed to save ID (err %d)", err);
 	}
-
-	BT_DBG("Saving ID addr as value %s", str);
-	settings_save_one("bt/id", str);
 
 #if defined(CONFIG_BT_PRIVACY)
-	str = settings_str_from_bytes(bt_dev.irk, ID_DATA_LEN(bt_dev.irk),
-				      buf, sizeof(buf));
-	if (!str) {
-		BT_ERR("Unable to encode IRK as value");
-		return;
+	err = settings_save_one("bt/irk", bt_dev.irk, ID_DATA_LEN(bt_dev.irk));
+	if (err) {
+		BT_ERR("Failed to save IRK (err %d)", err);
 	}
-
-	BT_DBG("Saving IRK as value %s", str);
-	settings_save_one("bt/irk", str);
 #endif
 }
 
@@ -223,7 +245,7 @@ int bt_check_if_ef_ready()
     return err;
 }
 
-int bt_settings_set_bin(const char *key, const u8_t *value, size_t length)
+int bt_settings_set_bin(const char *key, const uint8_t *value, size_t length)
 {    
     const char *lookup = "0123456789abcdef";
     char *str_value;
@@ -250,7 +272,7 @@ int bt_settings_set_bin(const char *key, const u8_t *value, size_t length)
     return err;
 }
 
-int bt_settings_get_bin(const char *key, u8_t *value, size_t length)
+int bt_settings_get_bin(const char *key, u8_t *value, size_t exp_len, size_t *real_len)
 {
     char *str_value; 
     size_t str_value_len;
@@ -270,11 +292,14 @@ int bt_settings_get_bin(const char *key, u8_t *value, size_t length)
     
     str_value_len = strlen(str_value);
 
-    if((str_value_len % 2) != 0 || str_value_len > length*2)
+    if((str_value_len % 2) != 0 || (exp_len >0 && str_value_len > exp_len*2))
     {
         return -1;
     }
 
+    if(real_len)
+        *real_len = str_value_len/2;
+    
     for(size_t i = 0; i < str_value_len/2; i++){
         strncpy(rand, str_value+2*i, 2);
         rand[2] = '\0';
@@ -282,6 +307,16 @@ int bt_settings_get_bin(const char *key, u8_t *value, size_t length)
     }
 
     return 0;
+}
+
+int settings_delete(const char *key)
+{
+    return ef_del_env(key);
+}
+
+int settings_save_one(const char *key, const u8_t *value, size_t length)
+{
+    return bt_settings_set_bin(key, value, length);
 }
 #endif
 
@@ -321,9 +356,9 @@ void bt_local_info_load(void)
         memcpy(bt_dev.name, dev_name, len);
     }
 #endif
-    bt_settings_get_bin(NV_LOCAL_ID_ADDR, (u8_t *)&bt_dev.id_addr[0], sizeof(bt_addr_le_t)*CONFIG_BT_ID_MAX);
+    bt_settings_get_bin(NV_LOCAL_ID_ADDR, (u8_t *)&bt_dev.id_addr[0], sizeof(bt_addr_le_t)*CONFIG_BT_ID_MAX, NULL);
 #if defined(CONFIG_BT_PRIVACY)
-    bt_settings_get_bin(NV_LOCAL_IRK, (u8_t *)&bt_dev.irk[0][0], 16*CONFIG_BT_ID_MAX);
+    bt_settings_get_bin(NV_LOCAL_IRK, (u8_t *)&bt_dev.irk[0][0], 16*CONFIG_BT_ID_MAX, NULL);
 #endif
 }
 #endif
@@ -331,8 +366,6 @@ void bt_local_info_load(void)
 #if !defined(BFLB_BLE)
 static int commit(void)
 {
-	const struct bt_settings_handler *h;
-
 	BT_DBG("");
 
 #if defined(CONFIG_BT_DEVICE_NAME_DYNAMIC)
@@ -350,47 +383,21 @@ static int commit(void)
 		}
 	}
 
-	for (h = _bt_settings_start; h < _bt_settings_end; h++) {
-		if (h->commit) {
-			h->commit();
-		}
+	/* Make sure that the identities created by bt_id_create after
+	 * bt_enable is saved to persistent storage. */
+	if (!atomic_test_bit(bt_dev.flags, BT_DEV_PRESET_ID)) {
+		bt_settings_save_id();
 	}
 
-	bt_dev_show_info();
-
-	return 0;
-}
-
-static int export(int (*func)(const char *name, char *val),
-		  enum settings_export_tgt tgt)
-{
-	const struct bt_settings_handler *h;
-
-	if (tgt != SETTINGS_EXPORT_PERSIST) {
-		BT_WARN("Only persist target supported");
-		return -ENOTSUP;
-	}
-
-	for (h = _bt_settings_start; h < _bt_settings_end; h++) {
-		if (h->export) {
-			h->export(func);
-		}
+	if (!atomic_test_bit(bt_dev.flags, BT_DEV_READY)) {
+		bt_finalize_init();
 	}
 
 	return 0;
 }
 
-static struct settings_handler bt_settings = {
-	.name = "bt",
-	.h_set = set,
-	.h_commit = commit,
-	.h_export = export,
-};
+SETTINGS_STATIC_HANDLER_DEFINE(bt, "bt", NULL, set, commit, NULL);
 
-int settings_save_one(const char *name, char *value)
-{
-    return 0;
-}
 #endif //!BFLB_BLE
 
 int bt_settings_init(void)
@@ -408,13 +415,6 @@ int bt_settings_init(void)
 		return err;
 	}
 
-	err = settings_register(&bt_settings);
-	if (err) {
-		BT_ERR("settings_register failed (err %d)", err);
-		return err;
-	}
-
 	return 0;
 #endif
 }
-#endif //CONFIG_BT_SETTINGS

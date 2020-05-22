@@ -21,6 +21,9 @@ extern "C" {
 #ifndef _ASMLANGUAGE
 
 #include <zephyr/types.h>
+#if defined(BFLB_BLE)
+#include <stddef.h>
+#endif
 
 /* Helper to pass a int as a pointer or vice-versa.
  * Those are available for 32 bits architectures:
@@ -305,6 +308,72 @@ static inline s64_t arithmetic_shift_right(s64_t value, u8_t shift)
  */
 #define UTIL_LISTIFY(LEN, F, F_ARG) UTIL_EVAL(UTIL_REPEAT(LEN, F, F_ARG))
 
+#if defined(BFLB_BLE)
+/**
+ * @brief      Convert a single character into a hexadecimal nibble.
+ *
+ * @param[in]  c     The character to convert
+ * @param      x     The address of storage for the converted number.
+ *
+ *  @return Zero on success or (negative) error code otherwise.
+ */
+int char2hex(char c, u8_t *x);
+
+/**
+ * @brief      Convert a single hexadecimal nibble into a character.
+ *
+ * @param[in]  c     The number to convert
+ * @param      x     The address of storage for the converted character.
+ *
+ *  @return Zero on success or (negative) error code otherwise.
+ */
+int hex2char(u8_t x, char *c);
+
+/**
+ * @brief      Convert a binary array into string representation.
+ *
+ * @param[in]  buf     The binary array to convert
+ * @param[in]  buflen  The length of the binary array to convert
+ * @param[out] hex     Address of where to store the string representation.
+ * @param[in]  hexlen  Size of the storage area for string representation.
+ *
+ * @return     The length of the converted string, or 0 if an error occurred.
+ */
+size_t bin2hex(const u8_t *buf, size_t buflen, char *hex, size_t hexlen);
+
+/*
+ * Convert hex string to byte string
+ * Return number of bytes written to buf, or 0 on error
+ * @return     The length of the converted array, or 0 if an error occurred.
+ */
+
+/**
+ * @brief      Convert a hexadecimal string into a binary array.
+ *
+ * @param[in]  hex     The hexadecimal string to convert
+ * @param[in]  hexlen  The length of the hexadecimal string to convert.
+ * @param[out] buf     Address of where to store the binary data
+ * @param[in]  buflen  Size of the storage area for binary data
+ *
+ * @return     The length of the binary array , or 0 if an error occurred.
+ */
+size_t hex2bin(const char *hex, size_t hexlen, u8_t *buf, size_t buflen);
+
+/**
+ * @brief      Convert a u8_t into decimal string representation.
+ *
+ * Convert a u8_t value into ASCII decimal string representation.
+ * The string is terminated if there is enough space in buf.
+ *
+ * @param[out] buf     Address of where to store the string representation.
+ * @param[in]  buflen  Size of the storage area for string representation.
+ * @param[in]  value   The value to convert to decimal string
+ *
+ * @return     The length of the converted string (excluding terminator if
+ *             any), or 0 if an error occurred.
+ */
+u8_t u8_to_dec(char *buf, u8_t buflen, u8_t value);
+#endif //#if defined(BFLB_BLE)
 #ifdef __cplusplus
 }
 #endif

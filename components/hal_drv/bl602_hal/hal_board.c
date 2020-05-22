@@ -4,7 +4,6 @@
 #include <bl_wifi.h>
 #include <hal_boot2.h>
 #include <hal_sys.h>
-#include <bl60x_fw_api.h>
 
 #include <libfdt.h>
 
@@ -16,6 +15,8 @@
 
 static uint32_t factory_addr = 0;
 
+#ifndef FEATURE_WIFI_DISABLE
+#include <bl60x_fw_api.h>
 static int update_mac_config_get_mac_from_dtb(const void *fdt, int offset1, uint8_t mac_addr[6])
 {
     int lentmp;
@@ -566,6 +567,7 @@ static int hal_board_load_fdt_info(const void *dtb)
 
     return 0;
 }
+#endif
 
 uint32_t hal_board_get_factory_addr(void)
 {
@@ -593,6 +595,9 @@ int hal_board_cfg(uint8_t board_code)
         }
     }
 
+#ifndef FEATURE_WIFI_DISABLE
     hal_board_load_fdt_info((const void *)factory_addr);
+#endif
+
     return 0;
 }

@@ -8,8 +8,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef __BT_BLUETOOTH_H
-#define __BT_BLUETOOTH_H
+#ifndef ZEPHYR_INCLUDE_BLUETOOTH_BLUETOOTH_H_
+#define ZEPHYR_INCLUDE_BLUETOOTH_BLUETOOTH_H_
 
 /**
  * @brief Bluetooth APIs
@@ -23,11 +23,20 @@
 #include <misc/util.h>
 #include <net/buf.h>
 #include <hci_host.h>
+#include <gap.h>
+#include <addr.h>
 //#include <bluetooth/crypto.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Generic Access Profile
+ * @defgroup bt_gap Generic Access Profile
+ * @ingroup bluetooth
+ * @{
+ */
 
 /** @def BT_ID_DEFAULT
  *
@@ -36,13 +45,6 @@ extern "C" {
  *  supported.
  */
 #define BT_ID_DEFAULT 0
-
-/**
- * @brief Generic Access Profile
- * @defgroup bt_gap Generic Access Profile
- * @ingroup bluetooth
- * @{
- */
 
 /**
  * @typedef bt_ready_cb_t
@@ -269,10 +271,10 @@ enum {
 	 */
 	BT_LE_ADV_OPT_USE_IDENTITY = BIT(2),
 
-	/* Advertise using GAP device name */
+	/** Advertise using GAP device name */
 	BT_LE_ADV_OPT_USE_NAME = BIT(3),
 
-    /** Use low duty directed advertising mode, otherwise high duty mode
+	/** Use low duty directed advertising mode, otherwise high duty mode
 	 *  will be used. This option is only effective when used with
 	 *  bt_conn_create_slave_le().
 	 */
@@ -289,11 +291,12 @@ enum {
 	 */
 	BT_LE_ADV_OPT_DIR_ADDR_RPA = BIT(5),
 
-	/* Use whitelist to filter devices that can request scan response data.
+	/** Use whitelist to filter devices that can request scan response
+	 *  data.
 	 */
 	BT_LE_ADV_OPT_FILTER_SCAN_REQ = BIT(6),
 
-	/* Use whitelist to filter devices that can connect. */
+	/** Use whitelist to filter devices that can connect. */
 	BT_LE_ADV_OPT_FILTER_CONN = BIT(7),
 };
 
@@ -310,6 +313,10 @@ struct bt_le_adv_param {
 
 	/** Maximum Advertising Interval (N * 0.625) */
 	u16_t interval_max;
+
+    #if defined(CONFIG_BT_STACK_PTS)
+    u8_t  addr_type;
+    #endif
 };
 
 /** Helper to declare advertising parameters inline
@@ -329,6 +336,11 @@ struct bt_le_adv_param {
 				       BT_GAP_ADV_FAST_INT_MIN_2, \
 				       BT_GAP_ADV_FAST_INT_MAX_2)
 
+#define BT_LE_ADV_CONN_NAME BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | \
+					    BT_LE_ADV_OPT_USE_NAME, \
+					    BT_GAP_ADV_FAST_INT_MIN_2, \
+					    BT_GAP_ADV_FAST_INT_MAX_2)
+
 #define BT_LE_ADV_CONN_DIR_LOW_DUTY \
 	BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME | \
 			BT_LE_ADV_OPT_DIR_MODE_LOW_DUTY, \
@@ -336,11 +348,6 @@ struct bt_le_adv_param {
 
 #define BT_LE_ADV_CONN_DIR BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | \
 					   BT_LE_ADV_OPT_ONE_TIME, 0, 0)
-
-#define BT_LE_ADV_CONN_NAME BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | \
-					    BT_LE_ADV_OPT_USE_NAME, \
-					    BT_GAP_ADV_FAST_INT_MIN_2, \
-					    BT_GAP_ADV_FAST_INT_MAX_2)
 
 #define BT_LE_ADV_NCONN BT_LE_ADV_PARAM(0, BT_GAP_ADV_FAST_INT_MIN_2, \
 					BT_GAP_ADV_FAST_INT_MAX_2)
@@ -361,17 +368,30 @@ struct bt_le_adv_param {
  *  @param sd_len Number of elements in sd
  *
  *  @return Zero on success or (negative) error code otherwise.
+ *  @return -ECONNREFUSED When connectable advertising is requested and there
+ *			  is already maximum number of connections established.
+ *			  This error code is only guaranteed when using Zephyr
+ *			  controller, for other controllers code returned in
+ *			  this case may be -EIO.
  */
-#if defined(CONFIG_BT_STACK_PTS)
-    int bt_le_adv_start(const struct bt_le_adv_param *param,
-                const struct bt_data *ad, size_t ad_len,
-                const struct bt_data *sd, size_t sd_len, bool is_rpa);
-#else
-
 int bt_le_adv_start(const struct bt_le_adv_param *param,
 		    const struct bt_data *ad, size_t ad_len,
 		    const struct bt_data *sd, size_t sd_len);
-#endif
+
+/** @brief Update advertising
+ *
+ *  Update advertisement and scan response data.
+ *
+ *  @param ad Data to be used in advertisement packets.
+ *  @param ad_len Number of elements in ad
+ *  @param sd Data to be used in scan response packets.
+ *  @param sd_len Number of elements in sd
+ *
+ *  @return Zero on success or (negative) error code otherwise.
+ */
+int bt_le_adv_update_data(const struct bt_data *ad, size_t ad_len,
+			  const struct bt_data *sd, size_t sd_len);
+
 /** @brief Stop advertising
  *
  *  Stops ongoing advertising.
@@ -389,19 +409,36 @@ int bt_le_adv_stop(void);
  *  @param addr Advertiser LE address and type.
  *  @param rssi Strength of advertiser signal.
  *  @param adv_type Type of advertising response from advertiser.
- *  @param data Buffer containing advertiser data.
+ *  @param buf Buffer containing advertiser data.
  */
 typedef void bt_le_scan_cb_t(const bt_addr_le_t *addr, s8_t rssi,
 			     u8_t adv_type, struct net_buf_simple *buf);
 
+enum {
+	/* Filter duplicates. */
+	BT_LE_SCAN_FILTER_DUPLICATE = BIT(0),
+
+	/* Filter using whitelist. */
+	BT_LE_SCAN_FILTER_WHITELIST = BIT(1),
+
+	/* Filter using extended filter policies. */
+	BT_LE_SCAN_FILTER_EXTENDED = BIT(2),
+};
+
+enum {
+	/* Scan without requesting additional information from advertisers. */
+	BT_LE_SCAN_TYPE_PASSIVE = 0x00,
+
+	/* Scan and request additional information from advertisers. */
+	BT_LE_SCAN_TYPE_ACTIVE = 0x01,
+};
+
 /** LE scan parameters */
 struct bt_le_scan_param {
-	/** Scan type (BT_HCI_LE_SCAN_ACTIVE or BT_HCI_LE_SCAN_PASSIVE) */
+	/** Scan type (BT_LE_SCAN_TYPE_ACTIVE or BT_LE_SCAN_TYPE_PASSIVE) */
 	u8_t  type;
 
-	/** Duplicate filtering (BT_HCI_LE_SCAN_FILTER_DUP_ENABLE or
-	 *  BT_HCI_LE_SCAN_FILTER_DUP_DISABLE)
-	 */
+	/** Bit-field of scanning filter options. */
 	u8_t  filter_dup;
 
 	/** Scan interval (N * 0.625 ms) */
@@ -413,8 +450,9 @@ struct bt_le_scan_param {
 
 /** Helper to declare scan parameters inline
   *
-  * @param _type     Scan Type (BT_HCI_LE_SCAN_ACTIVE/BT_HCI_LE_SCAN_PASSIVE)
-  * @param _filter   Filter Duplicates
+  * @param _type     Scan Type, BT_LE_SCAN_TYPE_ACTIVE or
+  *                  BT_LE_SCAN_TYPE_PASSIVE.
+  * @param _filter   Filter options
   * @param _interval Scan Interval (N * 0.625 ms)
   * @param _window   Scan Window (N * 0.625 ms)
   */
@@ -427,8 +465,8 @@ struct bt_le_scan_param {
 		 })
 
 /** Helper macro to enable active scanning to discover new devices. */
-#define BT_LE_SCAN_ACTIVE BT_LE_SCAN_PARAM(BT_HCI_LE_SCAN_ACTIVE, \
-					   BT_HCI_LE_SCAN_FILTER_DUP_ENABLE, \
+#define BT_LE_SCAN_ACTIVE BT_LE_SCAN_PARAM(BT_LE_SCAN_TYPE_ACTIVE, \
+					   BT_LE_SCAN_FILTER_DUPLICATE, \
 					   BT_GAP_SCAN_FAST_INTERVAL, \
 					   BT_GAP_SCAN_FAST_WINDOW)
 
@@ -437,8 +475,8 @@ struct bt_le_scan_param {
  * This macro should be used if information required for device identification
  * (e.g., UUID) are known to be placed in Advertising Data.
  */
-#define BT_LE_SCAN_PASSIVE BT_LE_SCAN_PARAM(BT_HCI_LE_SCAN_PASSIVE, \
-					    BT_HCI_LE_SCAN_FILTER_DUP_ENABLE, \
+#define BT_LE_SCAN_PASSIVE BT_LE_SCAN_PARAM(BT_LE_SCAN_TYPE_PASSIVE, \
+					    BT_LE_SCAN_FILTER_DUPLICATE, \
 					    BT_GAP_SCAN_FAST_INTERVAL, \
 					    BT_GAP_SCAN_FAST_WINDOW)
 
@@ -454,7 +492,7 @@ struct bt_le_scan_param {
  *  of protocol error or negative (POSIX) in case of stack internal error
  */
 #if defined(CONFIG_BT_STACK_PTS)
-int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb, bool is_rpa);
+int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb, u8_t addre_type);
 #else
 int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb);
 #endif
@@ -467,6 +505,58 @@ int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb);
  *  of protocol error or negative (POSIX) in case of stack internal error
  */
 int bt_le_scan_stop(void);
+
+/** @brief Add device (LE) to whitelist.
+ *
+ *  Add peer device LE address to the whitelist.
+ *
+ *  @note The whitelist cannot be modified when an LE role is using
+ *  the whitelist, i.e advertiser or scanner using a whitelist or automatic
+ *  connecting to devices using whitelist.
+ *
+ *  @param addr Bluetooth LE identity address.
+ *
+ *  @return Zero on success or error code otherwise, positive in case
+ *  of protocol error or negative (POSIX) in case of stack internal error.
+ */
+int bt_le_whitelist_add(const bt_addr_le_t *addr);
+
+/** @brief Remove device (LE) from whitelist.
+ *
+ *  Remove peer device LE address from the whitelist.
+ *
+ *  @note The whitelist cannot be modified when an LE role is using
+ *  the whitelist, i.e advertiser or scanner using a whitelist or automatic
+ *  connecting to devices using whitelist.
+ *
+ *  @param addr Bluetooth LE identity address.
+ *
+ *  @return Zero on success or error code otherwise, positive in case
+ *  of protocol error or negative (POSIX) in case of stack internal error.
+ */
+int bt_le_whitelist_rem(const bt_addr_le_t *addr);
+
+/** @brief Clear whitelist.
+ *
+ *  Clear all devices from the whitelist.
+ *
+ *  @note The whitelist cannot be modified when an LE role is using
+ *  the whitelist, i.e advertiser or scanner using a whitelist or automatic
+ *  connecting to devices using whitelist.
+ *
+ *  @return Zero on success or error code otherwise, positive in case
+ *  of protocol error or negative (POSIX) in case of stack internal error.
+ */
+int bt_le_whitelist_clear(void);
+
+/** @brief Set (LE) channel map.
+ *
+ * @param chan_map Channel map.
+ *
+ *  @return Zero on success or error code otherwise, positive in case
+ *  of protocol error or negative (POSIX) in case of stack internal error
+ */
+int bt_le_set_chan_map(u8_t chan_map[5]);
 
 /** @brief Helper for parsing advertising (or EIR or OOB) data.
  *
@@ -485,11 +575,24 @@ void bt_data_parse(struct net_buf_simple *ad,
 		   bool (*func)(struct bt_data *data, void *user_data),
 		   void *user_data);
 
+/** OOB data that is specific for LE SC pairing method. */
+struct bt_le_oob_sc_data {
+	/** Random Number. */
+	u8_t r[16];
+
+	/** Confirm Value. */
+	u8_t c[16];
+};
+
+/** General OOB data. */
 struct bt_le_oob {
 	/** LE address. If local privacy is enabled this is Resolvable Private
 	 *  Address.
 	 */
 	bt_addr_le_t addr;
+
+	/** OOB data that are relevant for LESC pairing. */
+	struct bt_le_oob_sc_data le_sc_data;
 };
 
 /**
@@ -504,6 +607,9 @@ struct bt_le_oob {
  *
  * @param id  Local identity, in most cases BT_ID_DEFAULT.
  * @param oob LE related information
+ *
+ *  @return Zero on success or error code otherwise, positive in case
+ *  of protocol error or negative (POSIX) in case of stack internal error
  */
 int bt_le_oob_get_local(u8_t id, struct bt_le_oob *oob);
 
@@ -613,7 +719,7 @@ int bt_br_oob_get_local(struct bt_br_oob *oob);
  *  conversion will not lose valuable information about address being
  *  processed.
  */
-#define BT_ADDR_LE_STR_LEN 27
+#define BT_ADDR_LE_STR_LEN 30
 
 /** @brief Converts binary Bluetooth address to string.
  *
@@ -655,10 +761,10 @@ static inline int bt_addr_le_to_str(const bt_addr_le_t *addr, char *str,
 		strcpy(type, "random");
 		break;
 	case BT_ADDR_LE_PUBLIC_ID:
-		strcpy(type, "public id");
+		strcpy(type, "public-id");
 		break;
 	case BT_ADDR_LE_RANDOM_ID:
-		strcpy(type, "random id");
+		strcpy(type, "random-id");
 		break;
 	default:
 		snprintk(type, sizeof(type), "0x%02x", addr->type);
@@ -669,6 +775,27 @@ static inline int bt_addr_le_to_str(const bt_addr_le_t *addr, char *str,
 			addr->a.val[5], addr->a.val[4], addr->a.val[3],
 			addr->a.val[2], addr->a.val[1], addr->a.val[0], type);
 }
+
+/**
+ * @brief Convert Bluetooth address from string to binary.
+ *
+ * @param[in]  str   The string representation of a Bluetooth address.
+ * @param[out] addr  Address of buffer to store the Bluetooth address
+ *
+ *  @return Zero on success or (negative) error code otherwise.
+ */
+int bt_addr_from_str(const char *str, bt_addr_t *addr);
+
+/**
+ * @brief Convert LE Bluetooth address from string to binary.
+ *
+ * @param[in]  str   The string representation of an LE Bluetooth address.
+ * @param[in]  type  The string representation of the LE Bluetooth address type.
+ * @param[out] addr  Address of buffer to store the LE Bluetooth address
+ *
+ *  @return Zero on success or (negative) error code otherwise.
+ */
+int bt_addr_le_from_str(const char *str, const char *type, bt_addr_le_t *addr);
 
 /** @brief Enable/disable set controller in discoverable state.
  *
@@ -706,6 +833,22 @@ int bt_br_set_connectable(bool enable);
   */
 int bt_unpair(u8_t id, const bt_addr_le_t *addr);
 
+/** Information about a bond with a remote device. */
+struct bt_bond_info {
+	/** Address of the remote device. */
+	bt_addr_le_t addr;
+};
+
+/** Iterate through all existing bonds.
+  *
+  * @param id         Local identity (mostly just BT_ID_DEFAULT).
+  * @param func       Function to call for each bond.
+  * @param user_data  Data to pass to the callback function.
+  */
+void bt_foreach_bond(u8_t id, void (*func)(const struct bt_bond_info *info,
+					   void *user_data),
+		     void *user_data);
+
 /**
  * @}
  */
@@ -717,4 +860,4 @@ int bt_unpair(u8_t id, const bt_addr_le_t *addr);
  * @}
  */
 
-#endif /* __BT_BLUETOOTH_H */
+#endif /* ZEPHYR_INCLUDE_BLUETOOTH_BLUETOOTH_H_ */

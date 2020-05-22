@@ -4,7 +4,7 @@
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BLUETOOTH_DEBUG_CORE)
 
-#include <common/log.h>
+#include <log.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>

@@ -26,19 +26,20 @@
 #include <../include/bluetooth/crypto.h>
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_RPA)
-#include "common/log.h"
+#define LOG_MODULE_NAME bt_rpa
+#include "log.h"
 
-#if defined(CONFIG_BT_SMP) || defined(CONFIG_BT_CTLR_PRIVACY) || defined(CONFIG_BT_CTLR_PRIVACY)
 static int ah(const u8_t irk[16], const u8_t r[3], u8_t out[3])
 {
 	u8_t res[16];
 	int err;
 
-	BT_DBG("irk %s, r %s", bt_hex(irk, 16), bt_hex(r, 3));
+	BT_DBG("irk %s", bt_hex(irk, 16));
+	BT_DBG("r %s", bt_hex(r, 3));
 
 	/* r' = padding || r */
 	memcpy(res, r, 3);
-	memset(res + 3, 0, 13);
+	(void)memset(res + 3, 0, 13);
 
 	err = bt_encrypt_le(irk, res, res);
 	if (err) {
@@ -55,7 +56,6 @@ static int ah(const u8_t irk[16], const u8_t r[3], u8_t out[3])
 
 	return 0;
 }
-#endif
 
 #if defined(CONFIG_BT_SMP) || defined(CONFIG_BT_CTLR_PRIVACY)
 bool bt_rpa_irk_matches(const u8_t irk[16], const bt_addr_t *addr)

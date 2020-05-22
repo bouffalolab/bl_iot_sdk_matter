@@ -1433,25 +1433,32 @@ struct scanu_start_cfm
 struct scanu_result_ind
 {
     /// Length of the frame
-    u16_l length;
+    uint16_t length;
     /// Frame control field of the frame.
-    u16_l framectrl;
+    uint16_t framectrl;
     /// Center frequency on which we received the packet
-    u16_l center_freq;
+    uint16_t center_freq;
     /// PHY band
-    u8_l band;
+    uint8_t band;
     /// Index of the station that sent the frame. 0xFF if unknown.
-    u8_l sta_idx;
+    uint8_t sta_idx;
     /// Index of the VIF that received the frame. 0xFF if unknown.
-    u8_l inst_nbr;
+    uint8_t inst_nbr;
+    /// Source mac of the received frame.
+    uint8_t sa[6];
+    /// timestamp of the received frame.
+    uint32_t tsflo;
+    uint32_t tsfhi;
     /// RSSI of the received frame.
-    s8_l rssi;
+    int8_t rssi;
     ///Abs. PPM of the received frame
     int8_t ppm_abs;
     ///Rel. PPM of the received frame
     int8_t ppm_rel;
+    /// Date rate of the received frame.
+    uint8_t data_rate;
     /// Frame payload.
-    u32_l payload[];
+    uint32_t payload[];
 };
 
 /// Structure containing the parameters of the message.
@@ -1595,6 +1602,10 @@ struct me_sta_add_req
     u8_l vif_idx;
     /// Whether the the station is TDLS station
     bool_l tdls_sta;
+    uint32_t tsflo;
+    uint32_t tsfhi;
+    int8_t rssi;
+    uint8_t data_rate;
 };
 
 /// Structure containing the parameters of the @ref ME_STA_ADD_CFM message
@@ -1872,6 +1883,10 @@ enum apm_msg_tag
     APM_STA_ADD_IND,
     /// Nofity host that a station has left the network
     APM_STA_DEL_IND,
+    /// Request to delete STA
+    APM_STA_DEL_REQ,
+    /// Confirmation of delete STA
+    APM_STA_DEL_CFM,
 
     /// MAX number of messages
     APM_MAX,
@@ -1942,6 +1957,25 @@ struct apm_stop_req
     u8_l vif_idx;
 };
 
+struct apm_sta_del_req
+{
+    /// Index of the AP VIF
+    u8_l vif_idx;
+    /// Index of the sta in AP mode
+    u8_l sta_idx;
+};
+
+/// Structure containing the parameters of the @ref APM_STOP_REQ message.
+struct apm_sta_del_cfm
+{
+    /// Status of deleting sta procedure
+    u8_l status;
+    /// Index of the AP VIF
+    u8_l vif_idx;
+    /// Index of the sta in AP mode
+    u8_l sta_idx;
+};
+
 /// Structure containing the parameters of the @ref APM_START_CAC_REQ message.
 struct apm_start_cac_req
 {
@@ -1984,6 +2018,10 @@ struct apm_sta_add_ind
     uint8_t vif_idx;
     /// Station index
     uint8_t sta_idx;
+    int8_t rssi;
+    uint32_t tsflo;
+    uint32_t tsfhi;
+    uint8_t data_rate;
 };
 
 /// Structure containing the parameters of the @ref APM_STA_DEL_IND message.

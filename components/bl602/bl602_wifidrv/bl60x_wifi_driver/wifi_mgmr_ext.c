@@ -405,6 +405,39 @@ int wifi_mgmr_ap_stop(wifi_interface_t *interface)
     return 0;
 }
 
+int wifi_mgmr_ap_sta_cnt_get(uint8_t *sta_cnt)
+{
+    wifi_mgmr_ap_sta_cnt_get_internal(sta_cnt);
+    return 0;
+}
+
+int wifi_mgmr_ap_sta_info_get(struct wifi_sta_basic_info *sta_info, uint8_t idx)
+{
+    struct wifi_mgmr_sta_basic_info sta_info_internal;
+    memset(&sta_info_internal, 0, sizeof(struct wifi_mgmr_sta_basic_info));
+    wifi_mgmr_ap_sta_info_get_internal(&sta_info_internal, idx);
+    sta_info->sta_idx = sta_info_internal.sta_idx;
+    sta_info->is_used = sta_info_internal.is_used;
+    sta_info->rssi = sta_info_internal.rssi;
+    sta_info->tsflo = sta_info_internal.tsflo;
+    sta_info->tsfhi = sta_info_internal.tsfhi;
+    sta_info->data_rate = sta_info_internal.data_rate;
+    memcpy(sta_info->sta_mac, sta_info_internal.sta_mac, 6);
+    return 0;
+}
+
+int wifi_mgmr_ap_sta_delete(uint8_t sta_idx)
+{
+    wifi_mgmr_ap_sta_delete_internal(sta_idx);
+    return 0;
+}
+
+int wifi_mgmr_ap_set_gateway(char *gateway)
+{
+    //memcpy(wifiMgmr.wlan_ap.netif.gateway, gateway, strlen(gateway));
+    return 0;
+}
+
 int wifi_mgmr_sniffer_register(void *env, sniffer_cb_t cb)
 {
     bl_rx_pkt_cb_register(env, cb);

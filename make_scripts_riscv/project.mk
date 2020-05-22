@@ -205,7 +205,7 @@ ifeq ($(CONFIG_ZB_ENABLE), 1)
 EXTRA_LDFLAGS += --specs=nosys.specs
 endif
 
-E21_CPU_LDFLAGS := -march=rv32imafc \
+E21_CPU_LDFLAGS := -march=rv32imfc \
                    -mabi=ilp32f
 
 LDFLAGS ?=  $(E21_CPU_LDFLAGS) \
@@ -217,7 +217,6 @@ LDFLAGS ?=  $(E21_CPU_LDFLAGS) \
 	-Wl,--end-group \
 	-Wl,-EL \
 	-lm
-
 
 # Set default CPPFLAGS, CFLAGS, CXXFLAGS
 # These are exported so that components can use them when compiling.
@@ -305,7 +304,7 @@ DEBUG_FLAGS ?= -gdwarf
 # If any flags are defined in application Makefile, add them at the end.
 EXTRA_CFLAGS ?=
 
-E21_CPU_CFLAGS := -march=rv32imafc \
+E21_CPU_CFLAGS := -march=rv32imfc \
                    -mabi=ilp32f
 
 ASMFLAGS := $(E21_CPU_CFLAGS)
@@ -339,12 +338,7 @@ CXXFLAGS := $(strip \
 	-Wundef \
 	-fno-rtti -fno-exceptions)
 
-ifeq ($(CONFIG_ZB_ENABLE_STACK), 1)
-CFLAGS   += -DCFG_ZIGBEE_STACK
-CPPFLAGS += -DCFG_ZIGBEE_STACK
-endif
-
-export CFLAGS CPPFLAGS ASMFLAGS
+export CFLAGS CPPFLAGS CXXFLAGS ASMFLAGS
 
 # Set default values that were not previously defined
 CC ?= gcc
@@ -427,7 +421,16 @@ ifeq ($(CONFIG_LINK_ROM),1)
 	$(OBJCOPY) -S -O binary -j .romdata $< $(@:.bin=.romdata.bin) 
 	$(OBJCOPY) -S -O binary -R .romdata -R .rom $< $(@:.bin=.flash.bin) 
 else
+ifeq ($(CONFIG_GEN_ROM),1)
+	$(OBJCOPY) -S -O binary -R .bleromro -R .bleromrw -R .rtosromro -R .rtosromrw $< $@
+	$(OBJCOPY) -S -O binary -j .bleromro $< $(@:.bin=.bleromro.bin) 
+	$(OBJCOPY) -S -O binary -j .bleromrw $< $(@:.bin=.bleromrw.bin) 
+	$(OBJCOPY) -S -O binary -j .rtosromro $< $(@:.bin=.rtosromro.bin) 
+	$(OBJCOPY) -S -O binary -j .rtosromrw $< $(@:.bin=.rtosromrw.bin) 
+	$(OBJCOPY) -S -O binary -R .bleromro -R .bleromrw -R .rtosromro -R .rtosromrw $< $(@:.bin=.flash.bin) 
+else
 	$(OBJCOPY) -S -O binary $< $@
+endif
 endif
 endif
 	
@@ -506,3 +509,6 @@ list-components:
 	$(info $(call dequote,$(SEPARATOR)))
 	$(info COMPONENT_PATHS (paths to all components):)
 	$(foreach cp,$(COMPONENT_PATHS),$(info $(cp)))
+
+local-ci-test:
+	../../tools/ci/scripts/local-ci-test.sh

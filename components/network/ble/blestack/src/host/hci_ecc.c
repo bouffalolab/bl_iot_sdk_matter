@@ -25,7 +25,7 @@
 #include <../include/bluetooth/crypto.h>
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_HCI_CORE)
-#include "common/log.h"
+#include "log.h"
 
 #include "hci_ecc.h"
 #ifdef CONFIG_BT_HCI_RAW
@@ -86,7 +86,7 @@ static void send_cmd_status(u16_t opcode, u8_t status)
 
 	BT_DBG("opcode %x status %x", opcode, status);
 
-	buf = bt_buf_get_cmd_complete(K_FOREVER);
+	buf = bt_buf_get_evt(BT_HCI_EVT_CMD_STATUS, false, K_FOREVER);
 	bt_buf_set_type(buf, BT_BUF_EVT);
 
 	hdr = net_buf_add(buf, sizeof(*hdr));
@@ -94,7 +94,7 @@ static void send_cmd_status(u16_t opcode, u8_t status)
 	hdr->len = sizeof(*evt);
 
 	evt = net_buf_add(buf, sizeof(*evt));
-	evt->ncmd = 1;
+	evt->ncmd = 1U;
 	evt->opcode = sys_cpu_to_le16(opcode);
 	evt->status = status;
 
@@ -116,8 +116,9 @@ static u8_t generate_keys(void)
 	/* make sure generated key isn't debug key */
 	} while (memcmp(ecc.private_key, debug_private_key, 32) == 0);
 #else
-	memcpy(&ecc.pk, debug_public_key, 64);
-	memcpy(ecc.private_key, debug_private_key, 32);
+	sys_memcpy_swap(&ecc.pk, debug_public_key, 32);
+	sys_memcpy_swap(&ecc.pk[32], &debug_public_key[32], 32);
+	sys_memcpy_swap(ecc.private_key, debug_private_key, 32);
 #endif
 	return 0;
 }
@@ -147,7 +148,7 @@ static void emulate_le_p256_public_key_cmd(void)
 	evt->status = status;
 
 	if (status) {
-		memset(evt->key, 0, sizeof(evt->key));
+		(void)memset(evt->key, 0, sizeof(evt->key));
 	} else {
 		/* Convert X and Y coordinates from big-endian (provided
 		 * by crypto API) to little endian HCI.
@@ -191,9 +192,9 @@ static void emulate_le_generate_dhkey(void)
 
 	if (ret == TC_CRYPTO_FAIL) {
 		evt->status = BT_HCI_ERR_UNSPECIFIED;
-		memset(evt->dhkey, 0, sizeof(evt->dhkey));
+		(void)memset(evt->dhkey, 0, sizeof(evt->dhkey));
 	} else {
-		evt->status = 0;
+		evt->status = 0U;
 		/* Convert from big-endian (provided by crypto API) to
 		 * little-endian HCI.
 		 */
@@ -205,9 +206,12 @@ static void emulate_le_generate_dhkey(void)
 	bt_recv(buf);
 }
 
+#if defined(BFLB_BLE)
 static void ecc_thread(void *p1)
+#else
+static void ecc_thread(void *p1, void *p2, void *p3)
+#endif
 {
-    UNUSED(p1);
 	while (true) {
 		k_sem_take(&cmd_sem, K_FOREVER);
 
@@ -219,16 +223,16 @@ static void ecc_thread(void *p1)
 			__ASSERT(0, "Unhandled ECC command");
 		}
 #if !defined(BFLB_BLE)
-        STACK_ANALYZE("ecc stack", ecc_thread_stack);
+		STACK_ANALYZE("ecc stack", ecc_thread_stack);
 #endif
-    }
+	}
 }
 
 static void clear_ecc_events(struct net_buf *buf)
 {
 	struct bt_hci_cp_le_set_event_mask *cmd;
 
-	cmd = (void *)buf->data  + sizeof(struct bt_hci_cmd_hdr);
+	cmd = (void *)(buf->data + sizeof(struct bt_hci_cmd_hdr));
 
 	/*
 	 * don't enable controller ECC events as those will be generated from
@@ -330,6 +334,7 @@ void bt_hci_ecc_init(void)
 #else
     k_thread_create(&ecc_thread_data, ecc_thread_stack,
 			K_THREAD_STACK_SIZEOF(ecc_thread_stack), ecc_thread,
-			NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT); 
+			NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+    k_thread_name_set(&ecc_thread_data, "BT ECC");
 #endif
 }

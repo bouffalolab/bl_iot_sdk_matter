@@ -892,6 +892,26 @@ int bl_send_apm_stop_req(struct bl_hw *bl_hw, uint8_t vif_idx)
     return bl_send_msg(bl_hw, req, 1, APM_STOP_CFM, NULL);
 }
 
+int bl_send_apm_sta_del_req(struct bl_hw *bl_hw, struct apm_sta_del_cfm *cfm, uint8_t sta_idx, uint8_t vif_idx)
+{
+    struct apm_sta_del_req *req;
+
+    RWNX_DBG(RWNX_FN_ENTRY_STR);
+
+    /* Build the APM_STOP_REQ message */
+    req = bl_msg_zalloc(APM_STA_DEL_REQ, TASK_APM, DRV_TASK_ID, sizeof(struct apm_sta_del_req));
+    if (!req) {
+        return -ENOMEM;
+    }
+
+    /* Set parameters for the APM_STA_DEL_REQ message */
+    req->vif_idx = vif_idx;
+    req->sta_idx = sta_idx;
+
+    /* Send the APM_STA_DEL_REQ message to LMAC FW */
+    return bl_send_msg(bl_hw, req, 1, APM_STA_DEL_CFM, cfm);
+}
+
 int bl_send_channel_set_req(struct bl_hw *bl_hw, int channel)
 {
     struct mm_set_channel_req *param;

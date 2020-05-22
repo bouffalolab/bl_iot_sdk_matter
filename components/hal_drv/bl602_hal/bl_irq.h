@@ -17,8 +17,9 @@ void bl_sec_sha_IRQHandler(void);
 void bl_sec_pka_IRQHandler(void);
 void bl_dma_IRQHandler(void);
 void intc_irq(void);//MAC IRQ
-void rwble_isr(void);
 void bl_irq_handler(void);//IPC host IRQ
+void bl_irq_register(int irqnum, void *handler);
+void bl_irq_unregister(int irqnum, void *handler);
 
 //XXX we should use IRQ number for header file
 #define WIFI_IRQn (54 + 16)

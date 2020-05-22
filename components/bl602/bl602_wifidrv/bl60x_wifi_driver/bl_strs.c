@@ -183,6 +183,8 @@ static const char *const bl_apmid2str[MSG_I(APM_MAX)] = {
     [MSG_I(APM_START_CAC_CFM)] = "APM_START_CAC_CFM",
     [MSG_I(APM_STOP_CAC_REQ)]  = "APM_STOP_CAC_REQ",
     [MSG_I(APM_STOP_CAC_CFM)]  = "APM_STOP_CAC_CFM",
+    [MSG_I(APM_STA_DEL_REQ)]   = "APM_STA_DEL_REQ",
+    [MSG_I(APM_STA_DEL_CFM)]   = "APM_STA_DEL_CFM",
 };
 
 static const char *const bl_meshid2str[MSG_I(MESH_MAX)] = {

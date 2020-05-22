@@ -216,7 +216,7 @@ static int _signal_poll_event(struct k_poll_event *event, u32_t state,
 	return 0;
 }
 
-int k_poll_signal(struct k_poll_signal *signal, int result)
+int k_poll_signal_raise(struct k_poll_signal *signal, int result)
 {
 	unsigned int key = irq_lock();
 	struct k_poll_event *poll_event;

@@ -21,8 +21,11 @@ COMPONENT_OBJS := $(patsubst %.S,%.o, $(COMPONENT_OBJS))
 COMPONENT_SRCS := $(COMPONENT_SRCS1)
 COMPONENT_SRCDIRS := evb/src/boot/$(toolchains) evb/src
 
+ifneq ($(CONFIG_LINK_CUSTOMER),1)
+
 ifeq ($(CONFIG_LINK_RAM),1)
 LINKER_SCRIPTS := ram.ld
+CPPFLAGS += -DRUN_IN_RAM
 else
 
 ifeq ($(CONFIG_LINK_ROM),1)
@@ -33,15 +36,16 @@ endif
 
 endif
 
-ifeq ($(CONFIG_DISABLE_PRINT),1)
-CPPFLAGS += -DDISABLE_PRINT
-endif
-
 ##
 COMPONENT_ADD_LDFLAGS += -L $(COMPONENT_PATH)/evb/ld \
                          $(addprefix -T ,$(LINKER_SCRIPTS))
 ##                        
 COMPONENT_ADD_LINKER_DEPS := $(addprefix evb/ld/,$(LINKER_SCRIPTS))
+endif
+
+ifeq ($(CONFIG_DISABLE_PRINT),1)
+CPPFLAGS += -DDISABLE_PRINT
+endif
 
 ##
 #CPPFLAGS += -D

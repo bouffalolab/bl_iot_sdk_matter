@@ -138,6 +138,7 @@ void bl_dma_init(void)
     DMA_IntMask(dmaCh, DMA_INT_TCOMPLETED, UNMASK);
     DMA_IntMask(dmaCh, DMA_INT_ERR, UNMASK);
     DMA_LLI_Init(dmaCh, &lliCfg);
+    bl_irq_register(DMA_ALL_IRQn, bl_dma_IRQHandler);
     bl_irq_enable(DMA_ALL_IRQn);
 }
 

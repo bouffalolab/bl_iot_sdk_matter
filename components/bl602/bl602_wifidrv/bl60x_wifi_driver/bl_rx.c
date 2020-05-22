@@ -696,6 +696,11 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
             ind->sta_addr.array[4] & 0xFF,
             ind->sta_addr.array[5] & 0xFF
     );
+    printf("[WF]    tsflo: 0x%lx\r\n", ind->tsflo);
+    printf("[WF]    tsfhi: 0x%lx\r\n", ind->tsfhi);
+    printf("[WF]    rssi: %d\r\n", ind->rssi);
+    printf("[WF]    data rate: 0x%x\r\n", ind->data_rate);
+
     os_printf("[WF]    vif_idx %u\r\n", ind->vif_idx);
     os_printf("[WF]    sta_idx %u\r\n", ind->sta_idx);
     if (ind->sta_idx < sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0])) {
@@ -707,6 +712,10 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
         sta->sta_idx = ind->sta_idx;
         sta->vif_idx = ind->vif_idx;
         sta->is_used = 1;
+        sta->rssi = ind->rssi;
+        sta->tsflo = ind->tsflo;
+        sta->tsfhi = ind->tsfhi;
+        sta->data_rate = ind->data_rate;
     } else {
         os_printf("[WF]    ------ Potential illegal sta_idx\r\n");
     }

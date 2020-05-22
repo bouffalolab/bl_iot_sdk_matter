@@ -21,7 +21,8 @@
 #include <utils.h>
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_HCI_CORE)
-#include "common/log.h"
+#define LOG_MODULE_NAME bt_crypto
+#include "log.h"
 
 #include "hci_core.h"
 
@@ -67,7 +68,7 @@ int prng_init(void)
 	int ret;
 
 	/* Check first that HCI_LE_Rand is supported */
-	if (!(bt_dev.supported_commands[27] & BIT(7))) {
+	if (!BT_CMD_TEST(bt_dev.supported_commands, 27, 7)) {
 		return -ENOTSUP;
 	}
 
@@ -118,7 +119,8 @@ int bt_encrypt_le(const u8_t key[16], const u8_t plaintext[16],
 	struct tc_aes_key_sched_struct s;
 	u8_t tmp[16];
 
-	BT_DBG("key %s plaintext %s", bt_hex(key, 16), bt_hex(plaintext, 16));
+	BT_DBG("key %s", bt_hex(key, 16));
+	BT_DBG("plaintext %s", bt_hex(plaintext, 16));
 
 	sys_memcpy_swap(tmp, key, 16);
 
@@ -144,7 +146,8 @@ int bt_encrypt_be(const u8_t key[16], const u8_t plaintext[16],
 {
 	struct tc_aes_key_sched_struct s;
 
-	BT_DBG("key %s plaintext %s", bt_hex(key, 16), bt_hex(plaintext, 16));
+	BT_DBG("key %s", bt_hex(key, 16));
+	BT_DBG("plaintext %s", bt_hex(plaintext, 16));
 
 	if (tc_aes128_set_encrypt_key(&s, key) == TC_CRYPTO_FAIL) {
 		return -EINVAL;

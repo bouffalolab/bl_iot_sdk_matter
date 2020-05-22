@@ -13,7 +13,7 @@
 
 
 #include <zephyr.h>
-#include <common/log.h>
+#include <log.h>
 #include "errno.h"
 
 static struct k_thread work_q_thread;

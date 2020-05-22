@@ -10,15 +10,59 @@
 //#error "CONFIG_BLUETOOTH not defined,this header shoudn't include"
 //#endif
 
+#ifdef CONFIG_BT_BONDABLE
+#undef CONFIG_BT_BONDABLE
+#define CONFIG_BT_BONDABLE 1
+#endif
+
+#if defined(CONFIG_BT_STACK_PTS)
+
+#ifndef CONFIG_BT_STACK_PTS_SM_SLA_KDU_BI_01
+//#define CONFIG_BT_STACK_PTS_SM_SLA_KDU_BI_01  1
+#endif
+
+#ifndef CONFIG_BT_STACK_PTS_SM_SLA_JW_BV_02
+//#define CONFIG_BT_STACK_PTS_SM_SLA_JW_BV_02  1
+#endif
+
+#ifndef CONFIG_BT_STACK_PTS_SM_SLA_SIP_BV_01
+//#define CONFIG_BT_STACK_PTS_SM_SLA_SIP_BV_01  1
+#endif
+
+
+//#ifndef  CONFIG_BT_STACK_PTS_SM_SLA_KDU_BI_01
+//#define  CONFIG_BT_STACK_PTS_SM_SLA_KDU_BI_01	
+//#endif
+
+//#ifndef  PTS_GAP_SLAVER_CONFIG_READ_CHARC
+//#define  PTS_GAP_SLAVER_CONFIG_READ_CHARC		
+//#endif
+
+//#ifndef  PTS_GAP_SLAVER_CONFIG_WRITE_CHARC
+//#define  PTS_GAP_SLAVER_CONFIG_WRITE_CHARC		
+//#endif
+
+//#ifndef  PTS_GAP_SLAVER_CONFIG_NOTIFY_CHARC
+//#define  PTS_GAP_SLAVER_CONFIG_NOTIFY_CHARC		
+//#endif
+
+//#ifndef  PTS_GAP_SLAVER_CONFIG_INDICATE_CHARC
+//#define  PTS_GAP_SLAVER_CONFIG_INDICATE_CHARC	
+//#endif
+
+#endif
+
+#define CONFIG_BT_GATT_READ_MULTIPLE 1
+
 /**
  * CONFIG_BT_HCI_RX_STACK_SIZE: rx thread stack size
  */
 #ifndef CONFIG_BT_HCI_RX_STACK_SIZE
-#define CONFIG_BT_HCI_RX_STACK_SIZE 512
+#define CONFIG_BT_HCI_RX_STACK_SIZE  512
 #endif
 
 #ifndef CONFIG_BT_RX_STACK_SIZE
-#define CONFIG_BT_RX_STACK_SIZE 2048//1536//1024
+#define CONFIG_BT_RX_STACK_SIZE  2048//1536//1024
 #endif
 
 #ifndef CONFIG_BT_CTLR_RX_PRIO_STACK_SIZE
@@ -28,7 +72,7 @@
 #define CONFIG_BT_HCI_ECC_STACK_SIZE  384
 
 #ifndef CONFIG_BT_RX_PRIO
-#define CONFIG_BT_RX_PRIO (configMAX_PRIORITIES - 3)
+#define CONFIG_BT_RX_PRIO (configMAX_PRIORITIES - 4)
 #endif
 /**
  * CONFIG_BT: Tx thread stack size
@@ -42,11 +86,11 @@
  * CONFIG_BT_HCI_TX_PRIO: tx thread priority
  */
 #ifndef CONFIG_BT_HCI_TX_PRIO
-#define CONFIG_BT_HCI_TX_PRIO (configMAX_PRIORITIES - 4)
+#define CONFIG_BT_HCI_TX_PRIO (configMAX_PRIORITIES - 3)
 #endif
 
 #ifndef CONFIG_BT_CTLR_RX_PRIO
-#define CONFIG_BT_CTLR_RX_PRIO (configMAX_PRIORITIES - 3)
+#define CONFIG_BT_CTLR_RX_PRIO (configMAX_PRIORITIES - 4)
 #endif
 
 
@@ -86,6 +130,12 @@
 #endif
 
 /**
+* CONFIG_BT_WHITELIST : Enable autoconnect whilt list device */
+#ifndef CONFIG_BT_WHITELIST
+#define CONFIG_BT_WHITELIST 1
+#endif
+
+/**
 * CONFIG_BT_PERIPHERAL: Enable peripheral Role
 */
 #ifdef CONFIG_BT_PERIPHERAL
@@ -100,6 +150,15 @@
 
 #ifdef CONFIG_BT_CONN 
 
+#ifndef CONFIG_BT_CREATE_CONN_TIMEOUT
+#define CONFIG_BT_CREATE_CONN_TIMEOUT 3
+#endif
+
+#if defined(BFLB_BLE)
+#ifndef CONFIG_BT_CONN_PARAM_UPDATE_TIMEOUT
+#define CONFIG_BT_CONN_PARAM_UPDATE_TIMEOUT 5
+#endif
+#endif
 /**
 * CONFIG_BLUETOOTH_L2CAP_TX_BUF_COUNT: number of buffer for outgoing L2CAP packages
 * range 2 to 255
@@ -128,6 +187,10 @@
 #define CONFIG_BT_L2CAP_TX_USER_DATA_SIZE 4
 #endif
 
+
+#if defined(CONFIG_BT_STACK_PTS)&& defined(PTS_GAP_SLAVER_CONFIG_WRITE_CHARC)
+#define CONFIG_BT_ATT_PREPARE_COUNT 64
+#else
 /**
 * CONFIG_BT_ATT_PREPARE_COUNT: Number of buffers available for ATT prepare write, setting
 * this to 0 disables GATT long/reliable writes.
@@ -135,6 +198,7 @@
 */
 #ifndef CONFIG_BT_ATT_PREPARE_COUNT
 #define CONFIG_BT_ATT_PREPARE_COUNT 0
+#endif
 #endif
 
 /**
@@ -210,7 +274,11 @@
 * range 1 to 65535,seconds
 */
 #ifndef CONFIG_BT_RPA_TIMEOUT
+#if defined(CONFIG_BT_STACK_PTS)
+#define CONFIG_BT_RPA_TIMEOUT 5
+#else
 #define CONFIG_BT_RPA_TIMEOUT 900
+#endif
 #endif
 #endif
 
@@ -432,6 +500,17 @@
 #endif
 
 #define CONFIG_BT_DEVICE_NAME_MAX 20
+
+#if defined(CONFIG_BT_GAP_PERIPHERAL_PREF_PARAMS)
+#define CONFIG_BT_PERIPHERAL_PREF_MIN_INT 0x0018
+#define CONFIG_BT_PERIPHERAL_PREF_MAX_INT 0x0028
+#define CONFIG_BT_PERIPHERAL_PREF_SLAVE_LATENCY 0
+#define CONFIG_BT_PERIPHERAL_PREF_TIMEOUT 400
+#endif
+
+//#define BFLB_BLE_DISABLE_STATIC_ATTR
+//#define BFLB_BLE_DISABLE_STATIC_BUF
+//#define BFLB_BLE_DISABLE_STATIC_CHANNEL
 #endif //BFLB_BLE
 
 /*******************************BFLB_BLE Patch******************************/
@@ -440,6 +519,7 @@
 #define BFLB_BLE_PATCH_FREE_ALLOCATED_BUFFER_IN_OS
 #define BFLB_BLE_PATCH_AVOID_SEC_GATT_DISC
 #define BFLB_BLE_PATCH_AVOID_DUPLI_PUBKEY_CB
+#define BFLB_BLE_PATCH_CLEAN_UP_CONNECT_REF   /*The flag @conn_ref is not clean up after disconnect*/ 
 #ifdef CONFIG_BT_SETTINGS
 #define BFLB_BLE_PATCH_SETTINGS_LOAD
 #endif
