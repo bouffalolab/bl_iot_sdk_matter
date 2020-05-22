@@ -209,6 +209,8 @@ typedef struct {
     DMA_LLI_Cfg_Type *DMA_LLI_Cfg;           /*!< LLI Config parameter */
     uint32_t operatePeriphAddr;              /*!< Operate Peripheral register address */
     uint32_t chache_buf_addr[2];             /*!< Ping-Pong structure chache */
+    BL_Fun_Type is_single_mode;              /*!< is Ping-pong running forever or single mode ,if is single mode ping-pong will run only once 
+                                                 after one start */
 }DMA_LLI_PP_Struct;
 
 /*@} end of group DMA_Public_Types */

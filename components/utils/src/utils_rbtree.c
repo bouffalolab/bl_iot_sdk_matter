@@ -1,4 +1,4 @@
-//
+/*
 // Based on Julienne Walker's <http://eternallyconfuzzled.com/> rb_tree
 // implementation.
 //
@@ -29,6 +29,7 @@
 //
 // For more information, please refer to <http://unlicense.org/>
 //
+*/
 
 #include <FreeRTOS.h>
 #include "utils_rbtree.h"

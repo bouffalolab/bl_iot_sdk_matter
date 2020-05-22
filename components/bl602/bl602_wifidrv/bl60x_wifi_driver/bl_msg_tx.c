@@ -130,6 +130,8 @@ static const struct ieee80211_channel bl_channels_24_ER[] = {
     { .band = NL80211_BAND_2GHZ, .center_freq = 2452, .hw_value = 9, .max_power=16},
     { .band = NL80211_BAND_2GHZ, .center_freq = 2457, .hw_value = 10, .max_power=16},
     { .band = NL80211_BAND_2GHZ, .center_freq = 2462, .hw_value = 11, .max_power=16},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2467, .hw_value = 12, .max_power=16},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2472, .hw_value = 13, .max_power=16},
 };
 
 static const struct ieee80211_dot_d country_list[] = 
@@ -150,7 +152,7 @@ static const struct ieee80211_dot_d country_list[] =
         .channels = bl_channels_24_US,
     },
     {
-        .code   = "ER",
+        .code   = "EU",
         .channel_num = sizeof(bl_channels_24_ER)/sizeof(bl_channels_24_ER[0]),
         .channels = bl_channels_24_ER,
     },
@@ -188,6 +190,11 @@ void bl_msg_update_channel_cfg(const char *code)
         printf("[WF] country code %s used, num of channel %d\r\n", code, channel_num_default);
     }
 
+}
+
+int bl_msg_get_channel_nums()
+{
+    return channel_num_default;
 }
 
 static inline uint16_t phy_channel_to_freq(uint8_t band, int channel)
@@ -616,7 +623,7 @@ int bl_send_scanu_req(struct bl_hw *bl_hw)
     /* Set parameters */
     //FIXME should we use vif_index_sta when NO sta is added or just use 0?
     req->vif_idx = bl_hw->vif_index_sta;
-    req->chan_cnt = SCAN_CHANNEL_2G4;
+    req->chan_cnt = channel_num_default;
     req->ssid_cnt = 0;
     req->bssid = mac_addr_bcst;
     req->no_cck = true;//FIXME params? talk with firmware guys

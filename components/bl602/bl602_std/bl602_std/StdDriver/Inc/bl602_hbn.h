@@ -38,6 +38,7 @@
 
 #include "hbn_reg.h"
 #include "bl602_aon.h"
+#include "bl602_sflash.h"
 #include "bl602_common.h"
 
 /** @addtogroup  BL602_Peripheral_Driver
@@ -207,18 +208,24 @@ typedef enum {
  *  @brief HBN level type definition
  */
 typedef enum {
-    HBN_LEVEL_0,                            /*!< HBN hbn */
-    HBN_LEVEL_1,                            /*!< HBN hbn + hbn_core_pwr_off */
-    HBN_LEVEL_2,                            /*!< HBN hbn + hbn_core_pwr_off + hbn_core_ram_pwr_off */
-    HBN_LEVEL_3,                            /*!< HBN hbn + hbn_core_pwr_off + hbn_core_ram_pwr_off + hbn_rtc_pwr_off */
+    HBN_LEVEL_0,                            /*!< HBN pd_core */
+    HBN_LEVEL_1,                            /*!< HBN pd_aon_hbncore + pd_core */
+    HBN_LEVEL_2,                            /*!< HBN pd_aon_hbnrtc + pd_aon_hbncore + pd_core */
+    HBN_LEVEL_3,                            /*!< HBN pd_aon + pd_aon_hbnrtc + pd_aon_hbncore + pd_core */
 }HBN_LEVEL_Type;
 
 /**
- *  @brief HBN Input enable type definition
+ *  @brief HBN APP configuration type definition
  */
-typedef enum {
-    HBN_INPUT_ENABLE_GPIO18=0x01,           /*!< HBN GPIO input enable:GPIO18 */
-}HBN_Input_Enable_Type;
+typedef struct {
+    uint8_t useXtal32k;                     /*!< Wheather use xtal 32K as 32K clock source,otherwise use rc32k */
+    uint32_t sleepTime;                     /*!< HBN sleep time */
+    uint8_t gpioWakeupSrc;                  /*!< GPIO Wakeup source */
+    HBN_GPIO_INT_Trigger_Type gpioTrigType; /*!< GPIO Triger type */
+    SPI_Flash_Cfg_Type *flashCfg;           /*!< Flash config pointer, used when power down flash */
+    HBN_LEVEL_Type hbnLevel;                /*!< HBN level */
+    HBN_LDO_LEVEL_Type ldoLevel;            /*!< LDO level */
+}HBN_APP_CFG_Type;
 
 /*@} end of group HBN_Public_Types */
 
@@ -349,11 +356,6 @@ typedef enum {
                                                           ((type) == HBN_LEVEL_2) || \
                                                           ((type) == HBN_LEVEL_3))
 
-/** @defgroup  HBN_INPUT_ENABLE_TYPE
- *  @{
- */
-#define IS_HBN_INPUT_ENABLE_TYPE(type)                   (((type) == HBN_INPUT_ENABLE_GPIO18))
-
 /*@} end of group HBN_Public_Constants */
 
 /** @defgroup  HBN_Public_Macros
@@ -365,6 +367,10 @@ typedef enum {
 #define HBN_RTC_COMP_BIT13_39           0x04
 #define HBN_STATUS_ENTER_FLAG           0x4e424845
 #define HBN_STATUS_WAKEUP_FLAG          0x4e424857
+#define HBN_WAKEUP_GPIO_NONE            0x00
+#define HBN_WAKEUP_GPIO_7               0x01
+#define HBN_WAKEUP_GPIO_8               0x02
+#define HBN_WAKEUP_GPIO_ALL             0x03
 
 /*@} end of group HBN_Public_Macros */
 
@@ -377,6 +383,8 @@ void HBN_OUT0_IRQHandler(void);
 void HBN_OUT1_IRQHandler(void);
 #endif
 /*----------*/
+void HBN_Mode_Enter(HBN_APP_CFG_Type *cfg);
+void HBN_Power_Down_Flash(SPI_Flash_Cfg_Type *flashCfg);
 void HBN_Enable(uint8_t aGPIOIeCfg,HBN_LDO_LEVEL_Type ldoLevel,HBN_LEVEL_Type hbnLevel);
 BL_Err_Type HBN_Reset(void);
 BL_Err_Type HBN_App_Reset(uint8_t npXtalType,uint8_t bclkDiv,uint8_t apXtalType,uint8_t fclkDiv);
@@ -418,8 +426,7 @@ BL_Err_Type HBN_GPIO_INT_Enable(HBN_GPIO_INT_Trigger_Type gpioIntTrigType);
 BL_Err_Type HBN_GPIO_INT_Disable(void);
 BL_Sts_Type HBN_Get_INT_State(HBN_INT_Type irqType);
 uint8_t HBN_Get_Pin_Wakeup_Mode(void);
-BL_Err_Type HBN_Clear_IRQ_With_MaskOperation(HBN_INT_Type irqType);
-BL_Err_Type HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_Type irqType);
+BL_Err_Type HBN_Clear_IRQ(HBN_INT_Type irqType);
 BL_Err_Type HBN_Hw_Pu_Pd_Cfg(uint8_t enable);
 BL_Err_Type HBN_Aon_Pad_IeSmt_Cfg(uint8_t padCfg);
 BL_Err_Type HBN_Pin_WakeUp_Mask(uint8_t maskVal);

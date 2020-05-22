@@ -21,6 +21,7 @@
 #include "wifi_netif.h"
 #include "include/wifi_mgmr_ext.h"
 #include "os_hal.h"
+#include "hal_sys.h"
 
 #define DEBUG_HEADER "[WF][SM] "
 #define mgmr_TASK_PRIORITY     (28)
@@ -50,7 +51,7 @@ static bool stateGlobalGuard( void *ch, struct event *event )
     return false;
 }
 
-static inline char* auth_to_str(uint8_t auth)
+char *wifi_mgmr_auth_to_str(uint8_t auth)
 {
     switch (auth) {
         case WIFI_EVENT_BEACON_IND_AUTH_OPEN:
@@ -110,13 +111,21 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
             scan->rssi,
             scan->ppm_abs,
             scan->ppm_rel,
-            auth_to_str(scan->auth),
+            wifi_mgmr_auth_to_str(scan->auth),
             scan->ssid
     );
 #endif
+    if (scan->channel > wifiMgmr.channel_nums || !scan->channel){
+        return false;
+    }
     /*update scan_items, we just store the newly found item, or update exsiting one*/
     counter++;
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
+        if(wifiMgmr.scan_items[i].channel > wifiMgmr.channel_nums){
+            memset(&wifiMgmr.scan_items[i], 0, sizeof(wifi_mgmr_scan_item_t));
+            wifiMgmr.scan_items[i].is_used = 0;
+        }
+
         if (wifiMgmr.scan_items[i].is_used) {
             /*track the oldest scan_item*/
             if (wifiMgmr.scan_items[i].timestamp_lastseen < lastseen) {
@@ -132,6 +141,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
                 wifiMgmr.scan_items[i].ppm_abs = scan->ppm_abs;
                 wifiMgmr.scan_items[i].ppm_rel = scan->ppm_rel;
                 wifiMgmr.scan_items[i].timestamp_lastseen = counter;
+                wifiMgmr.scan_items[i].auth = scan->auth;
                 break;
             }
         } else {
@@ -153,6 +163,46 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
             wifiMgmr.scan_items[i].is_used = 1;
         }
     }
+
+    /*we always return false, since we only store the info from beacon frame*/
+    return false;
+}
+
+static bool stateGlobalGuard_disable_autoreconnect( void *ch, struct event *event )
+{
+    wifi_mgmr_msg_t *msg;
+
+    msg = event->data;
+    if (ch != (void*)msg->ev) {
+        return false;
+    }
+
+    if (&stateDisconnect == wifiMgmr.m.currentState) {
+        os_printf("Disable Autoreconnect in Disconnec State\r\n");
+        os_printf(DEBUG_HEADER "Removing STA interface...\r\n");
+        bl_main_if_remove(wifiMgmr.wlan_sta.vif_index);
+        return true;
+    }
+    /*we need set disable now for future use*/
+    os_printf("Disable Auto Reconnect\r\n");
+    wifi_mgmr_profile_autoreconnect_disable(&wifiMgmr, -1);
+
+    /*we always return false, since we only store the info from beacon frame*/
+    return false;
+}
+
+static bool stateGlobalGuard_enable_autoreconnect( void *ch, struct event *event )
+{
+    wifi_mgmr_msg_t *msg;
+
+    msg = event->data;
+    if (ch != (void*)msg->ev) {
+        return false;
+    }
+
+    /*we need set enable now for future use*/
+    os_printf("Enable Auto Reconnect\r\n");
+    wifi_mgmr_profile_autoreconnect_enable(&wifiMgmr, -1);
 
     /*we always return false, since we only store the info from beacon frame*/
     return false;
@@ -189,6 +239,14 @@ static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
 {
     wifi_mgmr_msg_t *msg;
 
+    if (&stateIdle != wifiMgmr.m.currentState &&
+            &stateConnectedIPYes != wifiMgmr.m.currentState &&
+            &stateSniffer != wifiMgmr.m.currentState) {
+            os_printf("------>>>>>> FW busy\r\n");
+            aos_post_event(EV_WIFI, CODE_WIFI_ON_SCAN_DONE, WIFI_SCAN_DONE_EVENT_BUSY);
+            return false;
+    }
+
     msg = event->data;
     if (WIFI_MGMR_EVENT_FW_SCAN == msg->ev) {
         os_printf("------>>>>>> Scan CMD\r\n");
@@ -201,7 +259,7 @@ static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
 static void stateGlobalAction( void *oldStateData, struct event *event,
       void *newStateData )
 {
-    os_printf("unrecognised character: %c\n", (char)(intptr_t)event->data);
+    os_printf(DEBUG_HEADER "Global Action\r\n");
 }
 
 static void stateGlobalEnter( void *stateData, struct event *event )
@@ -380,6 +438,8 @@ const static struct state stateGlobal = {
    .transitions = (struct transition[])
    {
       {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_SCAN_IND_BEACON, &stateGlobalGuard_scan_beacon, &stateGlobalAction, &stateIdle},
+      {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_DISABLE_AUTORECONNECT, &stateGlobalGuard_disable_autoreconnect, &stateGlobalAction, &stateIdle},
+      {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_ENABLE_AUTORECONNECT, &stateGlobalGuard_enable_autoreconnect, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, NULL, &stateGlobalGuard, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_AP_START, &stateGlobalGuard_AP, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_AP_STOP, &stateGlobalGuard_stop, &stateGlobalAction, &stateIdle},
@@ -387,7 +447,7 @@ const static struct state stateGlobal = {
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_POWERSAVING, &stateGlobalGuard_fw_powersaving, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_SCAN, &stateGlobalGuard_fw_scan, &stateGlobalAction, &stateIdle},
    },
-   .numTransitions = 7,
+   .numTransitions = 9,
    .data = "group",
    .entryAction = &stateGlobalEnter,
    .exitAction = &stateGlobalExit,
@@ -808,6 +868,7 @@ const static struct state stateConnectedIPYes = {
 typedef struct disconnectData {
     char name[32];//all the state data must start with name field
     os_timer_t timer;
+    uint8_t timer_started;
     wifi_mgmr_profile_msg_t profile_msg;
 } disconnectData_t;
 static disconnectData_t stateDisconnect_data = {
@@ -897,16 +958,22 @@ static void stateDisconnect_enter(void *stateData, struct event *event)
 
     stateDisconnect_data = stateData;
     os_printf(DEBUG_HEADER "Entering %s state\r\n", (char *)stateData);
-    os_timer_init(&(stateDisconnect_data->timer),
-        "wifi disconnect",
-        disconnect_retry,
-        stateDisconnect_data,
-        2000,//timeout 6 seconds for reconnect
-        OS_TIMER_TYPE_ONESHOT
-    );
-    os_printf(DEBUG_HEADER "Will retry in 6000 ticks\r\n");
-    os_timer_start(&(stateDisconnect_data->timer));
-    aos_post_event(EV_WIFI, CODE_WIFI_ON_DISCONNECT, 0);
+
+    if (wifi_mgmr_profile_autoreconnect_is_enabled(&wifiMgmr, -1)) {
+        os_timer_init(&(stateDisconnect_data->timer),
+            "wifi disconnect",
+            disconnect_retry,
+            stateDisconnect_data,
+            2000,//timeout 6 seconds for reconnect
+            OS_TIMER_TYPE_ONESHOT
+        );
+        os_printf(DEBUG_HEADER "Will retry in 2000 ticks\r\n");
+        os_timer_start(&(stateDisconnect_data->timer));
+        stateDisconnect_data->timer_started = 1;
+    } else {
+        os_printf(DEBUG_HEADER "Will NOT retry connect\r\n");
+    }
+    aos_post_event(EV_WIFI, CODE_WIFI_ON_DISCONNECT, wifiMgmr.wifi_mgmr_stat_info.status_code);
 }
 
 static void stateDisconnect_exit(void *stateData, struct event *event)
@@ -914,7 +981,13 @@ static void stateDisconnect_exit(void *stateData, struct event *event)
     disconnectData_t *stateDisconnect_data = stateData;
 
     os_printf(DEBUG_HEADER "Exiting %s state\r\n", (char *)stateDisconnect_data);
-    os_timer_delete_nodelay(&(stateDisconnect_data->timer));
+    if (stateDisconnect_data->timer_started) {
+        os_printf("Delete Timer.\r\n");
+        os_timer_delete_nodelay(&(stateDisconnect_data->timer));
+        stateDisconnect_data->timer_started = 0;
+    } else {
+        os_printf("Delete Timer Skipped\r\n");
+    }
 }
 
 const static struct state stateDisconnect = {
@@ -967,6 +1040,9 @@ void wifi_mgmr_start(void)
     /*Noitfy mgmr is ready*/
     aos_post_event(EV_WIFI, CODE_WIFI_ON_MGMR_DONE, 0);
 
+    /*TODO: use another way based on event sys?*/
+    hal_sys_capcode_update(255, 255);
+
     /*Run the event handler loop*/
     while (1) {
         if (0 == os_mq_recv(&(wifiMgmr.mq), msg, WIFI_MGMR_MQ_MSG_SIZE)) {
@@ -1008,23 +1084,41 @@ int wifi_mgmr_init(void)
     return ret;
 }
 
+int wifi_mgmr_status_code_get_internal(int *s_code)
+{
+    (*s_code) = wifiMgmr.wifi_mgmr_stat_info.status_code;
+    return 0;
+}
+
 int wifi_mgmr_state_get_internal(int *state)
 {
     const struct state *m_state;
+    int s_code = 0;
 
     m_state = wifiMgmr.m.currentState;
+    wifi_mgmr_status_code_get_internal(&s_code);
 
     if (m_state == &stateIdle) {
         if (wifiMgmr.inf_ap_enabled) {
             *state = WIFI_STATE_WITH_AP_IDLE;
         } else {
             *state = WIFI_STATE_IDLE;
+            if (s_code == WLAN_FW_4WAY_HANDSHAKE_ERROR_PSK_TIMEOUT_FAILURE){
+                *state = WIFI_STATE_PSK_ERROR;
+            } else if (s_code == WLAN_FW_SCAN_NO_BSSID_AND_CHANNEL){
+                *state = WIFI_STATE_NO_AP_FOUND;
+            }
         }
     } else if (m_state == &stateConnecting) {
         if (wifiMgmr.inf_ap_enabled) {
             *state = WIFI_STATE_WITH_AP_CONNECTING;
         } else {
             *state = WIFI_STATE_CONNECTING;
+            if (s_code == WLAN_FW_4WAY_HANDSHAKE_ERROR_PSK_TIMEOUT_FAILURE){
+                *state = WIFI_STATE_PSK_ERROR;
+            } else if (s_code == WLAN_FW_SCAN_NO_BSSID_AND_CHANNEL){
+                *state = WIFI_STATE_NO_AP_FOUND;
+            }
         }
     } else if (m_state == &stateConnectedIPNo) {
         if (wifiMgmr.inf_ap_enabled) {
@@ -1043,6 +1137,11 @@ int wifi_mgmr_state_get_internal(int *state)
             *state = WIFI_STATE_WITH_AP_DISCONNECT;
         } else {
             *state = WIFI_STATE_DISCONNECT;
+            if (s_code == WLAN_FW_4WAY_HANDSHAKE_ERROR_PSK_TIMEOUT_FAILURE){
+                *state = WIFI_STATE_PSK_ERROR;
+            } else if (s_code == WLAN_FW_SCAN_NO_BSSID_AND_CHANNEL){
+                *state = WIFI_STATE_NO_AP_FOUND;
+            }
         }
     } else if (m_state == &stateIfaceDown) {
         *state = WIFI_STATE_IFDOWN;
@@ -1078,6 +1177,17 @@ void wifi_mgmr_set_connect_stat_info(struct wifi_event_sm_connect_ind *ind, uint
     printf("[RX]   band %u\r\n", wifiMgmr.wifi_mgmr_stat_info.chan_band);
     printf("[RX]   center_freq %u\r\n", wifiMgmr.wifi_mgmr_stat_info.chan_freq);
     printf("[RX]   type_ind %u\r\n", wifiMgmr.wifi_mgmr_stat_info.type_ind);
+}
+
+int wifi_mgmr_set_country_code_internal(char *country_code)
+{
+    bl_main_set_country_code(country_code);
+    strncpy(wifiMgmr.country_code, country_code, sizeof(wifiMgmr.country_code));
+    wifiMgmr.country_code[2] = '\0';
+    wifiMgmr.channel_nums = bl_main_get_channel_nums();
+    printf("country code:%s, support channel nums:%d\r\n", wifiMgmr.country_code, wifiMgmr.channel_nums);
+
+    return 0;
 }
 
 int wifi_mgmr_ap_sta_cnt_get_internal(uint8_t *sta_cnt)

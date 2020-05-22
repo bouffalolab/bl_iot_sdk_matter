@@ -1,1 +1,3 @@
-release_bl_iot_sdk_colink_1.0.0_p0-dirty
+release_bl_iot_sdk_1.1.1-dirty
+468416d
+eea50cd

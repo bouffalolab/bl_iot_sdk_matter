@@ -370,6 +370,15 @@ BL_Err_Type TIMER_Init(TIMER_CFG_Type* timerCfg)
     }
     BL_WR_REG(TIMER_BASE,TIMER_TCCR,tmpVal);
 
+    /* Configure timer clock division */
+    tmpVal=BL_RD_REG(TIMER_BASE,TIMER_TCDR);
+    if(timerCh == TIMER_CH0){
+        tmpVal=BL_SET_REG_BITS_VAL(tmpVal,TIMER_TCDR2,timerCfg->clockDivision);
+    }else{
+        tmpVal=BL_SET_REG_BITS_VAL(tmpVal,TIMER_TCDR3,timerCfg->clockDivision);
+    }
+    BL_WR_REG(TIMER_BASE,TIMER_TCDR,tmpVal);
+
     /* Configure timer count mode: preload or free run */
     TIMER_SetCountMode(timerCh,timerCfg->countMode);
 
@@ -506,25 +515,30 @@ void TIMER_IntMask(TIMER_Chan_Type timerCh,TIMER_INT_Type intType, BL_Mask_Type 
 }
 
 /****************************************************************************//**
- * @brief  TIMER set watchdog clock source
+ * @brief  TIMER set watchdog clock source and clock division
  *
  * @param  clkSrc: Watchdog timer clock source type
+ * @param  div: Watchdog timer clock division value
  *
  * @return None
  *
 *******************************************************************************/
-void WDT_Set_CLk_Src(TIMER_ClkSrc_Type clkSrc)
+void WDT_Set_Clock(TIMER_ClkSrc_Type clkSrc,uint8_t div)
 {
     uint32_t tmpVal;
 
     /* Check the parameters */
     CHECK_PARAM(IS_TIMER_CLKSRC_TYPE(clkSrc));
 
-    /* Configure timer clock source */
+    /* Configure watchdog timer clock source */
     tmpVal=BL_RD_REG(TIMER_BASE,TIMER_TCCR);
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,TIMER_CS_WDT,clkSrc);
-
     BL_WR_REG(TIMER_BASE,TIMER_TCCR,tmpVal);
+
+    /* Configure watchdog timer clock divison */
+    tmpVal=BL_RD_REG(TIMER_BASE,TIMER_TCDR);
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,TIMER_WCDR,div);
+    BL_WR_REG(TIMER_BASE,TIMER_TCDR,tmpVal);
 }
 
 /****************************************************************************//**

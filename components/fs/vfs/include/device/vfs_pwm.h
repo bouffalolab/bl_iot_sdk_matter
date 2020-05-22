@@ -14,6 +14,8 @@ extern "C" {
 /* cmd for ioctl */
 #define IOCTL_PWM_OUTPUT_START 1 /* start output pwm */
 #define IOCTL_PWM_OUTPUT_STOP  2 /* stop output pwm */
+#define IOCTL_PWM_OUTPUT_DUTY  3 /* change duty pwm */
+#define IOCTL_PWM_OUTPUT_FREQ  4 /* change duty pwm */
 
 /* pwm driver struct */
 extern const struct file_ops pwm_ops;

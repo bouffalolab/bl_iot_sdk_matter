@@ -40,6 +40,7 @@ static void cb_disconnect_ind(void *env, struct wifi_event_sm_disconnect_ind *in
     msg_wifi.data2 = (void*)0x55667788;
     msg_wifi.len = sizeof(msg_wifi);
     wifiMgmr.wifi_mgmr_stat_info.type_ind = WIFI_MGMR_CONNECT_IND_STAT_INFO_TYPE_IND_DISCONNECTION;
+    wifiMgmr.wifi_mgmr_stat_info.status_code = ind->reason_code;
     wifi_mgmr_event_notify(&msg_wifi);
 }
 
@@ -79,7 +80,7 @@ static void cb_event_ind(void *env, struct wifi_event *event)
             (void) ind;
             puts("[WIFI] [IND] SCAN Done\r\n");
             wifi_mgmr_scan_complete_notify();
-            aos_post_event(EV_WIFI, CODE_WIFI_ON_SCAN_DONE, 0);
+            aos_post_event(EV_WIFI, CODE_WIFI_ON_SCAN_DONE, WIFI_SCAN_DONE_EVENT_OK);
         }
         break;
         default:

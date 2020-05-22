@@ -188,6 +188,24 @@ BL_Err_Type ATTR_CLOCK_SECTION AON_Set_Xtal_CapCode(uint8_t capIn,uint8_t capOut
 }
 
 /****************************************************************************//**
+ * @brief  Get XTAL cap code
+ *
+ * @param  None
+ *
+ * @return Cap code
+ *
+*******************************************************************************/
+__WEAK
+uint8_t ATTR_CLOCK_SECTION AON_Get_Xtal_CapCode(void)
+{
+    uint32_t tmpVal = 0;
+
+    tmpVal=BL_RD_REG(AON_BASE,AON_XTAL_CFG);
+
+    return BL_GET_REG_BITS_VAL(tmpVal,AON_XTAL_CAPCODE_IN_AON);
+}
+
+/****************************************************************************//**
  * @brief  Power off XTAL
  *
  * @param  None
@@ -376,6 +394,85 @@ BL_Err_Type AON_Power_Off_SFReg(void)
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_PU_SFREG_AON);
     BL_WR_REG(AON_BASE,AON_RF_TOP_AON,tmpVal);
     
+    return SUCCESS;
+}
+
+
+/****************************************************************************//**
+ * @brief  Power off the power can be shut down in PDS0
+ *
+ * @param  None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_LowPower_Enter_PDS0(void)
+{
+    uint32_t tmpVal = 0;
+
+    /* power off sfreg */
+    tmpVal=BL_RD_REG(AON_BASE,AON_MISC);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_SW_WB_EN_AON);
+    BL_WR_REG(AON_BASE,AON_MISC,tmpVal);
+
+    tmpVal=BL_RD_REG(AON_BASE,AON_RF_TOP_AON);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_PU_SFREG_AON);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_PU_LDO15RF_AON);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_PU_MBG_AON);
+    BL_WR_REG(AON_BASE,AON_RF_TOP_AON,tmpVal);
+
+    /* gating Clock */
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_CGEN_CFG0);
+    tmpVal=tmpVal&(~(1<<6));
+    tmpVal=tmpVal&(~(1<<7));
+    BL_WR_REG(GLB_BASE,GLB_CGEN_CFG0,tmpVal);
+
+    return SUCCESS;
+}
+
+
+/****************************************************************************//**
+ * @brief  Power on the power powered down in PDS0
+ *
+ * @param  None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_LowPower_Exit_PDS0(void)
+{
+    uint32_t tmpVal = 0;
+
+    tmpVal=BL_RD_REG(AON_BASE,AON_RF_TOP_AON);
+
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_PU_MBG_AON);
+    BL_WR_REG(AON_BASE,AON_RF_TOP_AON,tmpVal);
+
+    BL602_Delay_US(20);
+
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_PU_LDO15RF_AON);
+    BL_WR_REG(AON_BASE,AON_RF_TOP_AON,tmpVal);
+
+    BL602_Delay_US(60);
+
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_PU_SFREG_AON);
+    BL_WR_REG(AON_BASE,AON_RF_TOP_AON,tmpVal);
+
+    BL602_Delay_US(20);
+
+    /* power on wb */
+    tmpVal=BL_RD_REG(AON_BASE,AON_MISC);
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_SW_WB_EN_AON);
+    BL_WR_REG(AON_BASE,AON_MISC,tmpVal);
+
+    /* ungating Clock */
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_CGEN_CFG0);
+    tmpVal=tmpVal|((1<<6));
+    tmpVal=tmpVal|((1<<7));
+    BL_WR_REG(GLB_BASE,GLB_CGEN_CFG0,tmpVal);
+
     return SUCCESS;
 }
 

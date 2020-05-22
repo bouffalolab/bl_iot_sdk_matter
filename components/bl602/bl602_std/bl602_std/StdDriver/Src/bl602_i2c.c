@@ -612,7 +612,6 @@ void I2C_IntMask(I2C_ID_Type i2cNo, I2C_INT_Type intType, BL_Mask_Type intMask)
     }
     BL_WR_REG(I2Cx, I2C_INT_STS, tmpVal);
 }
-#ifndef BL602_USE_HAL_DRIVER
 
 /****************************************************************************//**
  * @brief  Install I2C interrupt callback function
@@ -624,6 +623,7 @@ void I2C_IntMask(I2C_ID_Type i2cNo, I2C_INT_Type intType, BL_Mask_Type intMask)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_HAL_DRIVER
 void I2C_Int_Callback_Install(I2C_ID_Type i2cNo, I2C_INT_Type intType, intCallback_Type* cbFun)
 {
     /* Check the parameters */

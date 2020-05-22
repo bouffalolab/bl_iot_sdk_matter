@@ -155,9 +155,16 @@ int wifi_mgmr_psk_cal(char *password, char *ssid, int ssid_len, char *output)
 int wifi_mgmr_drv_init(wifi_conf_t *conf)
 {
     bl606a0_wifi_init(conf);
+    wifi_mgmr_api_set_country_code(conf->country_code);
     wifi_mgmr_init();
     wifi_mgmr_api_ifaceup();
     return 0;
+}
+
+void wifi_mgmr_get_wifi_channel_conf(wifi_conf_t *wifi_chan_conf)
+{
+    strncpy(wifi_chan_conf->country_code, wifiMgmr.country_code, sizeof(wifiMgmr.country_code));
+    wifi_chan_conf->channel_nums = wifiMgmr.channel_nums;
 }
 
 wifi_interface_t wifi_mgmr_sta_enable(void)
@@ -256,6 +263,18 @@ int wifi_mgmr_sta_powersaving(int ps)
             return -1;
         }
     }
+    return 0;
+}
+
+int wifi_mgmr_sta_autoconnect_enable(void)
+{
+    wifi_mgmr_api_enable_autoreconnect();
+    return 0;
+}
+
+int wifi_mgmr_sta_autoconnect_disable(void)
+{
+    wifi_mgmr_api_disable_autoreconnect();
     return 0;
 }
 
@@ -472,6 +491,11 @@ int wifi_mgmr_state_get(int *state)
     return wifi_mgmr_state_get_internal(state);
 }
 
+int wifi_mgmr_status_code_get(int *s_code)
+{
+    return wifi_mgmr_status_code_get_internal(s_code);
+}
+
 int wifi_mgmr_rssi_get(int *rssi)
 {
     *rssi = wifiMgmr.wlan_sta.sta.rssi;
@@ -572,14 +596,15 @@ int wifi_mgmr_scan_ap(char *ssid, wifi_mgmr_ap_item_t *item)
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
         if (wifiMgmr.scan_items[i].is_used && 0 == strcmp(wifiMgmr.scan_items[i].ssid, ssid)) {
             /*found the ssid*/
+            index = i;
             if (wifiMgmr.scan_items[i].rssi > rssi) {
                 /*found ap with better rssi*/
                 rssi = wifiMgmr.scan_items[i].rssi;
-                index = i;
             }
+            break;
         }
     }
-    if (sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]) != i) {
+    if ((sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]) != i) && (index >= 0)) {
         /*proper item found, copy back data now*/
         //TODO FIXME we should scan the ap from the cache within the Wi-Fi manager thread
         scan = &wifiMgmr.scan_items[index];
@@ -612,9 +637,79 @@ int wifi_mgmr_scan_ap_all(wifi_mgmr_ap_item_t *env, uint32_t *param1, scan_item_
             memcpy(item.bssid, scan->bssid, sizeof(item.bssid));
             item.channel = scan->channel;
             item.rssi = scan->rssi;
+            item.auth = scan->auth;
             cb(env, param1, &item);
         }
     }
 
     return 0;
+}
+
+int wifi_mgmr_set_country_code(char *country_code)
+{
+    printf("%s:code = %s\r\n", __func__, country_code);
+    wifi_mgmr_api_set_country_code(country_code);
+
+    return 0;
+}
+
+const char* wifi_mgmr_status_code_str(uint16_t status_code)
+{
+    switch (status_code) {
+        case WLAN_FW_SUCCESSFUL:
+            return "Connection OK";
+        break;
+        case WLAN_FW_TX_AUTH_FRAME_ALLOCATE_FAIILURE:
+            return "tx auth frame alloc failure";
+        break;
+        case WLAN_FW_AUTHENTICATION_FAIILURE:
+            return "Authentication failure";
+        break;
+        case WLAN_FW_AUTH_ALGO_FAIILURE:
+            return "Auth response but auth algo failure";
+        break;
+        case WLAN_FW_TX_ASSOC_FRAME_ALLOCATE_FAIILURE:
+            return "tx assoc frame alloc failure";
+        break;
+        case WLAN_FW_ASSOCIATE_FAIILURE:
+            return "Association failure";
+        break;
+        case WLAN_FW_DEAUTH_BY_AP_WHEN_NOT_CONNECTION:
+            return "deauth by AP but state error";
+        break;
+        case WLAN_FW_DEAUTH_BY_AP_WHEN_CONNECTION:
+            return "deauth by AP when connecting";
+        break;
+        case WLAN_FW_4WAY_HANDSHAKE_ERROR_PSK_TIMEOUT_FAILURE:
+            return "Passwd error, 4-way handshake timeout";
+        break;
+        case WLAN_FW_4WAY_HANDSHAKE_TX_DEAUTH_FRAME_TRANSMIT_FAILURE:
+            return "Passwd error, tx deauth frame transmit failure";
+        break;
+        case WLAN_FW_4WAY_HANDSHAKE_TX_DEAUTH_FRAME_ALLOCATE_FAIILURE:
+            return "Passwd error, tx deauth frame allocate failure";
+        break;
+        case WLAN_FW_TX_AUTH_OR_ASSOC_FRAME_TRANSMIT_FAILURE:
+            return "tx auth or associate frame transmit failure";
+        break;
+        case WLAN_FW_SCAN_NO_BSSID_AND_CHANNEL:
+            return "SSID error, scan no bssid and channel";
+        break;
+        case WLAN_FW_CREATE_CHANNEL_CTX_FAILURE_WHEN_JOIN_NETWORK:
+            return "create channel context failure when join network";
+        break;
+        case WLAN_FW_JOIN_NETWORK_FAILURE:
+            return "join network failure";
+        break;
+        case WLAN_FW_ADD_STA_FAILURE:
+            return "add sta failure";
+        break;
+        case WLAN_FW_BEACON_LOSS:
+            return "Beacon Loss";
+        break;
+        default:
+        {
+            return "Unknown Status Code";
+        }
+    }
 }

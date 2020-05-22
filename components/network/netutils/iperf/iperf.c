@@ -9,11 +9,14 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <semphr.h>
 #include <lwip/sockets.h>
+#include <lwip/udp.h>
 #include <aos/kernel.h>
 
 #include <cli.h>
 #include <netutils/netutils.h>
+#include <bl_timer.h>
 
 #define IPERF_PORT_LOCAL    5002
 #define IPERF_PORT          5001
@@ -22,11 +25,39 @@
 #define DEBUG_HEADER        "[NET] [IPC] "
 #define DEFAULT_HOST_IP     "192.168.11.1"
 
-typedef struct UDP_datagram { 
+typedef struct UDP_datagram {
     uint32_t id;
     uint32_t tv_sec;
     uint32_t tv_usec;
 } UDP_datagram;
+
+/*
+ * The server_hdr structure facilitates the server
+ * report of jitter and loss on the client side.
+ * It piggy_backs on the existing clear to close
+ * packet.
+ */
+typedef struct server_hdr_v1 {
+    /*
+     * flags is a bitmap for different options
+     * the most significant bits are for determining
+     * which information is available. So 1.7 uses
+     * 0x80000000 and the next time information is added
+     * the 1.7 bit will be set and 0x40000000 will be
+     * set signifying additional information. If no
+     * information bits are set then the header is ignored.
+     */
+    int32_t flags;
+    int32_t total_len1;
+    int32_t total_len2;
+    int32_t stop_sec;
+    int32_t stop_usec;
+    int32_t error_cnt;
+    int32_t outorder_cnt;
+    int32_t datagrams;
+    int32_t jitter1;
+    int32_t jitter2;
+} server_hdr;
 
 static void iperf_client_tcp(void *arg)
 {
@@ -56,7 +87,7 @@ static void iperf_client_tcp(void *arg)
 
     while (1) {
         sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (sock < 0) 
+        if (sock < 0)
         {
             printf("create socket failed!\r\n");
             vTaskDelay(1000);
@@ -68,7 +99,7 @@ static void iperf_client_tcp(void *arg)
         addr.sin_addr.s_addr = inet_addr(host);
 
         ret = connect(sock, (const struct sockaddr*)&addr, sizeof(addr));
-        if (ret == -1) 
+        if (ret == -1)
         {
             printf("Connect failed!\r\n");
             closesocket(sock);
@@ -123,7 +154,7 @@ static void iperf_client_tcp(void *arg)
             }
 
             ret = send(sock, send_buf, IPERF_BUFSZ, 0);
-            if (ret > 0) 
+            if (ret > 0)
             {
                 sentlen += ret;
             }
@@ -179,7 +210,7 @@ static void iperf_client_udp(void *arg)
     }
 
         sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (sock < 0) 
+        if (sock < 0)
         {
             printf("create socket failed!\r\n");
             vTaskDelay(1000);
@@ -193,7 +224,7 @@ static void iperf_client_udp(void *arg)
         laddr.sin_addr.s_addr = inet_addr("0.0.0.0");
 
         ret = bind(sock, (struct sockaddr*)&laddr, sizeof(laddr));
-        if (ret == -1) 
+        if (ret == -1)
         {
             printf("Bind failed!\r\n");
             lwip_close(sock);
@@ -272,6 +303,174 @@ retry:
         vTaskDelete(NULL);
 }
 
+struct iperf_server_udp_ctx {
+    //SemaphoreHandle_t comp_sig_handle;
+    volatile int exit_flag;
+    uint32_t datagram_cnt;
+    int32_t packet_id;
+    uint32_t out_of_order_cnt, error_cnt, out_of_order_curr;
+    uint32_t receive_start, period_start, current;
+    uint64_t recv_total_len, recv_now;
+    float f_min, f_max;
+};
+
+// 网络字节序转本地字节序，直接从内存读取
+#define NTOHL_PTR(ptr)                     \
+  ({                                       \
+    uint32_t _tmp = 0;                     \
+    _tmp |= *((uint8_t *)(ptr) + 0) << 24; \
+    _tmp |= *((uint8_t *)(ptr) + 1) << 16; \
+    _tmp |= *((uint8_t *)(ptr) + 2) << 8;  \
+    _tmp |= *((uint8_t *)(ptr) + 3) << 0;  \
+  })
+
+// 本地字节序转网络字节序，直接写入内存
+#define HTONL_PTR(ptr, data)                       \
+  {                                                \
+    uint32_t _tmp = (uint32_t)(data);              \
+    *((uint8_t *)(ptr) + 0) = (_tmp >> 24) & 0xff; \
+    *((uint8_t *)(ptr) + 1) = (_tmp >> 16) & 0xff; \
+    *((uint8_t *)(ptr) + 2) = (_tmp >> 8) & 0xff;  \
+    *((uint8_t *)(ptr) + 3) = (_tmp >> 0) & 0xff;  \
+  }
+
+static void iperf_server_udp_recv_fn(void *arg, struct udp_pcb *pcb, struct pbuf *p,
+    const ip_addr_t *addr, u16_t port)
+{
+    struct iperf_server_udp_ctx *ctx = (struct iperf_server_udp_ctx *)arg;
+    char speed[32] = { 0 };
+    UDP_datagram udp_header;
+
+    // 接收数据，等待接收时间
+    if (p == NULL)
+        return;
+
+    ctx->current = bl_timer_now_us();
+    ctx->receive_start = ctx->receive_start ? : ctx->current;
+    ctx->period_start = ctx->period_start ? : ctx->current;
+
+    // 记录当前接收的总字节数：payload+Ethernet Link+IP header + UDP header
+    ctx->recv_now += p->tot_len + PBUF_LINK_HLEN + PBUF_IP_HLEN + PBUF_TRANSPORT_HLEN;
+
+    ctx->datagram_cnt ++;
+
+    // 获得packet id
+    udp_header.id = NTOHL_PTR(p->payload);
+    if ((signed)udp_header.id < 0) {    // 发送完成，client端等待应答
+        server_hdr *hdr = (server_hdr *)((UDP_datagram *)p->payload + 1);   // server hdr 跟在UDP_datagram后面
+        HTONL_PTR(&hdr->flags, 0x80000000u);
+        HTONL_PTR(&hdr->total_len1, 0);
+        HTONL_PTR(&hdr->total_len2, ctx->recv_total_len);   // 低32位
+        HTONL_PTR(&hdr->stop_sec, 0);
+        HTONL_PTR(&hdr->stop_usec, 0);
+        HTONL_PTR(&hdr->error_cnt, ctx->error_cnt);
+        HTONL_PTR(&hdr->outorder_cnt, ctx->out_of_order_cnt);
+        HTONL_PTR(&hdr->datagrams, ctx->datagram_cnt);
+
+        printf("iperf finish...\r\nreceive:%ld,out of order:%ld\r\n",
+            ctx->datagram_cnt, ctx->out_of_order_cnt);
+        udp_sendto(pcb, p, addr, port);
+
+        //xSemaphoreGive(ctx->comp_sig_handle);
+        ctx->exit_flag = 1;
+    } else if (ctx->current - ctx->period_start >= 500*1000) {  // 500ms
+        float f_now, f_avg;
+
+        // f_now = (float)(ctx->recv_now)  / 125 / (((int32_t)ctx->current - (int32_t)ctx->period_start)) * 1000;
+        // f_now /= 1000.0f;
+        f_now = (float)(ctx->recv_now) * 1000000 / ((int32_t)ctx->current - (int32_t)ctx->period_start) / 131072;
+
+        ctx->recv_total_len += ctx->recv_now;
+        // f_avg = (float)(ctx->recv_total_len)  / 125 / (((int32_t)ctx->current - (int32_t)ctx->receive_start)) * 1000;
+        // f_avg /= 1000.0f;
+        f_avg = (float)(ctx->recv_total_len) * 1000000 / ((int32_t)ctx->current - (int32_t)ctx->receive_start) / 131072;
+
+        if (f_now < ctx->f_min) {
+            ctx->f_min = f_now;
+        }
+        if (ctx->f_max < f_now) {
+            ctx->f_max = f_now;
+        }
+        snprintf(speed, sizeof(speed), "%.4f(%.4f %.4f %.4f) Mbps, out of order: %lu.\r\n",
+                f_now,
+                ctx->f_min,
+                f_avg,
+                ctx->f_max,
+                ctx->out_of_order_curr
+        );
+        printf("%s", speed);
+
+        ctx->period_start = ctx->current;
+        ctx->recv_now = 0;
+
+        ctx->out_of_order_cnt += ctx->out_of_order_curr;
+        ctx->out_of_order_curr = 0;
+    }
+
+    // 乱序和错误个数
+    if ((signed)udp_header.id != ctx->packet_id + 1) {
+      if ((signed)udp_header.id < ctx->packet_id + 1) {
+        ctx->out_of_order_curr++;
+      } else {
+        ctx->error_cnt += (signed)udp_header.id  - ctx->packet_id - 1;
+      }
+    }
+
+    if ((signed)udp_header.id > ctx->packet_id) {
+      ctx->packet_id = (int32_t)udp_header.id;
+    }
+
+	pbuf_free(p);
+}
+
+static void iperf_server_udp(void *arg)
+{
+    char *host = (char*) arg;
+    struct udp_pcb *server;
+    err_t ret;
+    ip_addr_t source_ip;
+    //StaticSemaphore_t comp_signal;
+    struct iperf_server_udp_ctx context;
+
+    configASSERT(arg != NULL);
+
+    //context.comp_sig_handle = xSemaphoreCreateBinaryStatic(&comp_signal);
+
+    // 创建pcb控制块
+    server = udp_new();
+    if (!server) {
+        printf("Create UDP Control block failed!\r\n");
+        goto _exit_1;
+    }
+
+    source_ip.addr = inet_addr(host);
+    ret = udp_bind(server, &source_ip, IPERF_PORT_LOCAL);
+    if (ret != ERR_OK) {
+        printf("Bind failed!\r\n");
+        goto _exit_2;
+    }
+
+    printf("bind UDP socket successfully!\r\n");
+
+    memset(&context, 0, sizeof context);
+    context.f_min = 8000.0;
+    context.packet_id = -1;
+    udp_recv(server, iperf_server_udp_recv_fn, (void *)&context);
+
+    // 等待接收退出信号
+    //xSemaphoreTake(context.comp_sig_handle, portMAX_DELAY);
+    while (!context.exit_flag) {
+        vTaskDelay(1000);
+    }
+
+    printf("ipus exit..\r\n");
+
+_exit_2:
+    udp_remove(server);
+_exit_1:
+    vPortFree(arg); // XXX 检查前面是否释放
+}
+
 static void iperf_client_udp_entry(const char *name)
 {
     int host_len;
@@ -281,6 +480,17 @@ static void iperf_client_udp_entry(const char *name)
     host = pvPortMalloc(host_len);//mem will be free in tcpc_entry
     strcpy(host, name);
     aos_task_new("ipu", iperf_client_udp, host, 4096);
+}
+
+static void iperf_server_udp_entry(const char *name)
+{
+    int host_len;
+    char *host;
+
+    host_len = strlen(name) + 1;
+    host = pvPortMalloc(host_len);
+    strcpy(host, name);
+    aos_task_new("ipus", iperf_server_udp, host, 4096);
 }
 
 static void iperf_server(void *arg)
@@ -437,18 +647,32 @@ static void ipu_test_cmd(char *buf, int len, int argc, char **argv)
     }
 }
 
+// iperf UDP Server
+static void ipus_test_cmd(char *buf, int len, int argc, char **argv)
+{
+    if (1 == argc) {
+        printf(DEBUG_HEADER "[IPUS] Connecting with default address 0.0.0.0\r\n");
+        iperf_server_udp_entry("0.0.0.0");
+    } else if (2 == argc) {
+        iperf_server_udp_entry(argv[1]);
+    } else {
+        printf(DEBUG_HEADER  "[IPUS] illegal address\r\n");
+    }
+}
+
 // STATIC_CLI_CMD_ATTRIBUTE makes this(these) command(s) static
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
     { "ipc", "iperf TCP client", ipc_test_cmd},
     { "ips", "iperf TCP server", ips_test_cmd},
     { "ipu", "iperf UDP client", ipu_test_cmd},
-};                                                                                   
+    { "ipus", "iperf UDP server", ipus_test_cmd},
+};
 
 int network_netutils_iperf_cli_register()
 {
     // static command(s) do NOT need to call aos_cli_register_command(s) to register.
     // However, calling aos_cli_register_command(s) here is OK but is of no effect as cmds_user are included in cmds list.
     // XXX NOTE: Calling this *empty* function is necessary to make cmds_user in this file to be kept in the final link.
-    //aos_cli_register_commands(cmds_user, sizeof(cmds_user)/sizeof(cmds_user[0]));          
+    //aos_cli_register_commands(cmds_user, sizeof(cmds_user)/sizeof(cmds_user[0]));
     return 0;
 }

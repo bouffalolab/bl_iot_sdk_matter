@@ -298,11 +298,13 @@ static int blfdtdump(const unsigned char *input_buf, const uint32_t input_len, u
         }
         if (!p || endp - p < sizeof(struct fdt_header)) {
             log_error("%s: could not locate fdt magic\r\n", file);
+            return -1;
         }
         printf("%s: found fdt at offset %#tx\r\n", file, p - buf);
         buf = p;
     } else if (!valid_header(buf, len)) {
         log_error("%s: header is not valid\r\n", file);
+        return -1;
     }
 
     log_info("dump_blob.");
@@ -717,8 +719,18 @@ const uint8_t tc_wifi_dtb[TC_WIFI_DTB_LEN] = {
 
 int tc_blfdtdump(void)
 {
-    blfdtdump(tc_wifi_dtb, TC_WIFI_DTB_LEN, true, true);
+    int result;
+
+    result = blfdtdump(tc_wifi_dtb, TC_WIFI_DTB_LEN, true, true);
+ 
+    if (result) {
+        printf("dump failed\r\n");
+    } else {
+        printf("dump successed\r\n");
+    }
+    
+    return result;
+   
     // blfdtdump(tc_wifi_dtb, TC_WIFI_DTB_LEN, false, true);
     // blfdtdump(tc_wifi_dtb, TC_WIFI_DTB_LEN, false, false);
-    return 0;
 }

@@ -148,7 +148,7 @@ int bl606a0_wifi_init(wifi_conf_t *conf)
             mac[4],
             mac[5]
     );
-    bl_msg_update_channel_cfg(conf->code);
+    bl_msg_update_channel_cfg(conf->country_code);
     os_printf("-----------------------------------------------------\r\n");
     bl_wifi_clock_enable();//Enable wifi clock
     memset(&bl606a0_sta, 0, sizeof(bl606a0_sta));

@@ -123,6 +123,7 @@ typedef struct {
     TIMER_ClkSrc_Type clkSrc;               /*!< Timer clock source */
     TIMER_PreLoad_Trig_Type  plTrigSrc;     /*!< Timer count register preload trigger source slelect */
     TIMER_CountMode_Type countMode;         /*!< Timer count mode */
+    uint8_t clockDivision;                  /*!< Timer clock divison value */
     uint32_t matchVal0;                     /*!< Timer match 0 value 0 */
     uint32_t matchVal1;                     /*!< Timer match 1 value 0 */
     uint32_t matchVal2;                     /*!< Timer match 2 value 0 */
@@ -220,7 +221,7 @@ void TIMER_ClearIntStatus(TIMER_Chan_Type timerCh, TIMER_Comp_ID_Type cmpNo);
 void TIMER_Enable(TIMER_Chan_Type timerCh);
 void TIMER_Disable(TIMER_Chan_Type timerCh);
 void TIMER_IntMask(TIMER_Chan_Type timerCh,TIMER_INT_Type intType, BL_Mask_Type intMask);
-void WDT_Set_CLk_Src(TIMER_ClkSrc_Type clkSrc);
+void WDT_Set_Clock(TIMER_ClkSrc_Type clkSrc,uint8_t div);
 uint16_t WDT_GetMatchValue(void);
 void WDT_SetCompValue(uint16_t val);
 uint16_t WDT_GetCounterValue(void);

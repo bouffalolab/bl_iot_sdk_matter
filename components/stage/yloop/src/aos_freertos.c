@@ -382,15 +382,19 @@ void *aos_malloc(unsigned int size)
     return pvPortMalloc(size);
 }
 
+#if !defined(USE_STDLIB_MALLOC)
 void *calloc(size_t nmemb, size_t size)
 {
     return pvPortMalloc(nmemb * size);
 }
+#endif
 
+#if !defined(USE_STDLIB_MALLOC)
 void free(void *mem)
 {
     vPortFree(mem);
 }
+#endif
 
 void aos_free(void *mem)
 {
@@ -402,10 +406,12 @@ void aos_msleep(int ms)
     vTaskDelay(pdMS_TO_TICKS(ms));
 }
 
+#if !defined(USE_STDLIB_MALLOC)
 void *malloc(size_t size)
 {
     return pvPortMalloc(size);
 }
+#endif
 
 long long aos_now_ms(void)
 {          

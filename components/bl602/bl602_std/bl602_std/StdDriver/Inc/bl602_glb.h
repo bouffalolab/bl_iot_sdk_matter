@@ -96,10 +96,6 @@ typedef enum {
     GLB_DMA_CLK_DMA0_CH1,                   /*!< DMA clock ID:channel 1 */
     GLB_DMA_CLK_DMA0_CH2,                   /*!< DMA clock ID:channel 2 */
     GLB_DMA_CLK_DMA0_CH3,                   /*!< DMA clock ID:channel 3 */
-    GLB_DMA_CLK_DMA0_CH4,                   /*!< DMA clock ID:channel 4 */
-    GLB_DMA_CLK_MASTERS,                    /*!< DMA clock ID:AHB master */
-    GLB_DMA_CLK_SLAVES,                     /*!< DMA clock ID:AHB slave */
-    GLB_DMA_CLK_RQS,                        /*!< DMA clock ID:RQS */
 }GLB_DMA_CLK_ID_Type;
 
 /**
@@ -117,7 +113,7 @@ typedef enum {
     GLB_SFLASH_CLK_XTAL,                    /*!< Select XTAL as flash clock */
     GLB_SFLASH_CLK_48M,                     /*!< Select 48M as flash clock */
     GLB_SFLASH_CLK_80M,                     /*!< Select 80M as flash clock */
-    GLB_SFLASH_CLK_HCLK,                    /*!< Select HCLK as flash clock */
+    GLB_SFLASH_CLK_BCLK,                    /*!< Select BCLK as flash clock */
     GLB_SFLASH_CLK_96M,                     /*!< Select 96M as flash clock */
 }GLB_SFLASH_CLK_Type;
 
@@ -125,7 +121,7 @@ typedef enum {
  *  @brief GLB UART clock type definition
  */
 typedef enum {
-    GLB_UART_CLK_ROOT_CLK,                  /*!< Select root clock as UART clock */
+    GLB_UART_CLK_FCLK,                      /*!< Select fclk as UART clock */
     GLB_UART_CLK_PLL160M,                   /*!< Select PLL 160M as UART clock */
 }GLB_UART_CLK_Type;
 
@@ -211,6 +207,14 @@ typedef enum {
     GLB_ADC_CLK_96M,                        /*!< use 96M as ADC clock */
     GLB_ADC_CLK_XCLK,                       /*!< use XCLK as ADC clock */
 }GLB_ADC_CLK_Type;
+
+/**
+ *  @brief GLB DAC clock type definition
+ */
+typedef enum {
+    GLB_DAC_CLK_32M,                        /*!< use 32M as DAC clock */
+    GLB_DAC_CLK_XCLK,                       /*!< use XCLK as DAC clock */
+}GLB_DAC_CLK_Type;
 
 /**
  *  @brief GLB DIG clock source select type definition
@@ -375,11 +379,7 @@ typedef struct {
 #define IS_GLB_DMA_CLK_ID_TYPE(type)                     (((type) == GLB_DMA_CLK_DMA0_CH0) || \
                                                           ((type) == GLB_DMA_CLK_DMA0_CH1) || \
                                                           ((type) == GLB_DMA_CLK_DMA0_CH2) || \
-                                                          ((type) == GLB_DMA_CLK_DMA0_CH3) || \
-                                                          ((type) == GLB_DMA_CLK_DMA0_CH4) || \
-                                                          ((type) == GLB_DMA_CLK_MASTERS) || \
-                                                          ((type) == GLB_DMA_CLK_SLAVES) || \
-                                                          ((type) == GLB_DMA_CLK_RQS))
+                                                          ((type) == GLB_DMA_CLK_DMA0_CH3))
 
 /** @defgroup  GLB_IR_CLK_SRC_TYPE
  *  @{
@@ -393,13 +393,13 @@ typedef struct {
                                                           ((type) == GLB_SFLASH_CLK_XTAL) || \
                                                           ((type) == GLB_SFLASH_CLK_48M) || \
                                                           ((type) == GLB_SFLASH_CLK_80M) || \
-                                                          ((type) == GLB_SFLASH_CLK_HCLK) || \
+                                                          ((type) == GLB_SFLASH_CLK_BCLK) || \
                                                           ((type) == GLB_SFLASH_CLK_96M))
 
 /** @defgroup  GLB_UART_CLK_TYPE
  *  @{
  */
-#define IS_GLB_UART_CLK_TYPE(type)                       (((type) == GLB_UART_CLK_ROOT_CLK) || \
+#define IS_GLB_UART_CLK_TYPE(type)                       (((type) == GLB_UART_CLK_FCLK) || \
                                                           ((type) == GLB_UART_CLK_PLL160M))
 
 /** @defgroup  GLB_SPI_PAD_ACT_AS_TYPE
@@ -457,6 +457,12 @@ typedef struct {
  */
 #define IS_GLB_ADC_CLK_TYPE(type)                        (((type) == GLB_ADC_CLK_96M) || \
                                                           ((type) == GLB_ADC_CLK_XCLK))
+
+/** @defgroup  GLB_DAC_CLK_TYPE
+ *  @{
+ */
+#define IS_GLB_DAC_CLK_TYPE(type)                        (((type) == GLB_DAC_CLK_32M) || \
+                                                          ((type) == GLB_DAC_CLK_XCLK))
 
 /** @defgroup  GLB_DIG_CLK_TYPE
  *  @{
@@ -660,6 +666,7 @@ BL_Err_Type GLB_Set_GPIO_IntMod(GLB_GPIO_Type gpioPin,GLB_GPIO_INT_CONTROL_Type 
 GLB_GPIO_INT_CONTROL_Type GLB_Get_GPIO_IntCtlMod(GLB_GPIO_Type gpioPin);
 BL_Err_Type GLB_GPIO_INT0_Callback_Install(GLB_GPIO_Type gpioPin,intCallback_Type* cbFun);
 void GPIO_INT0_IRQHandler(void);
+BL_Err_Type GLB_Set_DAC_CLK(uint8_t enable,GLB_DAC_CLK_Type clkSel,uint8_t div);
 
 /*@} end of group GLB_Public_Functions */
 

@@ -245,10 +245,6 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB
         /* power on xtal first */
         AON_Power_On_XTAL();
     }
-
-    /* Bl602 make PLL Setting out of RF, so following setting can be removed*/
-    //AON_Power_On_MBG();
-    //AON_Power_On_LDO15_RF();
     
     /* always power up PLL and enable all PLL clock output */
     PDS_Power_On_PLL((PDS_PLL_XTAL_Type)xtalType);
@@ -509,7 +505,7 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_SF_CLK(uint8_t enable,GLB_SFLASH_CLK_Type
         case GLB_SFLASH_CLK_80M:
             tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_SF_CLK_SEL,0x1);
             break;
-        case GLB_SFLASH_CLK_HCLK:
+        case GLB_SFLASH_CLK_BCLK:
             tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_SF_CLK_SEL,0x2);
             break;
         case GLB_SFLASH_CLK_96M:
@@ -1396,7 +1392,7 @@ BL_Err_Type GLB_Set_MTimer_CLK(uint8_t enable,GLB_MTIMER_CLK_Type clkSel,uint32_
 /****************************************************************************//**
  * @brief  set ADC clock
  *
- * @param  enable: enable or disable ADC clock
+ * @param  enable: enable frequency divider or not
  * @param  clkSel: ADC clock selection
  * @param  div: divider
  *
@@ -1433,6 +1429,49 @@ BL_Err_Type GLB_Set_ADC_CLK(uint8_t enable,GLB_ADC_CLK_Type clkSel,uint8_t div)
     
     return SUCCESS;
 }
+
+
+/****************************************************************************//**
+ * @brief  set DAC clock
+ *
+ * @param  enable: enable frequency divider or not
+ * @param  clkSel: ADC clock selection
+ * @param  div: src divider
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type GLB_Set_DAC_CLK(uint8_t enable,GLB_DAC_CLK_Type clkSel,uint8_t div)
+{
+    uint32_t tmpVal;
+    
+    CHECK_PARAM(IS_GLB_DAC_CLK_TYPE(clkSel));
+    
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_DIG32K_WAKEUP_CTRL);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_DIG_512K_EN);
+    BL_WR_REG(GLB_BASE,GLB_DIG32K_WAKEUP_CTRL,tmpVal);    
+
+    tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_DIG_512K_COMP);
+
+    if(clkSel == GLB_DAC_CLK_32M){
+        tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_DIG_CLK_SRC_SEL);
+    }else{
+        tmpVal=BL_SET_REG_BIT(tmpVal,GLB_DIG_CLK_SRC_SEL);
+    }
+
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_DIG_512K_DIV,div);
+    
+    if(enable){
+        tmpVal=BL_SET_REG_BIT(tmpVal,GLB_DIG_512K_EN);
+    }else{
+        tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_DIG_512K_EN);
+    }
+
+    BL_WR_REG(GLB_BASE,GLB_DIG32K_WAKEUP_CTRL,tmpVal);   
+     
+    return SUCCESS;
+}
+
 
 /****************************************************************************//**
  * @brief  platform wakeup will becomes one of  pds_wakeup source

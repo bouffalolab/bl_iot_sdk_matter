@@ -40,6 +40,8 @@ int bl_main_apm_sta_delete(uint8_t sta_idx);
 int bl_main_apm_remove_all_sta();
 int bl_main_scan(void);
 int bl_main_raw_send(uint8_t *pkt , int len);
+int bl_main_set_country_code(char *country_code);
+int bl_main_get_channel_nums();
 
 struct wifi_event_sm_connect_ind
 {

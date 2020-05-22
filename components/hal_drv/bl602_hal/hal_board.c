@@ -204,7 +204,7 @@ static int update_xtal_config_get_mac_from_dtb(const void *fdt, int offset1, uin
 
     if (5*4 == lentmp) {
         log_info(
-            "xtal dtb :%02x %02x %02x %02x %02x\r\n",
+            "xtal dtb in DEC :%u %u %u %u %u\r\n",
             BL_FDT32_TO_U8(addr_prop, 4*0),
             BL_FDT32_TO_U8(addr_prop, 4*1),
             BL_FDT32_TO_U8(addr_prop, 4*2),

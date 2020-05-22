@@ -109,3 +109,70 @@ int wifi_mgmr_profile_get(wifi_mgmr_t *mgmr, wifi_mgmr_profile_msg_t *profile_ms
     return 0;
 }
 
+wifi_mgmr_profile_t* __lookup_profile(wifi_mgmr_t *mgmr, int index)
+{
+    wifi_mgmr_profile_t *profile = NULL;
+
+    if (-1 == index) {
+        /*default profile*/
+        profile = &(mgmr->profiles[0]);
+    } else {
+        if (index >= 0 && index < sizeof(mgmr->profiles)/sizeof(mgmr->profiles[0])) {
+            profile = &(mgmr->profiles[index]);
+        }
+    }
+    return profile;
+}
+
+int wifi_mgmr_profile_autoreconnect_is_enabled(wifi_mgmr_t *mgmr, int index)
+{
+#if 0
+    wifi_mgmr_profile_t *profile;
+    
+    profile = __lookup_profile(mgmr, index);
+    if (NULL == profile) {
+        return -1;
+    }
+
+    return profile->no_autoconnect ? 0 : 1;
+#else
+    return mgmr->disable_autoreconnect ? 0 : 1;
+#endif
+}
+
+int wifi_mgmr_profile_autoreconnect_disable(wifi_mgmr_t *mgmr, int index)
+{
+#if 0
+    wifi_mgmr_profile_t *profile;
+
+    profile = __lookup_profile(mgmr, index);
+    if (NULL == profile) {
+        return -1;
+    }
+    profile->no_autoconnect = 1;
+    return 0;
+#else
+    mgmr->disable_autoreconnect = 1;
+
+    return 0;
+#endif
+}
+
+int wifi_mgmr_profile_autoreconnect_enable(wifi_mgmr_t *mgmr, int index)
+{
+#if 0
+    wifi_mgmr_profile_t *profile;
+
+    profile = __lookup_profile(mgmr, index);
+    if (NULL == profile) {
+        return -1;
+    }
+    profile->no_autoconnect = 0;
+
+    return 0;
+#else
+    mgmr->disable_autoreconnect = 0;
+
+    return 0;
+#endif
+}

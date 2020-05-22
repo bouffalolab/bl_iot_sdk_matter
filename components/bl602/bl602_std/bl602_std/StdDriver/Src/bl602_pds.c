@@ -177,19 +177,28 @@ BL_Err_Type ATTR_TCM_SECTION PDS_Force_Config(PDS_CTL2_Type *cfg2,PDS_CTL3_Type 
 *******************************************************************************/
 BL_Err_Type ATTR_TCM_SECTION PDS_RAM_Config(PDS_RAM_CFG_Type *ramCfg)
 {
-    //uint32_t tmpVal = 0;
+    uint32_t tmpVal = 0;
     
-    //tmpVal = BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
+    if(NULL==ramCfg){
+    	return SUCCESS;
+    }
+    tmpVal = BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
+    /* enter bist mode (make ram idle/slp) */
     //tmpVal = tmpVal&~0x1F;
     //tmpVal = tmpVal|0x18;
-    //BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
+    /* enter bist mode (make ram ret) */
+    tmpVal = tmpVal|(0x1<<3);
+    BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
     
     /* PDS_RAM1 config */
     BL_WR_REG(PDS_BASE,PDS_RAM1,*(uint32_t *)ramCfg);
     
-    //tmpVal = BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
+    tmpVal = BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
+    /* exit bist mode (make ram idle/slp) */
     //tmpVal = tmpVal&~0x1F;
-    //BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
+    /* exit bist mode (make ram ret) */
+    tmpVal = tmpVal&~(0x1<<3);
+    BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
     
     return SUCCESS;
 }
@@ -207,7 +216,7 @@ BL_Err_Type ATTR_TCM_SECTION PDS_RAM_Config(PDS_RAM_CFG_Type *ramCfg)
 BL_Err_Type ATTR_TCM_SECTION PDS_Default_Level_Config(PDS_DEFAULT_LV_CFG_Type *defaultLvCfg,PDS_RAM_CFG_Type *ramCfg,uint32_t pdsSleepCnt)
 {
     /* RAM config need fix after ECO */
-    //PDS_RAM_Config(ramCfg);
+    PDS_RAM_Config(ramCfg);
     PDS_Force_Config((PDS_CTL2_Type *)&(defaultLvCfg->pdsCtl2),(PDS_CTL3_Type *)&(defaultLvCfg->pdsCtl3));
     PDS_Enable((PDS_CTL_Type *)&(defaultLvCfg->pdsCtl),(PDS_CTL4_Type *)&(defaultLvCfg->pdsCtl4),pdsSleepCnt);
     
@@ -332,27 +341,6 @@ BL_Err_Type /*ATTR_TCM_SECTION*/ PDS_Int_Callback_Install(PDS_INT_Type intType,i
     
     return SUCCESS;
 }
-
-/****************************************************************************//**
- * @brief  Power down sleep wake up interrupt handler
- *
- * @param  None
- *
- * @return None
- *
-*******************************************************************************/
-#ifndef BL602_USE_HAL_DRIVER
-void PDS_WAKEUP_IRQHandler(void)
-{
-    for(PDS_INT_Type intType=PDS_INT_WAKEUP;intType<PDS_INT_MAX;intType++){
-        if(PDS_Get_IntStatus(intType)&&(pdsIntCbfArra[intType][0]!=NULL)){
-            pdsIntCbfArra[intType][0]();
-        }
-    }
-    
-    PDS_IntClear();
-}
-#endif
 
 /****************************************************************************//**
  * @brief  Trim RC32M
@@ -725,6 +713,27 @@ BL_Err_Type ATTR_CLOCK_SECTION PDS_Power_Off_PLL(void)
     
     return SUCCESS;
 }
+
+/****************************************************************************//**
+ * @brief  Power down sleep wake up interrupt handler
+ *
+ * @param  None
+ *
+ * @return None
+ *
+*******************************************************************************/
+#ifndef BL602_USE_HAL_DRIVER
+void __IRQ PDS_WAKEUP_IRQHandler(void)
+{
+    for(PDS_INT_Type intType=PDS_INT_WAKEUP;intType<PDS_INT_MAX;intType++){
+        if(PDS_Get_IntStatus(intType)&&(pdsIntCbfArra[intType][0]!=NULL)){
+            pdsIntCbfArra[intType][0]();
+        }
+    }
+    
+    PDS_IntClear();
+}
+#endif
 
 /*@} end of group PDS_Public_Functions */
 

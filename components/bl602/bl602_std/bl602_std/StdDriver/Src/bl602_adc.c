@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file    adc.c
+  * @file    bl602_adc.c
   * @version V1.0
   * @date
-  * @brief   This file is the peripheral case c file
+  * @brief   This file is the standard driver c file
   ******************************************************************************
   * @attention
   *
@@ -49,6 +49,7 @@
  */
 #define AON_CLK_SET_DUMMY_WAIT          {__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();}
 #define ADC_RESTART_DUMMY_WAIT          BL602_Delay_US(1)
+#define FIX_ADC_FIRST_DATA_BUG
 
 /*@} end of group ADC_Private_Macros */
 
@@ -62,7 +63,6 @@
  *  @{
  */
 static intCallback_Type * adcIntCbfArra[ADC_INT_ALL]={NULL};
-
 
 /*@} end of group ADC_Private_Variables */
 
@@ -140,6 +140,23 @@ void ADC_Disable(void)
 	tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_GLOBAL_EN);
 	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
 }
+
+
+/****************************************************************************//**
+ * @brief  ADC Calibration
+ *
+ * @param  None
+ *
+ * @return None
+ *
+*******************************************************************************/
+void ADC_Calibration(void){
+    ADC_Start();        ADC_RESTART_DUMMY_WAIT;
+    ADC_Read_FIFO();    ADC_RESTART_DUMMY_WAIT;
+    ADC_Read_FIFO();    ADC_RESTART_DUMMY_WAIT;
+    ADC_Stop();
+}
+
 
 /****************************************************************************//**
  * @brief  ADC normal mode init
@@ -238,6 +255,8 @@ void ADC_Channel_Config(ADC_Chan_Type posCh,ADC_Chan_Type negCh,BL_Fun_Type cont
 	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CONT_CONV_EN,contEn);
     regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_SCAN_EN);
 	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,regCfg1);
+
+    ADC_Calibration();
 }
 
 /****************************************************************************//**
@@ -302,6 +321,8 @@ void ADC_Scan_Channel_Config(ADC_Chan_Type posChList[],ADC_Chan_Type negChList[]
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_CLK_ANA_INV);
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_SCAN_EN);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,tmpVal);
+
+    ADC_Calibration();
 }
 
 /****************************************************************************//**
@@ -348,7 +369,6 @@ void ADC_Stop(void)
 	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
 }
 
-
 /****************************************************************************//**
  * @brief  ADC FIFO configuration
  *
@@ -381,6 +401,7 @@ void ADC_FIFO_Cfg(ADC_FIFO_Cfg_Type *fifoCfg)
     tmpVal=BL_RD_REG(GPIP_BASE,GPIP_GPADC_CONFIG);
     tmpVal=BL_SET_REG_BIT(tmpVal,GPIP_GPADC_FIFO_CLR);
     BL_WR_REG(GPIP_BASE,GPIP_GPADC_CONFIG,tmpVal);
+
 }
 
 /****************************************************************************//**
@@ -447,15 +468,15 @@ BL_Sts_Type ADC_FIFO_Is_Empty(void)
  *
  * @param  None
  *
- * @return ADC result
+ * @return ADC result if return 0 that means this is error data,user should ignore this data.
  *
 *******************************************************************************/
 uint32_t ADC_Read_FIFO(void)
 {
     uint32_t tmpVal;
-     
+
     tmpVal=BL_RD_REG(GPIP_BASE,GPIP_GPADC_DMA_RDATA);
-    
+
     return (tmpVal);
 }
 

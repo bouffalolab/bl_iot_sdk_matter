@@ -100,6 +100,53 @@ uint8_t ATTR_TCM_SECTION SF_Ctrl_Is_AES_Enable(void)
     return BL_IS_REG_BIT_SET(tmpVal,SF_CTRL_SF_AES_EN);
 }
 
+/****************************************************************************//**
+ * @brief  Get flash controller clock delay value
+ *
+ * @param  None
+ *
+ * @return Clock delay value
+ *
+*******************************************************************************/
+__WEAK
+uint8_t ATTR_TCM_SECTION SF_Ctrl_Get_Clock_Delay(void)
+{
+    uint32_t tmpVal;
+
+    tmpVal=BL_RD_REG(SF_CTRL_BASE,SF_CTRL_0);
+
+    if(BL_GET_REG_BITS_VAL(tmpVal,SF_CTRL_SF_IF_READ_DLY_EN)==0){
+        return 0;
+    }else{
+        return BL_GET_REG_BITS_VAL(tmpVal,SF_CTRL_SF_IF_READ_DLY_N) +1;
+    }
+}
+
+/****************************************************************************//**
+ * @brief  Set flash controller clock delay value
+ *
+ * @param  delay: Clock delay value
+ *
+ * @return None
+ *
+*******************************************************************************/
+__WEAK
+void ATTR_TCM_SECTION SF_Ctrl_Set_Clock_Delay(uint8_t delay)
+{
+    uint32_t tmpVal;
+
+    tmpVal=BL_RD_REG(SF_CTRL_BASE,SF_CTRL_0);
+
+    if(delay>0){
+        tmpVal=BL_SET_REG_BIT(tmpVal,SF_CTRL_SF_IF_READ_DLY_EN);
+        tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SF_CTRL_SF_IF_READ_DLY_N,delay-1);
+    }else{
+        tmpVal=BL_CLR_REG_BIT(tmpVal,SF_CTRL_SF_IF_READ_DLY_EN);
+    }
+
+    BL_WR_REG(SF_CTRL_BASE,SF_CTRL_0,tmpVal);
+}
+
 /*@} end of group SF_CTRL_Public_Functions */
 
 /*@} end of group SF_CTRL */

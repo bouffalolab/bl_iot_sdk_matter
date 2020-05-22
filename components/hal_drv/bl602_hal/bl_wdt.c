@@ -14,7 +14,7 @@
 static void Timer_Watchdog_Case(int ms)
 {
     WDT_Disable();
-    WDT_Set_CLk_Src(TIMER_CLKSRC_32K);
+    WDT_Set_Clock(TIMER_CLKSRC_32K,1);
     WDT_SetCompValue(32 * ms);
     WDT_ResetCounterValue();
     WDT_IntMask(WDT_INT, MASK);

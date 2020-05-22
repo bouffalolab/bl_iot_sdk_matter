@@ -101,7 +101,7 @@ export BUILD_DIR_BASE
 # The project Makefile can override these component dirs, or add extras via EXTRA_COMPONENT_DIRS
 ifndef COMPONENT_DIRS
 EXTRA_COMPONENT_DIRS ?=
-COMPONENT_DIRS := $(PROJECT_PATH)/components $(EXTRA_COMPONENT_DIRS) $(BL60X_SDK_PATH)/components $(BL60X_SDK_PATH)/customer_components $(PROJECT_PATH)/main
+COMPONENT_DIRS := $(PROJECT_PATH)/components $(EXTRA_COMPONENT_DIRS) $(BL60X_SDK_PATH)/components $(BL60X_SDK_PATH)/customer_components $(PROJECT_PATH)/$(PROJECT_NAME) $(PROJECT_COMPONENT)
 endif
 export COMPONENT_DIRS
 
@@ -190,9 +190,13 @@ all:
 # If we have `version.txt` then prefer that for extracting BL60x_SP_SDK version
 ifeq ("$(wildcard ${BL60X_SDK_PATH}/version.txt)","")
 BL_SDK_VER := $(shell cd ${BL60X_SDK_PATH} && git describe --always --tags --dirty)
+BL_SDK_PHY_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_wifi/plf/refip/src/driver/phy/bl602_phy_rf/ && git describe --always --tags --dirty)
+BL_SDK_RF_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_wifi/plf/refip/src/driver/phy/bl602_phy_rf/rf && git describe --always --tags --dirty)
 $(info use git describe to generate version.txt)
 else
-BL_SDK_VER := `cat ${BL60X_SDK_PATH}/version.txt`
+BL_SDK_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n1`
+BL_SDK_PHY_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n2|tail -n1`
+BL_SDK_RF_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n3|tail -n1`
 $(info use exsting version.txt file)
 endif
 BL_CHIP_NAME := ${CONFIG_CHIP_NAME}
@@ -239,7 +243,10 @@ ifeq ($(CONFIG_ENABLE_PSM_RAM),1)
 CPPFLAGS += -DCONF_USER_ENABLE_PSRAM
 endif
 EXTRA_CPPFLAGS ?=
-CPPFLAGS := -D BL_SDK_VER=\"$(BL_SDK_VER)\" -D BL_CHIP_NAME=\"$(BL_CHIP_NAME)\" -MMD -MP $(CPPFLAGS) $(EXTRA_CPPFLAGS)
+CPPFLAGS := -D BL_SDK_VER=\"$(BL_SDK_VER)\"
+CPPFLAGS += -D BL_SDK_PHY_VER=\"$(BL_SDK_PHY_VER)\"
+CPPFLAGS += -D BL_SDK_RF_VER=\"$(BL_SDK_RF_VER)\"
+CPPFLAGS += -D BL_CHIP_NAME=\"$(BL_CHIP_NAME)\" -MMD -MP $(CPPFLAGS) $(EXTRA_CPPFLAGS)
 CPPFLAGS += -DARCH_RISCV
 
 # Warnings-related flags relevant both for C and C++
@@ -492,6 +499,12 @@ $(foreach component,$(COMPONENT_PATHS),$(eval $(call GenerateComponentNameTarget
 app-clean: $(addprefix component-,$(addsuffix -clean,$(notdir $(COMPONENT_PATHS))))
 	$(summary) RM $(APP_ELF)
 	rm -f $(APP_ELF) $(APP_BIN) $(APP_MAP)
+
+flash: all
+	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 download bl602/conf/simple_flasher_cfg.toml
+
+flash_only:
+	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 download bl602/conf/simple_flasher_cfg.toml
 
 clean: app-clean
 

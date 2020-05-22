@@ -15,6 +15,7 @@ COMPONENT_SRCS := src/vfs.c \
         device/vfs_adc.c \
         device/vfs_spi.c \
         device/vfs_gpio.c \
+        device/vfs_pwm.c \
 
 COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 

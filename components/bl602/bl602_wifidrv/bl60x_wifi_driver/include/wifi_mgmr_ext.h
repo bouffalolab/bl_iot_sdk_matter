@@ -8,6 +8,7 @@ typedef struct wifi_mgmr_ap_item {
     uint32_t ssid_len;
     uint8_t bssid[6];
     uint8_t channel;
+    uint8_t auth;
     int8_t rssi;
 } wifi_mgmr_ap_item_t;
 
@@ -17,6 +18,7 @@ typedef struct wifi_mgmr_sta_connect_ind_stat_info {
     uint8_t type_ind;
     char ssid[32];
     char psk[32];
+    char pmk[64];
     uint8_t bssid[6];
     uint16_t chan_freq;
     uint8_t chan_band;
@@ -62,11 +64,19 @@ enum WIFI_STATE_ENUM_LIST {
     WIFI_STATE_WITH_AP_DISCONNECT                   = 0x15,
     WIFI_STATE_IFDOWN                               = 0x06,
     WIFI_STATE_SNIFFER                              = 0x07,
+    WIFI_STATE_PSK_ERROR                            = 0x08,
+    WIFI_STATE_NO_AP_FOUND                          = 0x09,
 };
 #define WIFI_STATE_AP_IS_ENABLED(status)       ((status) & 0x10)
 
+enum WIFI_SCAN_DONE_EVENT_TYPE {
+    WIFI_SCAN_DONE_EVENT_OK                         = 0x00,
+    WIFI_SCAN_DONE_EVENT_BUSY                       = 0x01,
+};
+
 typedef struct wifi_conf {
-    const char *code;
+    char country_code[3];
+    int channel_nums;
 } wifi_conf_t;
 
 //FIXME implemented in wifi_mgmr.c
@@ -75,6 +85,7 @@ int wifi_mgmr_drv_init(wifi_conf_t *conf);
 int wifi_mgmr_init(void);
 void wifi_mgmr_start(void);
 void wifi_mgmr_start_background(wifi_conf_t *conf);
+void wifi_mgmr_get_wifi_channel_conf(wifi_conf_t *wifi_chan_conf);
 
 wifi_interface_t wifi_mgmr_sta_enable(void);
 int wifi_mgmr_sta_disable(wifi_interface_t *interface);
@@ -84,6 +95,8 @@ int wifi_mgmr_sta_ip_get(uint32_t *ip, uint32_t *gw, uint32_t *mask);
 int wifi_mgmr_sta_connect(wifi_interface_t *wifi_interface, char *ssid, char *psk, char *pmk, uint8_t *mac, uint8_t band, uint16_t freq);
 int wifi_mgmr_sta_disconnect(void);
 int wifi_mgmr_sta_powersaving(int ps);
+int wifi_mgmr_sta_autoconnect_enable(void);
+int wifi_mgmr_sta_autoconnect_disable(void);
 void wifi_mgmr_sta_ssid_set(char *ssid);
 void wifi_mgmr_sta_psk_set(char *psk);
 void wifi_mgmr_sta_connect_ind_stat_get(wifi_mgmr_sta_connect_ind_stat_info_t *wifi_mgmr_ind_stat);
@@ -104,6 +117,7 @@ int wifi_mgmr_rate_config(uint16_t config);
 int wifi_mgmr_sniffer_register(void *env, sniffer_cb_t cb);
 int wifi_mgmr_sniffer_unregister(void *env);
 int wifi_mgmr_state_get(int *state);
+int wifi_mgmr_status_code_get(int *s_code);
 int wifi_mgmr_rssi_get(int *rssi);
 int wifi_mgmr_channel_get(int *channel);
 int wifi_mgmr_channel_set(int channel, int use_40Mhz);
@@ -115,5 +129,7 @@ int wifi_mgmr_cli_init(void);
 int wifi_mgmr_scan_ap(char *ssid, wifi_mgmr_ap_item_t *item);
 int wifi_mgmr_scan_ap_all(wifi_mgmr_ap_item_t *env, uint32_t *param1, scan_item_cb_t cb);
 int wifi_mgmr_raw_80211_send(uint8_t *pkt, int len);
+int wifi_mgmr_set_country_code(char *country_code);
 int wifi_mgmr_ext_dump_needed();
+const char* wifi_mgmr_status_code_str(uint16_t status_code);
 #endif

@@ -69,6 +69,8 @@
  *  @{
  */
 uint8_t SF_Ctrl_Is_AES_Enable(void);
+uint8_t SF_Ctrl_Get_Clock_Delay(void);
+void SF_Ctrl_Set_Clock_Delay(uint8_t delay);
 
 /*@} end of group SF_CTRL_EXT_Public_Functions */
 

@@ -25,6 +25,7 @@
 #define WLAN_FW_CREATE_CHANNEL_CTX_FAILURE_WHEN_JOIN_NETWORK     13
 #define WLAN_FW_JOIN_NETWORK_FAILURE                             14
 #define WLAN_FW_ADD_STA_FAILURE                                  15
+#define WLAN_FW_BEACON_LOSS                                      16
 
 void bl60x_fw_xtal_capcode_set(uint8_t cap_in, uint8_t cap_out, uint8_t enable, uint8_t cap_in_max, uint8_t cap_out_max);
 void bl60x_fw_xtal_capcode_update(uint8_t cap_in, uint8_t cap_out);
@@ -38,6 +39,22 @@ void bl60x_fw_rf_table_set(uint32_t* channel_div_table_in, uint16_t* channel_cnt
 
 void bl60x_fw_dump_data(void);
 void bl60x_fw_dump_statistic(int forced);
+void bl60x_current_time_us(long long *time_now);
+
+enum {
+    /// Background
+    API_AC_BK = 0,
+    /// Best-effort
+    API_AC_BE,
+    /// Video
+    API_AC_VI,
+    /// Voice
+    API_AC_VO,
+    /// Number of access categories
+    API_AC_MAX
+};
+
+int bl60x_edca_get(int ac, uint8_t *aifs, uint8_t *cwmin, uint8_t *cwmax, uint16_t *txop);
 
 /*Wi-Fi Firmware Entry*/
 void wifi_main(void *param);

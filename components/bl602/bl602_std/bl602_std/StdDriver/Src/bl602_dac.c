@@ -370,10 +370,10 @@ void GPIP_DAC_DMA_WriteData(uint32_t data)
  *
  * @param  cfg: AON and GPIP DAC configuration
  *
- * @return None
+ * @return config success or not
  *
 *******************************************************************************/
-void GLB_GPIP_DAC_Init(GLB_GPIP_DAC_Cfg_Type* cfg)
+BL_Err_Type GLB_GPIP_DAC_Init(GLB_GPIP_DAC_Cfg_Type* cfg)
 {
 	uint32_t tmpVal;
 	
@@ -405,7 +405,11 @@ void GLB_GPIP_DAC_Init(GLB_GPIP_DAC_Cfg_Type* cfg)
     tmpVal=BL_SET_REG_BIT(tmpVal,GLB_GPDACA_RSTN_ANA);
     tmpVal=BL_SET_REG_BIT(tmpVal,GLB_GPDACB_RSTN_ANA);    
     tmpVal=BL_WR_REG(GLB_BASE,GLB_GPDAC_CTRL,tmpVal);
-	
+
+    if(cfg->dmaEn == DISABLE && cfg->mod == GPIP_DAC_MOD_512K){
+        return ERROR;/*512K mode only used in DMA mode*/
+    }
+
 	/* GPIP Set DAC config */
 	tmpVal=BL_RD_REG(GPIP_BASE,GPIP_GPDAC_CONFIG);
 	tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GPIP_GPDAC_MODE,cfg->mod);
@@ -416,6 +420,8 @@ void GLB_GPIP_DAC_Init(GLB_GPIP_DAC_Cfg_Type* cfg)
 	tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GPIP_GPDAC_DMA_TX_EN,cfg->dmaEn);
 	tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GPIP_GPDAC_DMA_FORMAT,cfg->dmaFmt);
 	BL_WR_REG(GPIP_BASE,GPIP_GPDAC_DMA_CONFIG,tmpVal);
+
+    return SUCCESS;
 }
 
 /****************************************************************************//**

@@ -299,7 +299,7 @@ static int bl_rx_rssi_status_ind(struct bl_hw *bl_hw,
 
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
-    os_printf("------> rssi_status %u:%u:%d\r\n", ind->vif_index, ind->rssi_status, ind->rssi);
+    //os_printf("------> rssi_status %u:%u:%d\r\n", ind->vif_index, ind->rssi_status, ind->rssi);
     if (cb_rssi) {
         cb_rssi(cb_rssi_env, ind->rssi);
     }

@@ -20,6 +20,7 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/bl_gpio_cli.c \
                   bl602_hal/bl_efuse.c \
                   bl602_hal/bl_flash.c \
+                  bl602_hal/bl_pwm.c \
                   bl602_hal/bl_sec_aes.c \
                   bl602_hal/bl_sec_sha.c \
                   bl602_hal/bl_wifi.c \
@@ -27,6 +28,7 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/bl_wdt_cli.c \
                   bl602_hal/hal_uart.c \
                   bl602_hal/hal_gpio.c \
+                  bl602_hal/hal_pwm.c \
                   bl602_hal/hal_boot2.c \
                   bl602_hal/hal_sys.c \
                   bl602_hal/hal_board.c \

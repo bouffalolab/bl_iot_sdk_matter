@@ -227,6 +227,62 @@ void PWM_Channel_Update(uint8_t ch, uint16_t period, uint16_t threshold1,uint16_
     tmpVal = BL_RD_REG(PWMx, PWM_PERIOD);
     BL_WR_REG(PWMx, PWM_PERIOD, BL_SET_REG_BITS_VAL(tmpVal, PWM_PERIOD, period));
 }
+void PWM_Channel_Set_Threshold1(uint8_t ch, uint16_t threshold1)
+{
+    uint32_t tmpVal;
+    /* Get channel register */
+    uint32_t PWMx = PWM_Get_Channel_Reg(ch);
+
+    /* Check the parameters */
+    CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
+
+    /* Config pwm period and duty */
+    tmpVal = BL_RD_REG(PWMx, PWM_THRE1);
+    BL_WR_REG(PWMx, PWM_THRE1, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE1, threshold1));
+}
+void PWM_Channel_Set_Threshold2(uint8_t ch, uint16_t threshold2)
+{
+    uint32_t tmpVal;
+    /* Get channel register */
+    uint32_t PWMx = PWM_Get_Channel_Reg(ch);
+
+    /* Check the parameters */
+    CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
+
+    /* Config pwm period and duty */
+    tmpVal = BL_RD_REG(PWMx, PWM_THRE2);
+    BL_WR_REG(PWMx, PWM_THRE2, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE2, threshold2));
+}
+void PWM_Channel_Set_Period(uint8_t ch, uint16_t period)
+{
+    uint32_t tmpVal;
+    /* Get channel register */
+    uint32_t PWMx = PWM_Get_Channel_Reg(ch);
+
+    /* Check the parameters */
+    CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
+
+    /* Config pwm period and duty */
+    tmpVal = BL_RD_REG(PWMx, PWM_PERIOD);
+    BL_WR_REG(PWMx, PWM_PERIOD, BL_SET_REG_BITS_VAL(tmpVal, PWM_PERIOD, period));
+}
+void PWM_Channel_Get(uint8_t ch, uint16_t *period, uint16_t *threshold1, uint16_t *threshold2)
+{
+    uint32_t tmpVal;
+    /* Get channel register */
+    uint32_t PWMx = PWM_Get_Channel_Reg(ch);
+
+    /* Check the parameters */
+    CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
+
+    /* get pwm period and duty */
+    tmpVal = BL_RD_REG(PWMx, PWM_THRE1);
+    *threshold1 = BL_GET_REG_BITS_VAL(tmpVal, PWM_THRE1);
+    tmpVal = BL_RD_REG(PWMx, PWM_THRE2);
+    *threshold2 = BL_GET_REG_BITS_VAL(tmpVal, PWM_THRE2);
+    tmpVal = BL_RD_REG(PWMx, PWM_PERIOD);
+    *period = BL_GET_REG_BITS_VAL(tmpVal, PWM_PERIOD);
+}
 
 /****************************************************************************//**
  * @brief  PWM enable

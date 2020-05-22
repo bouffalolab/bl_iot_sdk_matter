@@ -453,7 +453,16 @@ BL_Err_Type DMA_LLI_PpStruct_Init(DMA_LLI_PP_Struct *dmaPpStruct)
     PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX].nextLLI = (uint32_t)&PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX];
     PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX].dmaCtrl = dmaPpStruct->dmaCtrlRegVal;
 
-    PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX].nextLLI = (uint32_t)&PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX];
+    if(dmaPpStruct->is_single_mode == 1){
+        /* 
+         * if is is_single_mode is 1 ping-pong will only run once atfer start singal
+         * or ping-pong will run forever unless stop singal occour
+         */
+        PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX].nextLLI = 0;
+    }else{
+        PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX].nextLLI = (uint32_t)&PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX];
+    }
+
     PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX].dmaCtrl = dmaPpStruct->dmaCtrlRegVal;
 
     DMA_LLI_Init(dmaPpStruct->dmaChan, dmaPpStruct->DMA_LLI_Cfg);
@@ -473,6 +482,10 @@ BL_Err_Type DMA_LLI_PpStruct_Init(DMA_LLI_PP_Struct *dmaPpStruct)
  *
 *******************************************************************************/
 void DMA_LLI_PpStruct_Start(DMA_LLI_PP_Struct *dmaPpStruct){
+    if(dmaPpStruct->is_single_mode == 1){
+        DMA_LLI_Update(dmaPpStruct->dmaChan, (uint32_t)&PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX]);
+    }
+
     DMA_Channel_Enable(dmaPpStruct->dmaChan);
 }
 

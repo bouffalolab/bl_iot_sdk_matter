@@ -39,6 +39,8 @@
 #include "pds_reg.h"
 #include "bl602_ef_ctrl.h"
 #include "bl602_aon.h"
+#include "bl602_hbn.h"
+#include "bl602_sflash.h"
 #include "bl602_common.h"
 
 /** @addtogroup  BL602_Peripheral_Driver
@@ -123,9 +125,8 @@ typedef struct {
  *  @brief PDS interrupt type definition
  */
 typedef enum {
-    PDS_INT_WAKEUP=0,                       /*!< PDS wakeup interrupt */
-    PDS_INT_HBN_GPIO_IRRX_BLE_WIFI_PDSTIMER=1,    /*!< PDS in interrupt source 
-                                                 HBN_Wakeup_Source/All_GPIO_Wakeup/IRRX/BLE_Wakeup_Eveent/WIFI_Wakeup_Event/PDS_Timer */
+    PDS_INT_WAKEUP=0,                       /*!< PDS wakeup interrupt(assert bit while wakeup, include PDS_Timer/...) */
+    PDS_INT_HBN_GPIO_IRRX_BLE_WIFI=1,       /*!< PDS in interrupt source HBN_Wakeup_Source/All_GPIO_Wakeup/IRRX/BLE_Wakeup_Eveent/WIFI_Wakeup_Event */
     PDS_INT_RF_DONE=2,                      /*!< PDS RF done interrupt */
     PDS_INT_PLL_DONE=3,                     /*!< PDS PLL done interrupt */
     PDS_INT_MAX=4,                          /*!< PDS int max number */
@@ -276,6 +277,41 @@ typedef enum {
     PDS_PLL_CLK_32M,                        /*!< PLL output clock:32M */
 }PDS_PLL_CLK_Type;
 
+/**
+ *  @brief PDS level 0/1/2/3 mode HBN GPIO interrupt trigger type definition
+ */
+typedef enum {
+    PDS_AON_GPIO_INT_TRIGGER_SYNC_FALLING_EDGE,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: sync falling edge trigger */
+    PDS_AON_GPIO_INT_TRIGGER_SYNC_RISING_EDGE,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: sync rising edge trigger */
+    PDS_AON_GPIO_INT_TRIGGER_SYNC_LOW_LEVEL,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: sync low level trigger */
+    PDS_AON_GPIO_INT_TRIGGER_SYNC_HIGH_LEVEL,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: sync high level trigger */
+    PDS_AON_GPIO_INT_TRIGGER_ASYNC_FALLING_EDGE,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: async falling edge trigger */
+    PDS_AON_GPIO_INT_TRIGGER_ASYNC_RISING_EDGE,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: async rising edge trigger */
+    PDS_AON_GPIO_INT_TRIGGER_ASYNC_LOW_LEVEL,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: async low level trigger */
+    PDS_AON_GPIO_INT_TRIGGER_ASYNC_HIGH_LEVEL,    /*!< PDS level 0/1/2/3 mode HBN GPIO INT trigger type: async high level trigger */
+}PDS_AON_GPIO_INT_Trigger_Type;
+
+/**
+ *  @brief PDS APP configuration type definition
+ */
+typedef struct {
+    uint8_t pdsLevel;                       /*!< PDS level */
+    uint8_t useXtal32k;                     /*!< Wheather use xtal 32K as 32K clock source,otherwise use rc32k */
+    uint8_t pdsAonGpioWakeupSrc;            /*!< PDS level 0/1/2/3 mode always on GPIO Wakeup source(HBN wakeup pin) */
+    PDS_AON_GPIO_INT_Trigger_Type pdsAonGpioTrigType;    /*!< PDS level 0/1/2/3 mode always on GPIO Triger type(HBN wakeup pin) */
+    uint8_t powerDownFlash;                 /*!< Whether power down flash */
+    uint8_t turnOffFlashPad;                /*!< Whether turn off embedded flash pad */
+    uint8_t ocramRetetion;                  /*!< Whether OCRAM Retention */
+    uint8_t turnoffPLL;                     /*!< Whether trun off PLL */
+    uint8_t xtalType;                       /*!< XTal type, used when user choose turn off PLL, PDS will turn on when exit PDS mode */
+    uint8_t flashContRead;                  /*!< Whether enable flash continue read */
+    uint32_t sleepTime;                     /*!< PDS sleep time */
+    SPI_Flash_Cfg_Type *flashCfg;           /*!< Flash config pointer, used when power down flash */
+    HBN_LDO_LEVEL_Type ldoLevel;            /*!< LDO level */
+    void (*preCbFun)(void);                 /*!< Pre callback function */
+    void (*postCbFun)(void);                /*!< Post callback function */
+}PDS_APP_CFG_Type;
+
 /*@} end of group PDS_Public_Types */
 
 /** @defgroup  PDS_Public_Constants
@@ -298,7 +334,7 @@ typedef enum {
  *  @{
  */
 #define IS_PDS_INT_TYPE(type)                            (((type) == PDS_INT_WAKEUP) || \
-                                                          ((type) == PDS_INT_HBN_GPIO_IRRX_BLE_WIFI_PDSTIMER) || \
+                                                          ((type) == PDS_INT_HBN_GPIO_IRRX_BLE_WIFI) || \
                                                           ((type) == PDS_INT_RF_DONE) || \
                                                           ((type) == PDS_INT_PLL_DONE) || \
                                                           ((type) == PDS_INT_MAX))
@@ -364,6 +400,18 @@ typedef enum {
                                                           ((type) == PDS_PLL_CLK_48M) || \
                                                           ((type) == PDS_PLL_CLK_32M))
 
+/** @defgroup  PDS_AON_GPIO_INT_TRIGGER_TYPE
+ *  @{
+ */
+#define IS_PDS_AON_GPIO_INT_TRIGGER_TYPE(type)           (((type) == PDS_AON_GPIO_INT_TRIGGER_SYNC_FALLING_EDGE) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_SYNC_RISING_EDGE) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_SYNC_LOW_LEVEL) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_SYNC_HIGH_LEVEL) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_ASYNC_FALLING_EDGE) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_ASYNC_RISING_EDGE) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_ASYNC_LOW_LEVEL) || \
+                                                          ((type) == PDS_AON_GPIO_INT_TRIGGER_ASYNC_HIGH_LEVEL))
+
 /*@} end of group PDS_Public_Constants */
 
 /** @defgroup  PDS_Public_Macros
@@ -377,6 +425,10 @@ typedef enum {
 #define PDS_FORCE_MEM_STBY_OFFSET                       (12)
 #define PDS_FORCE_GATE_CLK_OFFSET                       (16)
 #define PDS_INT_MASK_BIT_OFFSET                         (8)
+#define PDS_AON_WAKEUP_GPIO_NONE                        (0x00)
+#define PDS_AON_WAKEUP_GPIO_7                           (0x01)
+#define PDS_AON_WAKEUP_GPIO_8                           (0x02)
+#define PDS_AON_WAKEUP_GPIO_ALL                         (0x03)
 
 /*@} end of group PDS_Public_Macros */
 

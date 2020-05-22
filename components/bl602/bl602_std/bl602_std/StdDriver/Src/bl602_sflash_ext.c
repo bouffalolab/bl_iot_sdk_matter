@@ -282,6 +282,52 @@ BL_Err_Type ATTR_TCM_SECTION SFlash_Cache_Read_Enable(SPI_Flash_Cfg_Type *flashC
     return SFlash_Cache_Enable_Set(wayDisable);
 }
 
+/****************************************************************************//**
+ * @brief  Sflash restore from power down
+ *
+ * @param  pFlashCfg: Flash configuration pointer
+ * @param  flashContRead: Whether enable continuous read
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type ATTR_TCM_SECTION SFlash_Restore_From_Powerdown(SPI_Flash_Cfg_Type *pFlashCfg,uint8_t flashContRead)
+{
+    BL_Err_Type stat=SUCCESS;
+    uint32_t jdecId=0;
+    uint8_t tmp[8];
+    uint8_t ioMode=pFlashCfg->ioMode&0xf;
+
+    /* Wake flash up from power down */
+    SFlash_Releae_Powerdown(pFlashCfg);
+    BL602_Delay_US(120);
+
+    SFlash_GetJedecId(pFlashCfg,(uint8_t *)&jdecId);
+
+    if(SF_CTRL_QO_MODE==ioMode||SF_CTRL_QIO_MODE==ioMode){
+        SFlash_Qspi_Enable(pFlashCfg);
+    }
+
+    if(((pFlashCfg->ioMode>>4)&0x01)==1){
+        /* unwrap */
+        L1C_Set_Wrap(DISABLE);
+    }else{
+        /* burst wrap */
+        L1C_Set_Wrap(ENABLE);
+        /* For command that is setting register instead of send command, we need write enable */
+        SFlash_Write_Enable(pFlashCfg);
+        SFlash_SetBurstWrap(pFlashCfg);
+    }
+
+    if(flashContRead){
+        stat=SFlash_Read(pFlashCfg,ioMode,1,0x00000000,(uint8_t *)tmp, sizeof(tmp));
+        SF_Ctrl_Set_Owner(SF_CTRL_OWNER_IAHB);
+    }else{
+        stat=SFlash_Set_IDbus_Cfg(pFlashCfg,ioMode,0,0,32);
+    }
+    return stat;
+}
+
 /*@} end of group SFLASH_EXT_Public_Functions */
 
 /*@} end of group SFLASH_EXT */

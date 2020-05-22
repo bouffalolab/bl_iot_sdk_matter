@@ -2198,7 +2198,12 @@ static void bt_att_disconnected(struct bt_l2cap_chan *chan)
     #ifdef BFLB_BLE_PATCH_FREE_ALLOCATED_BUFFER_IN_OS
     if(att->timeout_work.timer.timer.hdl)
         k_delayed_work_del_timer(&att->timeout_work);
-        
+
+    if(att->tx_queue._queue.hdl){
+    	k_queue_free(&att->tx_queue._queue);
+    	att->tx_queue._queue.hdl = NULL;
+   	}
+   	
     if(att->tx_sem.sem.hdl)
         k_sem_delete(&att->tx_sem);
     #endif

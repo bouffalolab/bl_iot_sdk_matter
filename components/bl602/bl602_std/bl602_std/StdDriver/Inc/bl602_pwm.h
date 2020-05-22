@@ -173,6 +173,10 @@ void PWM_IRQHandler(void);
 #endif
 BL_Err_Type PWM_Channel_Init(PWM_CH_CFG_Type *chCfg);
 void PWM_Channel_Update(uint8_t ch, uint16_t period, uint16_t threshold1, uint16_t threshold2);
+void PWM_Channel_Set_Threshold1(uint8_t ch, uint16_t threshold1);
+void PWM_Channel_Set_Threshold2(uint8_t ch, uint16_t threshold2);
+void PWM_Channel_Set_Period(uint8_t ch, uint16_t period);
+void PWM_Channel_Get(uint8_t ch, uint16_t *period, uint16_t *threshold1, uint16_t *threshold2);
 void PWM_IntMask(uint8_t ch,PWM_INT_Type intType, BL_Mask_Type intMask);
 void PWM_Channel_Enable(uint8_t ch);
 void PWM_Channel_Disable(uint8_t ch);

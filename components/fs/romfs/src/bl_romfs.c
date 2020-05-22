@@ -645,23 +645,23 @@ void test1_romfs(void)
     }
 
     len = aos_read(fd, buf, 1);
-    log_info("len = %d\r\n", len);
+    log_info("case1:len = %d\r\n", len);
     log_buf(buf, 1);
 
     aos_lseek(fd, 1, SEEK_CUR);
     memset(buf, 0, sizeof(buf));
     len = aos_read(fd, buf, 1);
-    log_info("len = %d\r\n", len);
+    log_info("case2:len = %d\r\n", len);
     log_buf(buf, 1);
 
     len = aos_read(fd, buf, sizeof(buf));
-    log_info("len = %d\r\n", len);
+    log_info("case3:len = %d\r\n", len);
     log_buf(buf, sizeof(buf));
 
     aos_lseek(fd, 0, SEEK_SET);
     memset(buf, 0, sizeof(buf));
     len = aos_read(fd, buf, sizeof(buf));
-    log_info("len = %d\r\n", len);
+    log_info("case4:len = %d\r\n", len);
     log_info("buf:\r\n");
     log_buf(buf, sizeof(buf));
 
@@ -674,7 +674,7 @@ void test1_romfs(void)
 
     memset(buf, 0, sizeof(buf));
     len = aos_read(fd, buf, sizeof(buf));
-    log_info("len = %d\r\n", len);
+    log_info("case5:len = %d\r\n", len);
     log_buf(buf, sizeof(buf));
 
     aos_close(fd);

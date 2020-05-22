@@ -73,8 +73,11 @@ struct bt_data ad_discov[] = {
 #endif
 
 static void cmd_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void cmd_read_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void cmd_write_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_start_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_stop_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void cmd_read_local_address(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_stop_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_connect_le(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -95,6 +98,7 @@ static void cmd_write(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 static void cmd_write_without_rsp(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_subscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void cmd_unsubscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void cmd_set_data_len(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #if defined(CONFIG_BT_STACK_PTS)
 static void cmd_start_scan_timeout(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -132,7 +136,10 @@ const struct cli_command btStackCmdSet[] = {
 #endif
     /*1.The cmd string to type, 2.Cmd description, 3.The function to run, 4.Number of parameters*/
     {"cmd_init", "\r\ncmd_init:[Initialize]\r\n Parameter[Null]\r\n", cmd_init},
-
+	{"cmd_read_device_name", "\r\ncmd_read_device_name:[Read local device name]\r\n Parameter[Null]\r\n", cmd_read_device_name},
+	{"cmd_set_device_name", "\r\ncmd_set_device_name:\r\n\
+	 [Lenth of name]\r\n\
+	 [name]\r\n", cmd_write_device_name},
 	#if defined(CONFIG_BT_STACK_PTS)
 	{"cmd_pts_address_register", "\r\ncmd_pts_address_register:\r\n\
      [Address type, 0:non-rpa, 1:rpa, 2:public adderss]\r\n\
@@ -211,6 +218,9 @@ const struct cli_command btStackCmdSet[] = {
      
     {"cmd_stop_adv", "\r\ncmd_stop_adv:[Stop advertising]\r\n\
      Parameter[Null]\r\n", cmd_stop_advertise},
+	{"cmd_read_local_address", "\r\ncmd_read_local_address:[Read local address]\r\n", 
+	  cmd_read_local_address},
+     
     #endif //#if defined(CONFIG_BT_PERIPHERAL)
 
     #if defined(CONFIG_BT_CONN)
@@ -326,12 +336,20 @@ const struct cli_command btStackCmdSet[] = {
      [Attribute handle, 2 Octets]\r\n\
      [Value length, 2 Octets]\r\n\
      [Value data]\r\n", cmd_write_without_rsp},
+
     {"cmd_subscribe", "\r\ncmd_subscribe:[Gatt subscribe]\r\n\
      [CCC handle, 2 Octets]\r\n\
      [Value handle, 2 Octets]\r\n\
      [Value, 1:notify, 2:indicate]\r\n", cmd_subscribe},
      {"cmd_unsubscribe", "\r\ncmd_unsubscribe:[Gatt unsubscribe]\r\n Parameter[Null]\r\n", cmd_unsubscribe},
     #endif /*CONFIG_BT_GATT_CLIENT*/
+
+    {"cmd_set_data_len",
+    "\r\ncmd_set_data_len:[LE Set Data Length]\r\n\
+    [tx octets, 2 octets]\r\n\
+    [tx time, 2 octets]\r\n",
+    cmd_set_data_len},
+
     #if defined(BL70X)
     {NULL, "No handler/Invalid command", NULL},
     #endif
@@ -939,6 +957,42 @@ static void cmd_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
     vOutputString("Init successfully \r\n");
 }
 
+static void cmd_read_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	const char *device_name = bt_get_name();
+
+	if(device_name){
+		vOutputString("device_name: %s\r\n",device_name);
+	}else
+		vOutputString("Failed to read device name\r\n");
+}
+
+static void cmd_write_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t 	dname[CONFIG_BT_DEVICE_NAME_MAX + 1];
+	uint16_t   	len = 0;
+	int	  		err = 0;
+
+	(void)memset(dname,0,CONFIG_BT_DEVICE_NAME_MAX + 1);
+	co_get_uint16_from_string(&argv[1], &len);
+	if(len <= (CONFIG_BT_DEVICE_NAME_MAX + 1) && len > 0){
+		co_get_bytearray_from_string(&argv[2], dname, len);
+		vOutputString("%s\r\n",dname);
+	}
+	else{
+		vOutputString("Length of name is invalid parameter\r\n");
+		return;
+	}
+	
+	err = bt_set_name((char*)dname);
+	if(err){
+		vOutputString("Failed to set device name\r\n");
+	}else
+		vOutputString("Set the device name successfully\r\n");
+	
+}
+
+
 #if defined(CONFIG_BT_OBSERVER)
 static bool data_cb(struct bt_data *data, void *user_data)
 {
@@ -1296,6 +1350,23 @@ static void cmd_stop_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 
 
 #if defined(CONFIG_BT_PERIPHERAL)
+static void cmd_read_local_address(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int ret;
+	bt_addr_le_t adv_addr;
+	char le_addr[BT_ADDR_LE_STR_LEN];
+	
+	memset(&adv_addr,0,sizeof(bt_addr_le_t));
+	ret = bt_get_local_address(&adv_addr);
+	if(!ret){
+		bt_addr_le_to_str(&adv_addr, le_addr, sizeof(le_addr));
+		vOutputString("Local addr : %s\r\n",le_addr);
+
+	}else{
+		vOutputString("Failed to read address\r\n");
+	}
+}
+
 static void cmd_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     struct bt_le_adv_param param;
@@ -2514,6 +2585,35 @@ static void cmd_unsubscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	}
 }
 #endif /* CONFIG_BT_GATT_CLIENT */
+
+static void cmd_set_data_len(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	u16_t tx_octets;
+	u16_t tx_time;
+	int err;
+
+	if(argc != 3){
+	    vOutputString("Number of Parameters is not correct\r\n");
+	    return;
+	}
+
+	if (!default_conn) {
+		vOutputString("Not connected\r\n");
+		return;
+	}
+
+	co_get_uint16_from_string(&argv[1], &tx_octets);
+	co_get_uint16_from_string(&argv[2], &tx_time);
+
+	err = bt_le_set_data_len(default_conn, tx_octets, tx_time);
+	if (err) {
+		vOutputString("cmd_set_data_len, LE Set Data Length (err %d)\r\n", err);
+	}
+	else
+	{
+		vOutputString("cmd_set_data_len, LE Set Data Length success\r\n");
+	}
+}
 
 int blestack_cli_register(void)
 {

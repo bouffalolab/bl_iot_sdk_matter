@@ -35,6 +35,8 @@
   */
 
 #include "bl602_hbn.h"
+#include "bl602_glb.h"
+#include "bl602_xip_sflash.h"
 
 /** @addtogroup  BL602_Peripheral_Driver
  *  @{
@@ -89,9 +91,84 @@ static intCallback_Type * hbnInt1CbfArra[4]={NULL,NULL,NULL,NULL};
  */
 
 /****************************************************************************//**
+ * @brief  Enter HBN
+ *
+ * @param  cfg: HBN APP Config
+ *
+ * @return None
+ *
+*******************************************************************************/
+void ATTR_TCM_SECTION HBN_Mode_Enter(HBN_APP_CFG_Type *cfg)
+{
+    uint32_t valLow=0,valHigh=0;
+    uint64_t val;
+
+    if(cfg->useXtal32k){
+        HBN_32K_Sel(HBN_32K_XTAL);
+    }else{
+        HBN_32K_Sel(HBN_32K_RC);
+        HBN_Power_Off_Xtal_32K();
+    }
+
+    /* always disable HBN pin pull up/down for reduce PDS0/1/2/3/7 current, 0x4000F014[16]=0 */
+    HBN_Hw_Pu_Pd_Cfg(DISABLE);
+    
+    HBN_Pin_WakeUp_Mask(~(cfg->gpioWakeupSrc));
+    if(cfg->gpioWakeupSrc!=0){
+        HBN_Aon_Pad_IeSmt_Cfg(ENABLE);
+        HBN_GPIO_INT_Enable(cfg->gpioTrigType);
+    }else{
+        HBN_Aon_Pad_IeSmt_Cfg(DISABLE);
+    }
+
+    /* HBN RTC config and enable */
+    HBN_Clear_RTC_Counter();
+    if(cfg->sleepTime!=0){
+        HBN_Get_RTC_Timer_Val(&valLow,&valHigh);
+        val=valLow+((uint64_t)valHigh<<32);
+        val+=cfg->sleepTime*32768;
+        HBN_Set_RTC_Timer(HBN_RTC_INT_DELAY_0T,val&0xffffffff,val>>32,HBN_RTC_COMP_BIT0_39);
+        HBN_Enable_RTC_Counter();
+    }
+
+    HBN_Power_Down_Flash(cfg->flashCfg);
+
+    GLB_Set_System_CLK(GLB_PLL_XTAL_NONE,GLB_SYS_CLK_RC32M);
+
+    HBN_Enable(cfg->gpioWakeupSrc,cfg->ldoLevel,cfg->hbnLevel);
+}
+
+/****************************************************************************//**
+ * @brief  power down and switch clock
+ *
+ * @param  flashCfg: None
+ *
+ * @return None
+ *
+*******************************************************************************/
+void ATTR_TCM_SECTION HBN_Power_Down_Flash(SPI_Flash_Cfg_Type *flashCfg)
+{
+    SPI_Flash_Cfg_Type bhFlashCfg;
+
+    if(flashCfg==NULL){
+        SFlash_Cache_Flush();
+        XIP_SFlash_Read_Via_Cache_Need_Lock(BL602_FLASH_XIP_BASE+8+4,(uint8_t *)(&bhFlashCfg),sizeof(SPI_Flash_Cfg_Type));
+        SFlash_Cache_Flush();
+
+        SF_Ctrl_Set_Owner(SF_CTRL_OWNER_SAHB);
+        SFlash_Reset_Continue_Read(&bhFlashCfg);
+    }else{
+        SF_Ctrl_Set_Owner(SF_CTRL_OWNER_SAHB);
+        SFlash_Reset_Continue_Read(flashCfg);
+    }
+
+    SFlash_Powerdown();
+}
+
+/****************************************************************************//**
  * @brief  Enable HBN mode
  *
- * @param  aGPIOIeCfg: AON GPIO IE config,Bit0->GPIO18. Bit(s) of Wakeup GPIO(s) must not be set to
+ * @param  aGPIOIeCfg: AON GPIO input enable config. Bit(s) of Wakeup GPIO(s) must not be set to
  *                     0(s),say when use GPIO7 as wake up pin,aGPIOIeCfg should be 0x01.
  * @param  ldoLevel: LDO volatge level
  * @param  hbnLevel: HBN work level
@@ -160,7 +237,7 @@ void ATTR_TCM_SECTION HBN_Enable(uint8_t aGPIOIeCfg,HBN_LDO_LEVEL_Type ldoLevel,
 
         case HBN_LEVEL_2:
             tmpVal=BL_SET_REG_BIT(tmpVal,HBN_PWRDN_HBN_CORE);
-            tmpVal=BL_CLR_REG_BIT(tmpVal,HBN_PWRDN_HBN_RTC);
+            tmpVal=BL_SET_REG_BIT(tmpVal,HBN_PWRDN_HBN_RTC);
             break;
 
         case HBN_LEVEL_3:
@@ -1061,60 +1138,14 @@ uint8_t HBN_Get_Pin_Wakeup_Mode(void)
 }
 
 /****************************************************************************//**
- * @brief  HBN clear interrupt status, gpio7/gpio8 sync wakeup need mask->set clear bit->unset
- *         clear bit->unmask operation
+ * @brief  HBN clear interrupt status
  *
  * @param  irqType: HBN interrupt type
  *
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Clear_IRQ_With_MaskOperation(HBN_INT_Type irqType)
-{
-    uint32_t tmpVal;
-    volatile uint32_t i=5000;
-
-    CHECK_PARAM(IS_HBN_INT_TYPE(irqType));
-
-    /* mask gpio7/gpio8 */
-    if(irqType == HBN_INT_GPIO7 || irqType == HBN_INT_GPIO8){
-        tmpVal=BL_RD_REG(HBN_BASE,HBN_IRQ_MODE);
-        tmpVal=BL_SET_REG_BIT(tmpVal,HBN_PIN_WAKEUP_MASK);
-        BL_WR_REG(HBN_BASE,HBN_IRQ_MODE,tmpVal);
-    }
-
-    /* set clear bit */
-    tmpVal=BL_RD_REG(HBN_BASE,HBN_IRQ_CLR);
-    tmpVal |= (1<<irqType);
-    BL_WR_REG(HBN_BASE,HBN_IRQ_CLR,tmpVal);
-
-    /* unset clear bit */
-    tmpVal=BL_RD_REG(HBN_BASE,HBN_IRQ_CLR);
-    tmpVal &= (~(1<<irqType));
-    BL_WR_REG(HBN_BASE,HBN_IRQ_CLR,tmpVal);
-
-    /* wait and mask gpio7/gpio8 */
-    if(irqType == HBN_INT_GPIO7 || irqType == HBN_INT_GPIO8){
-        /* gpio7/gpio8 use 32K clock, need delay over one period */
-        while(i--);
-        tmpVal=BL_RD_REG(HBN_BASE,HBN_IRQ_MODE);
-        tmpVal=BL_CLR_REG_BIT(tmpVal,HBN_PIN_WAKEUP_MASK);
-        BL_WR_REG(HBN_BASE,HBN_IRQ_MODE,tmpVal);
-    }
-
-    return SUCCESS;
-}
-
-/****************************************************************************//**
- * @brief  HBN clear interrupt status, gpio18 async wakeup does not need mask->set clear
- *         bit->unset clear bit->unmask operation
- *
- * @param  irqType: HBN interrupt type
- *
- * @return SUCCESS or ERROR
- *
-*******************************************************************************/
-BL_Err_Type HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_Type irqType)
+BL_Err_Type HBN_Clear_IRQ(HBN_INT_Type irqType)
 {
     uint32_t tmpVal;
 
@@ -1141,7 +1172,7 @@ BL_Err_Type HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_Type irqType)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Hw_Pu_Pd_Cfg(uint8_t enable)
+BL_Err_Type ATTR_TCM_SECTION HBN_Hw_Pu_Pd_Cfg(uint8_t enable)
 {
     uint32_t tmpVal;
 
@@ -1183,7 +1214,7 @@ BL_Err_Type HBN_Aon_Pad_IeSmt_Cfg(uint8_t padCfg)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Pin_WakeUp_Mask(uint8_t maskVal)
+BL_Err_Type ATTR_TCM_SECTION HBN_Pin_WakeUp_Mask(uint8_t maskVal)
 {
     uint32_t tmpVal;
 
@@ -1388,20 +1419,20 @@ void __IRQ HBN_OUT0_IRQHandler(void)
     /* GPIO7 GPIO8 and RTC */
     if(SET==HBN_Get_INT_State(HBN_INT_GPIO7)){
         /* gpio7 sync/async mode */
-        HBN_Clear_IRQ_With_MaskOperation(HBN_INT_GPIO7);
+        HBN_Clear_IRQ(HBN_INT_GPIO7);
         if(hbnInt0CbfArra[HBN_OUT0_INT_GPIO7] != NULL) {
             hbnInt0CbfArra[HBN_OUT0_INT_GPIO7]();
         }
     }
     if(SET==HBN_Get_INT_State(HBN_INT_GPIO8)){
         /* gpio8 sync/async mode */
-        HBN_Clear_IRQ_With_MaskOperation(HBN_INT_GPIO8);
+        HBN_Clear_IRQ(HBN_INT_GPIO8);
         if(hbnInt0CbfArra[HBN_OUT0_INT_GPIO8] != NULL) {
             hbnInt0CbfArra[HBN_OUT0_INT_GPIO8]();
         }
     }
     if(SET==HBN_Get_INT_State(HBN_INT_RTC)){
-        HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_RTC);
+        HBN_Clear_IRQ(HBN_INT_RTC);
         HBN_Clear_RTC_INT();
         if(hbnInt0CbfArra[HBN_OUT0_INT_RTC] != NULL) {
             hbnInt0CbfArra[HBN_OUT0_INT_RTC]();
@@ -1423,28 +1454,28 @@ void __IRQ HBN_OUT1_IRQHandler(void)
 {
     /* PIR */
     if(SET==HBN_Get_INT_State(HBN_INT_PIR)){
-        HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_PIR);
+        HBN_Clear_IRQ(HBN_INT_PIR);
         if(hbnInt1CbfArra[HBN_OUT1_INT_PIR] != NULL) {
             hbnInt1CbfArra[HBN_OUT1_INT_PIR]();
         }
     }
     /* BOR */
     if(SET==HBN_Get_INT_State(HBN_INT_BOR)){
-        HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_BOR);
+        HBN_Clear_IRQ(HBN_INT_BOR);
         if(hbnInt1CbfArra[HBN_OUT1_INT_BOR] != NULL) {
             hbnInt1CbfArra[HBN_OUT1_INT_BOR]();
         }
     }
     /* ACOMP0 */
     if(SET==HBN_Get_INT_State(HBN_INT_ACOMP0)){
-        HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_ACOMP0);
+        HBN_Clear_IRQ(HBN_INT_ACOMP0);
         if(hbnInt1CbfArra[HBN_OUT1_INT_ACOMP0] != NULL) {
             hbnInt1CbfArra[HBN_OUT1_INT_ACOMP0]();
         }
     }
     /* ACOMP1 */
     if(SET==HBN_Get_INT_State(HBN_INT_ACOMP1)){
-        HBN_Clear_IRQ_Without_MaskOperation(HBN_INT_ACOMP1);
+        HBN_Clear_IRQ(HBN_INT_ACOMP1);
         if(hbnInt1CbfArra[HBN_OUT1_INT_ACOMP1] != NULL) {
             hbnInt1CbfArra[HBN_OUT1_INT_ACOMP1]();
         }

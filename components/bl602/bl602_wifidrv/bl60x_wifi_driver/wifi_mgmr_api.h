@@ -23,6 +23,7 @@ int wifi_mgmr_api_ap_stop(void);
 int wifi_mgmr_api_idle(void);
 int wifi_mgmr_api_channel_set(int channel, int use_40Mhz);
 int wifi_mgmr_api_raw_send(uint8_t *pkt, int len);
+int wifi_mgmr_api_set_country_code(char *country_code);
 
 /*section for fw api*/
 int wifi_mgmr_api_fw_disconnect(void);
@@ -31,6 +32,8 @@ int wifi_mgmr_api_fw_scan(void);
 #define WIFI_MGMR_API_FW_POWERSAVING_MODE_ON            (2)
 #define WIFI_MGMR_API_FW_POWERSAVING_MODE_DYNAMIC_ON    (3)
 int wifi_mgmr_api_fw_powersaving(int mode);
+int wifi_mgmr_api_disable_autoreconnect(void);
+int wifi_mgmr_api_enable_autoreconnect(void);
 
 /*section for global event*/
 int wifi_mgmr_api_scan_item_beacon(uint8_t channel, int8_t rssi, uint8_t auth, uint8_t mac[], uint8_t ssid[], int len, int8_t ppm_abs, int8_t ppm_rel);

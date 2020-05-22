@@ -21,7 +21,7 @@ ble_stack_srcs_dirs+= src/cli_cmds
 endif
 
 ble_stack_srcs_include_dirs    += src/port/include \
-                src/common \
+                                src/common \
 								src/common/include \
 								src/common/include/zephyr  \
 								src/common/include/misc  \
@@ -122,63 +122,16 @@ ifeq ($(CONFIG_BT_WIFIPROV_SERVER),1)
 ble_stack_srcs   += src/services/wifi_prov.c
 endif
 
+ifeq ($(CONFIG_BLE_TP_SERVER),1)
+ble_stack_srcs   += src/services/ble_tp_svc.c
+endif
+
 COMPONENT_SRCS := $(ble_stack_srcs)
 
 COMPONENT_OBJS   := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 
 COMPONENT_SRCDIRS := $(ble_stack_srcs_dirs)
 
-CFLAGS   += -DCONFIG_BT_SMP \
-			-DCONFIG_BT_SIGNING \
-			-DCONFIG_BT_L2CAP_DYNAMIC_CHANNEL \
-			-DCONFIG_BT_GATT_CLIENT \
-			-DCONFIG_BT_CONN \
- 			-DCONFIG_BT_GATT_DIS_PNP \
- 			-DCONFIG_BT_GATT_DIS_SERIAL_NUMBER \
- 			-DCONFIG_BT_GATT_DIS_FW_REV \
- 			-DCONFIG_BT_GATT_DIS_HW_REV \
- 			-DCONFIG_BT_GATT_DIS_SW_REV \
- 			-DCONFIG_BT_ECC \
- 			-DCONFIG_BT_GATT_DYNAMIC_DB \
- 			-DCONFIG_BT_GATT_SERVICE_CHANGED \
- 			-DCONFIG_BT_KEYS_OVERWRITE_OLDEST \
- 			-DCONFIG_BT_KEYS_SAVE_AGING_COUNTER_ON_PAIRING \
- 			-DCONFIG_BT_GAP_PERIPHERAL_PREF_PARAMS \
- 			-DCONFIG_BT_SIGNING \
- 			-DCONFIG_BT_BONDABLE \
- 			-DCONFIG_BT_HCI_VS_EVT_USER \
- 			-DCONFIG_BT_ASSERT 
 
-ifneq ($(CONFIG_DBG_RUN_ON_FPGA), 1)
-CFLAGS += -DCONFIG_BT_SETTINGS_CCC_LAZY_LOADING \
- 			-DCONFIG_BT_SETTINGS_USE_PRINTK
-endif
-
-ifeq ($(CONFIG_BLE_STACK_DBG_PRINT),1)
-CFLAGS += -DCFG_BLE_STACK_DBG_PRINT
-endif
-ifeq ($(CONFIG_BT_OAD_SERVER),1)
-CFLAGS += -DCONFIG_BT_OAD_SERVER
-endif
-ifeq ($(CONFIG_BT_OAD_CLIENT),1)
-CFLAGS += -DCONFIG_BT_OAD_CLIENT
-endif
-ifeq ($(CONFIG_BT_REMOTE_CONTROL),1)
-CFLAGS += -DCONFIG_BT_REMOTE_CONTROL
-endif
-ifneq ($(CONFIG_BT_REMOTE_CONTROL),1)
-ifneq ($(CONFIG_BT_MESH),1)
-CFLAGS += -DCONFIG_BT_PRIVACY
-endif
-endif
-ifeq ($(CONFIG_BT_MESH),1)
-CFLAGS += -DCONFIG_BT_MESH
-endif
-ifeq ($(CONFIG_BT_STACK_PTS),1)
-CFLAGS += -DCONFIG_BT_STACK_PTS
-endif
-CFLAGS   += -Wno-unused-const-variable  \
-            -Wno-unused-but-set-variable \
-            -Wno-format
 
 include $(COMPONENT_PATH)/../ble_common.mk

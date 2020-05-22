@@ -23,18 +23,21 @@ int wifi_mgmr_api_connect(char *ssid, char *psk, char *pmk, uint8_t *mac, uint8_
     profile = (wifi_mgmr_profile_msg_t*)msg->data;
     profile->ssid_len = strlen(ssid);//ssid should never be NULL
     memcpy(profile->ssid, ssid, profile->ssid_len);
+    profile->ssid_tail[0] = '\0';
     profile->psk_len = psk ? strlen(psk) : 0;//psk can be NULL
     if (profile->psk_len > sizeof(profile->psk)) {
         return -1;
     } else if (profile->psk_len > 0) {
         memcpy(profile->psk, psk, profile->psk_len);
     }
+    profile->psk_tail[0] = '\0';
     profile->pmk_len = pmk ? strlen(pmk) : 0;//pmk can be NULL
     if (0 != profile->pmk_len && sizeof(profile->pmk) != profile->pmk_len) {
         return -1;
     } else if (sizeof(profile->pmk) == profile->pmk_len) {
         memcpy(profile->pmk, pmk, profile->pmk_len);
     }
+    profile->pmk_tail[0] = '\0';
     if (mac) {
         memcpy(profile->mac, mac, sizeof(profile->mac));
     }
@@ -83,6 +86,40 @@ int wifi_mgmr_api_reconnect(void)
     memset(buffer, 0, sizeof(buffer));
     msg = (wifi_mgmr_msg_t*)buffer;
     msg->ev = WIFI_MGMR_EVENT_APP_RECONNECT;
+    msg->data1 = (void*)0x11223344;
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t);
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
+int wifi_mgmr_api_disable_autoreconnect(void)
+{
+    wifi_mgmr_msg_t *msg;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t)];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_GLB_DISABLE_AUTORECONNECT;
+    msg->data1 = (void*)0x11223344;
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t);
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
+int wifi_mgmr_api_enable_autoreconnect(void)
+{
+    wifi_mgmr_msg_t *msg;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t)];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_GLB_ENABLE_AUTORECONNECT;
     msg->data1 = (void*)0x11223344;
     msg->data2 = (void*)0x55667788;
     msg->len = sizeof (wifi_mgmr_msg_t);
@@ -341,6 +378,13 @@ int wifi_mgmr_api_raw_send(uint8_t *pkt, int len)
     msg->len = sizeof (wifi_mgmr_msg_t);
 
     wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
+int wifi_mgmr_api_set_country_code(char *country_code)
+{
+    wifi_mgmr_set_country_code_internal(country_code);
 
     return 0;
 }

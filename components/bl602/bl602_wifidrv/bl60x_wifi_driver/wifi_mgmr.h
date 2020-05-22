@@ -60,6 +60,8 @@ typedef enum WIFI_MGMR_EVENT {
     WIFI_MGMR_EVENT_GLB_SCAN_IND_PROBE_RESP,
     WIFI_MGMR_EVENT_GLB_AP_IND_STA_NEW,
     WIFI_MGMR_EVENT_GLB_AP_IND_STA_DEL,
+    WIFI_MGMR_EVENT_GLB_DISABLE_AUTORECONNECT,
+    WIFI_MGMR_EVENT_GLB_ENABLE_AUTORECONNECT,
 
 } WIFI_MGMR_EVENT_T;
 
@@ -117,11 +119,12 @@ typedef struct wifi_mgmr_ap_msg {
 #pragma pack(pop)
 
 typedef struct wifi_mgmr_profile {
-    char ssid[32];
+    char ssid[33];
+    uint8_t no_autoconnect;
     uint32_t ssid_len;
-    char psk[64];
+    char psk[65];
     uint32_t psk_len;
-    char pmk[64];
+    char pmk[65];
     uint32_t pmk_len;
     uint8_t mac[6];
     uint8_t dhcp_use;
@@ -200,13 +203,19 @@ typedef struct wifi_mgmr {
     struct stateMachine m;
     os_timer_t timer;
     wifi_mgmr_connect_ind_stat_info_t wifi_mgmr_stat_info;
+    char country_code[3];
+    uint8_t disable_autoreconnect;
+    int channel_nums;
 } wifi_mgmr_t;
 
 int wifi_mgmr_event_notify(wifi_mgmr_msg_t *msg);
 int wifi_mgmr_state_get_internal(int *state);
+int wifi_mgmr_status_code_get_internal(int *s_code);
+int wifi_mgmr_set_country_code_internal(char *country_code);
 int wifi_mgmr_ap_sta_cnt_get_internal(uint8_t *sta_cnt);
 int wifi_mgmr_ap_sta_info_get_internal(wifi_mgmr_sta_basic_info_t *sta_info_internal, uint8_t idx);
 int wifi_mgmr_ap_sta_delete_internal(uint8_t sta_idx);
 int wifi_mgmr_scan_complete_notify();
 extern wifi_mgmr_t wifiMgmr;
+char *wifi_mgmr_auth_to_str(uint8_t auth);
 #endif

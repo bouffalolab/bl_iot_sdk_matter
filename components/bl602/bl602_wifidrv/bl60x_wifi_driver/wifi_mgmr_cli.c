@@ -195,6 +195,37 @@ static void wifi_ap_sta_delete_cmd(char *buf, int len, int argc, char **argv)
     wifi_mgmr_ap_sta_delete(sta_info.sta_idx);
 }
 
+static void wifi_edca_dump_cmd(char *buf, int len, int argc, char **argv)
+{
+    uint8_t aifs = 0, cwmin = 0, cwmax = 0;
+    uint16_t txop = 0;
+
+    puts("EDCA Statistic:\r\n");
+
+    bl60x_edca_get(API_AC_BK, &aifs, &cwmin, &cwmax, &txop);
+    puts("  AC_BK:");
+    printf("aifs %3u, cwmin %3u, cwmax %3u, txop %4u\r\n",
+        aifs, cwmin, cwmax, txop
+    );
+
+    bl60x_edca_get(API_AC_BE, &aifs, &cwmin, &cwmax, &txop);
+    puts("  AC_BE:");
+    printf("aifs %3u, cwmin %3u, cwmax %3u, txop %4u\r\n",
+        aifs, cwmin, cwmax, txop
+    );
+
+    bl60x_edca_get(API_AC_VI, &aifs, &cwmin, &cwmax, &txop);
+    puts("  AC_VI:");
+    printf("aifs %3u, cwmin %3u, cwmax %3u, txop %4u\r\n",
+        aifs, cwmin, cwmax, txop
+    );
+
+    bl60x_edca_get(API_AC_VO, &aifs, &cwmin, &cwmax, &txop);
+    puts("  AC_VO:");
+    printf("aifs %3u, cwmin %3u, cwmax %3u, txop %4u\r\n",
+        aifs, cwmin, cwmax, txop
+    );
+}
 
 int wifi_mgmr_cli_powersaving_on()
 {
@@ -210,7 +241,7 @@ int wifi_mgmr_cli_scanlist(void)
     printf("****************************************************************************************************\r\n");
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
         if (wifiMgmr.scan_items[i].is_used) {
-            printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, SSID %s\r\n",
+            printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, auth %15s SSID %s\r\n",
                     i,
                     wifiMgmr.scan_items[i].channel,
                     wifiMgmr.scan_items[i].bssid[0],
@@ -222,6 +253,7 @@ int wifi_mgmr_cli_scanlist(void)
                     wifiMgmr.scan_items[i].rssi,
                     wifiMgmr.scan_items[i].ppm_abs,
                     wifiMgmr.scan_items[i].ppm_rel,
+                    wifi_mgmr_auth_to_str(wifiMgmr.scan_items[i].auth),
                     wifiMgmr.scan_items[i].ssid
             );
         } else {
@@ -241,12 +273,20 @@ static void wifi_capcode_cmd(char *buf, int len, int argc, char **argv)
 {
     int capcode = 0;
 
-    if (2 != argc) {
+    if (2 != argc && 1 != argc) {
         printf("Usage: %s capcode\r\n", argv[0]);
         return;
     }
+
+    /*get capcode*/
+    if (1 == argc) {
+        printf("Capcode %u is being used\r\n", hal_sys_capcode_get());
+        return;
+    }
+
+    /*set capcode*/
     capcode = atoi(argv[1]);
-    printf("capcode is %d\r\n", capcode);
+    printf("Setting capcode to %d\r\n", capcode);
 
     if (capcode > 0) {
         hal_sys_capcode_update(capcode, capcode);
@@ -308,6 +348,15 @@ static void wifi_connect_cmd(char *buf, int len, int argc, char **argv)
     wifi_mgmr_sta_connect(wifi_interface, argv[1], argv[2], NULL, NULL, 0, 0);
 }
 
+static void wifi_disable_autoreconnect_cmd(char *buf, int len, int argc, char **argv)
+{
+    wifi_mgmr_sta_autoconnect_disable();
+}
+
+static void wifi_enable_autoreconnect_cmd(char *buf, int len, int argc, char **argv)
+{
+    wifi_mgmr_sta_autoconnect_enable();
+}
 
 static void wifi_rc_fixed_enable(char *buf, int len, int argc, char **argv)
 {
@@ -500,6 +549,62 @@ static void cmd_wifi_coex_pta_force_off(char *buf, int len, int argc, char **arg
     coex_wifi_pta_forece_enable(0);
 }
 
+static void cmd_wifi_state_get(char *buf, int len, int argc, char **argv)
+{
+    int state = WIFI_STATE_UNKNOWN;
+    wifi_mgmr_state_get(&state);
+
+    switch (state) {
+        case WIFI_STATE_UNKNOWN:
+            printf("wifi state unknown\r\n");
+            break;
+        case WIFI_STATE_IDLE:
+            printf("wifi state idle\r\n");
+            break;
+        case WIFI_STATE_CONNECTING:
+            printf("wifi state connecting\r\n");
+            break;
+        case WIFI_STATE_CONNECTED_IP_GETTING:
+            printf("wifi state connected ip getting\r\n");
+            break;
+        case WIFI_STATE_CONNECTED_IP_GOT:
+            printf("wifi state connected ip got\r\n");
+            break;
+        case WIFI_STATE_DISCONNECT:
+            printf("wifi state disconnect\r\n");
+            break;
+        case WIFI_STATE_WITH_AP_IDLE:
+            printf("wifi state with ap idle\r\n");
+            break;
+        case WIFI_STATE_WITH_AP_CONNECTING:
+            printf("wifi state with ap connecting\r\n");
+            break;
+        case WIFI_STATE_WITH_AP_CONNECTED_IP_GETTING:
+            printf("wifi state with ap connected ip getting\r\n");
+            break;
+        case WIFI_STATE_WITH_AP_CONNECTED_IP_GOT:
+            printf("wifi state with ap connected ip got\r\n");
+            break;
+        case WIFI_STATE_WITH_AP_DISCONNECT:
+            printf("wifi state with ap disconnect\r\n");
+            break;
+        case WIFI_STATE_IFDOWN:
+            printf("wifi state ifdown\r\n");
+            break;
+        case WIFI_STATE_SNIFFER:
+            printf("wifi state sniffer\r\n");
+            break;
+        case WIFI_STATE_PSK_ERROR:
+            printf("wifi state psk error\r\n");
+            break;
+        case WIFI_STATE_NO_AP_FOUND:
+            printf("wifi state no ap found\r\n");
+            break;
+        default:
+            break;
+    }
+}
+
 // STATIC_CLI_CMD_ATTRIBUTE makes this(these) command(s) static
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "rf_dump", "rf dump", cmd_rf_dump},
@@ -509,11 +614,10 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_raw_send", "wifi raw send test", cmd_wifi_raw_send},
         { "wifi_sta_disconnect", "wifi station disconnect", wifi_disconnect_cmd},
         { "wifi_sta_connect", "wifi station connect", wifi_connect_cmd},
+        { "wifi_sta_autoconnect_enable", "wifi station enable auto reconnect", wifi_enable_autoreconnect_cmd},
+        { "wifi_sta_autoconnect_disable", "wifi station disable auto reconnect", wifi_disable_autoreconnect_cmd},
         { "rc_fix_en", "wifi rate control fixed rate enable", wifi_rc_fixed_enable},
         { "rc_fix_dis", "wifi rate control fixed rate diable", wifi_rc_fixed_disable},
-#if 0
-        { "wifi_capcode", "capcode utils\r\n wifi_capcode [cap_in] [cap_out]", wifi_capcode_update},
-#endif
         { "wifi_sta_ps_on", "wifi power saving mode ON", wifi_power_saving_on_cmd},
         { "wifi_sta_ps_off", "wifi power saving mode OFF", wifi_power_saving_off_cmd},
         { "wifi_sniffer_on", "wifi sniffer mode on", wifi_sniffer_on_cmd},
@@ -531,6 +635,8 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_coex_pta_force_off", "wifi coex PTA forece off", cmd_wifi_coex_pta_force_off},
         { "wifi_sta_list", "get sta list in AP mode", wifi_ap_sta_list_get_cmd},
         { "wifi_sta_del", "delete one sta in AP mode", wifi_ap_sta_delete_cmd},
+        { "wifi_edca_dump", "dump EDCA data", wifi_edca_dump_cmd},
+        { "wifi_state", "get wifi_state", cmd_wifi_state_get},
 };                                                                                   
 
 int wifi_mgmr_cli_init(void)

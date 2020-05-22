@@ -135,6 +135,7 @@ typedef enum {
     GPIP_DAC_MOD_16K,                       /*!< select 16K as DAC mode */
     GPIP_DAC_MOD_RESERVE,                   /*!< reserved */
     GPIP_DAC_MOD_8K,                        /*!< select 8K as DAC mode */
+    GPIP_DAC_MOD_512K,                      /*!< select 512 as DAC mode Only For DMA Mode */
 }GPIP_DAC_MOD_Type;
 
 /**
@@ -235,7 +236,8 @@ typedef struct {
 #define IS_GPIP_DAC_MOD_TYPE(type)                       (((type) == GPIP_DAC_MOD_32K) || \
                                                           ((type) == GPIP_DAC_MOD_16K) || \
                                                           ((type) == GPIP_DAC_MOD_RESERVE) || \
-                                                          ((type) == GPIP_DAC_MOD_8K))
+                                                          ((type) == GPIP_DAC_MOD_8K) || \
+                                                          ((type) == GPIP_DAC_MOD_512K))
 
 /** @defgroup  GPIP_DAC_DMA_TX_FORMAT_TYPE
  *  @{
@@ -255,7 +257,7 @@ typedef struct {
 /** @defgroup  DAC_Public_Functions
  *  @{
  */
-void GLB_DAC_Init(GLB_DAC_Cfg_Type* cfg);
+void GLB_DAC_Init(GLB_DAC_Cfg_Type *cfg);
 void GLB_DAC_Set_ChanA_Config(GLB_DAC_Chan_Cfg_Type *cfg);
 void GLB_DAC_Set_ChanB_Config(GLB_DAC_Chan_Cfg_Type *cfg);
 void GPIP_Set_DAC_ChanB_SRC_SEL(GPIP_DAC_ChanB_SRC_Type src);
@@ -269,7 +271,7 @@ void GPIP_Set_DAC_DMA_TX_FORMAT_SEL(GPIP_DAC_DMA_TX_FORMAT_Type fmt);
 void GPIP_Set_DAC_DMA_TX_Enable(void);
 void GPIP_Set_DAC_DMA_TX_Disable(void);
 void GPIP_DAC_DMA_WriteData(uint32_t data);
-void GLB_GPIP_DAC_Init(GLB_GPIP_DAC_Cfg_Type* cfg);
+BL_Err_Type GLB_GPIP_DAC_Init(GLB_GPIP_DAC_Cfg_Type* cfg);
 void GLB_GPIP_DAC_Set_ChanA_Config(GLB_GPIP_DAC_ChanA_Cfg_Type *cfg);
 void GLB_GPIP_DAC_Set_ChanB_Config(GLB_GPIP_DAC_ChanB_Cfg_Type *cfg);
 void GLB_DAC_Set_ChanA_Value(uint16_t val);

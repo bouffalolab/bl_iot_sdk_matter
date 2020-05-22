@@ -29,4 +29,5 @@ int bl_send_apm_stop_req(struct bl_hw *bl_hw, uint8_t vif_idx);
 int bl_send_apm_sta_del_req(struct bl_hw *bl_hw, struct apm_sta_del_cfm *cfm, uint8_t sta_idx, uint8_t vif_idx);
 int bl_send_channel_set_req(struct bl_hw *bl_hw, int channel);
 void bl_msg_update_channel_cfg(const char *code);
+int bl_msg_get_channel_nums();
 #endif

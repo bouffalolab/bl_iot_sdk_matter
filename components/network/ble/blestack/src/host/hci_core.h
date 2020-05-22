@@ -248,14 +248,13 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
 
 #if defined (BFLB_BLE)
 
-int bt_le_simple_adv_start(const void *data,size_t len,const void *rsp_data,size_t rlen); 
-
 int bt_le_read_rssi(u16_t handle,int8_t *rssi);
-
 int set_ad_and_rsp_d(u16_t hci_op, u8_t *data, u32_t ad_len);
-
 int set_adv_enable(bool enable);
+int set_adv_param(const struct bt_le_adv_param *param);
 
-int set_adv_param(void);
+int bt_get_local_address(bt_addr_le_t *adv_addr);
+
+int bt_le_set_data_len(struct bt_conn *conn, u16_t tx_octets, u16_t tx_time);
 
 #endif

@@ -6,7 +6,7 @@
 #define TC_WIFI_DTB_LEN    (4779 + 4)
 extern const uint8_t tc_wifi_dtb[];
 
-static void tc_fdt_wifi_module(void)
+static int tc_fdt_wifi_module(void)
 {
     const void *fdt = (const void *)tc_wifi_dtb;/* const tc_wifi_dtb */
 
@@ -23,7 +23,8 @@ static void tc_fdt_wifi_module(void)
     wifi_offset = fdt_subnode_offset(fdt, 0, "wifi");
     // wifi
     if (!(wifi_offset > 0)) {
-       log_error("wifi NULL.\r\n");
+        log_error("wifi NULL.\r\n");
+        return -1;
     }
 
     // wifi->region->country_code = u32
@@ -34,6 +35,7 @@ static void tc_fdt_wifi_module(void)
             log_info("value = %ld, lentmp = %d\r\n", fdt32_to_cpu(*addr_prop), lentmp);
         } else {
             log_error("country_code NULL.\r\n");
+            return -1;
         }
     }
     // wifi->mac
@@ -49,6 +51,7 @@ static void tc_fdt_wifi_module(void)
             log_buf(sta_mac, 6);
         } else {
             log_error("sta_mac_addr NULL.\r\n");
+            return -1;
         }
 
         // wifi->mac->ap_mac_addr = hex dump
@@ -76,6 +79,7 @@ static void tc_fdt_wifi_module(void)
             }
         } else {
             log_error("ap NULL.\r\n");
+            return -1;
         }
 
         // wifi->ap->pwd = string
@@ -90,6 +94,7 @@ static void tc_fdt_wifi_module(void)
             }
         } else {
             log_error("pwd NULL.\r\n");
+            return -1;
         }
 
         // wifi->ap->ap_channel = u32
@@ -98,6 +103,7 @@ static void tc_fdt_wifi_module(void)
             log_info("ap_channel = %ld\r\n", fdt32_to_cpu(*addr_prop));
         } else {
             log_error("ap_channel NULL.\r\n");
+            return -1;
         }
 
         // wifi->ap->auto_chan_detect = dis ? en
@@ -111,9 +117,11 @@ static void tc_fdt_wifi_module(void)
             }
         } else {
             log_error("auto_chan_detect NULL.\r\n");
+            return -1;
         }
     } else {
         log_error("ap NULL.\r\n");
+        return -1;
     }
 
     // wifi -> brd_rf
@@ -129,6 +137,7 @@ static void tc_fdt_wifi_module(void)
             log_buf(xtal, 5*4);
         } else {
             log_error("xtal NULL.");
+            return -1;
         }
         // wifi->brd_rf->pwr_table = u32 []
         addr_prop = fdt_getprop(fdt, offset1, "pwr_table", &lentmp);
@@ -140,6 +149,7 @@ static void tc_fdt_wifi_module(void)
             log_buf(pwr_table, 16*4*4);
         } else {
             log_error("pwr_table NULL. lentmp = %d.\r\n", lentmp);
+            return -1;
         }
         // wifi->brd_rf->channel_div_table = u32 []
         addr_prop = fdt_getprop(fdt, offset1, "channel_div_table", &lentmp);
@@ -151,6 +161,7 @@ static void tc_fdt_wifi_module(void)
             log_buf(channel_div_table, 15*4);
         }  else {
             log_error("channel_div_table NULL.\r\n");
+            return -1;
         }
         // wifi->brd_rf->channel_cnt_table = u32 []
         addr_prop = fdt_getprop(fdt, offset1, "channel_cnt_table", &lentmp);
@@ -162,6 +173,7 @@ static void tc_fdt_wifi_module(void)
             log_buf(channel_cnt_table, 14*4);
         }  else {
             log_error("channel_cnt_table NULL.\r\n");
+            return -1;
         }
         // wifi->brd_rf->lo_fcal_div = u32
         addr_prop = fdt_getprop(fdt, offset1, "lo_fcal_div", &lentmp);
@@ -173,15 +185,26 @@ static void tc_fdt_wifi_module(void)
             log_buf(lo_fcal_div, 1*4);
         }  else {
             log_error("lo_fcal_div NULL.\r\n");
+            return -1;
         }
     } else {
         log_error("brd_rf NULL.\r\n");
+        return -1;
     }
-
+    
+    return 0;
 }
 
 int tc_fdt_wifi(void)
 {
-    tc_fdt_wifi_module();
-    return 0;
+    int result;
+    result = tc_fdt_wifi_module();
+    
+    if (result) {
+        printf("fdt wifi module failed\r\n");
+    } else {
+        printf("fdt wifi module successed\r\n");
+    }
+    
+    return result;
 }

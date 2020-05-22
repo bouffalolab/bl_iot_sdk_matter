@@ -6,6 +6,8 @@
 #include "hal/soc/soc.h"
 #include "vfs_err.h"
 
+#include <utils_log.h>
+
 /* pwm driver struct */
 const struct file_ops pwm_ops =
 {
@@ -75,6 +77,8 @@ int vfs_pwm_ioctl(file_t *fp, int cmd, unsigned long arg)
 {
     int ret = -1;              /* return value */
     pwm_dev_t *pwm_dev = NULL; /* device pointer */
+    float duty = 0;
+    int32_t freq = 0;
 
     /* check empty pointer. */
     if ((fp == NULL) || (fp->node == NULL)) {
@@ -90,11 +94,37 @@ int vfs_pwm_ioctl(file_t *fp, int cmd, unsigned long arg)
 
     switch(cmd) {
         case IOCTL_PWM_OUTPUT_START:
+        {
             ret = hal_pwm_start(pwm_dev);
-            break;
+            log_info("ioctl start.\r\n");
+        }
+        break;
         case IOCTL_PWM_OUTPUT_STOP:
+        {
+            log_info("ioctl stop.\r\n");
             ret = hal_pwm_stop(pwm_dev);
-            break;
+        }
+        break;
+        case IOCTL_PWM_OUTPUT_DUTY:
+        {
+            log_info("ioctl set duty.\r\n");
+            if (0 == arg) {
+                return -EINVAL;
+            }
+            duty = *(float *)arg;
+            ret = hal_pwm_set_duty(pwm_dev, duty);
+        }
+        break;
+        case IOCTL_PWM_OUTPUT_FREQ:
+        {
+            log_info("ioctl set freq.\r\n");
+            if (0 == arg) {
+                return -EINVAL;
+            }
+            freq = *(int32_t *)arg;
+            ret = hal_pwm_set_freq(pwm_dev, freq);
+        }
+        break;
         default:
             ret = -EINVAL;
             break;

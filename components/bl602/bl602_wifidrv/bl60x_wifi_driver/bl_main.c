@@ -250,6 +250,20 @@ int bl_main_rate_config(uint8_t sta_idx, uint16_t fixed_rate_cfg)
     return bl_send_me_rate_config_req(&wifi_hw, sta_idx, fixed_rate_cfg);
 }
 
+int bl_main_set_country_code(char *country_code)
+{
+    printf("%s: country code: %s\r\n", __func__, country_code);
+    bl_msg_update_channel_cfg((const char *)country_code);
+    bl_send_me_chan_config_req(&wifi_hw);
+
+    return 0;
+}
+
+int bl_main_get_channel_nums()
+{
+    return bl_msg_get_channel_nums();
+}
+
 int bl_main_if_add(int is_sta, struct netif *netif, uint8_t *vif_index)
 {
     struct mm_add_if_cfm add_if_cfm;

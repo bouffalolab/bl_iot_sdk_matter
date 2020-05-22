@@ -25,6 +25,7 @@ void bflb_platform_printx(uint32_t val);
 void bflb_platform_printc(char c);
 void bflb_platform_print_set(uint8_t logDisable);
 int bflb_platform_get_random(uint8_t *data,uint32_t len);
+int bflb_platform_get_input(uint8_t *data,uint32_t maxLen);
 
 void bflb_platform_clear_time(void);
 uint32_t  bflb_platform_get_systick_int_cnt(void);

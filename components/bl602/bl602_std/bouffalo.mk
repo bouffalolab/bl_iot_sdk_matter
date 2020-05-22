@@ -24,6 +24,7 @@ COMPONENT_SRCS := bl602_std/StdDriver/Src/bl602_uart.c \
                   bl602_std/StdDriver/Src/bl602_timer.c \
                   bl602_std/StdDriver/Src/bl602_aon.c \
                   bl602_std/StdDriver/Src/bl602_pds.c \
+                  bl602_std/StdDriver/Src/bl602_pwm.c \
                   bl602_std/StdDriver/Src/bl602_l1c.c \
                   bl602_std/StdDriver/Src/bl602_ef_ctrl.c \
                   bl602_std/StdDriver/Src/bl602_sf_ctrl.c \
@@ -31,6 +32,7 @@ COMPONENT_SRCS := bl602_std/StdDriver/Src/bl602_uart.c \
                   bl602_std/StdDriver/Src/bl602_sf_cfg.c  \
                   bl602_std/StdDriver/Src/bl602_xip_sflash.c \
                   bl602_std/Common/soft_crc/softcrc.c \
+                  bl602_std/StdDriver/Src/bl602_dac.c \
 
 
 COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))

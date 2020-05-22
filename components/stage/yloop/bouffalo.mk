@@ -18,6 +18,9 @@ COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 
 COMPONENT_SRCDIRS := src
 
+ifeq ($(CONFIG_USE_STDLIB_MALLOC), 1)
+CFLAGS += -DUSE_STDLIB_MALLOC
+endif
 
 ##
 #CPPFLAGS += 
