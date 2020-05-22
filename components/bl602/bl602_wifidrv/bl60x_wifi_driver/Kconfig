@@ -1,0 +1,5 @@
+menu "BL606A0 Wi-Fi Config"
+    config BL606A0_WIFI_FULLMAC
+        bool "Enable BL606A0 Wi-Fi Support (FullMAC)"
+            default false
+endmenu

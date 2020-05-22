@@ -1,0 +1,29 @@
+from building import *
+
+cwd = GetCurrentDir()
+
+# add the general drivers.
+src = Split("""
+ipc_host.c
+bl_cmds.c
+bl_irqs.c
+bl_main.c
+bl_mod_params.c
+bl_msg_tx.c
+bl_platform.c
+bl_rx.c
+bl_strs.c
+bl_tx.c
+bl_txq.c
+bl_utils.c
+""")
+
+# add gpio drivers.
+#if GetDepend('RT_USING_PIN'):
+#    src += ['gpio.c']
+
+CPPPATH = [cwd]
+
+group = DefineGroup('fullmac', src, depend = [''], CPPPATH = CPPPATH)
+
+Return('group')
