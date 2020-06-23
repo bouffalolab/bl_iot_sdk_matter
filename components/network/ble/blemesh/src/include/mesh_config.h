@@ -26,7 +26,7 @@
 #endif
 
 #ifndef CONFIG_BT_MESH_ADV_BUF_COUNT
-#define CONFIG_BT_MESH_ADV_BUF_COUNT 10
+#define CONFIG_BT_MESH_ADV_BUF_COUNT 60
 #endif
 
 #ifndef CONFIG_BT_MESH_LABEL_COUNT
@@ -166,6 +166,8 @@
 #ifndef CONFIG_BT_DEVICE_NAME
 #define CONFIG_BT_DEVICE_NAME "bl_mesh"
 #endif
+
+#define BL_COMP_ID                           0x07AF
 
 /********************************BFLB_BLE patch to fix mesh bug**************************************/
 #define BFLB_BLE_MESH_PATCH_DEL_APPKEY

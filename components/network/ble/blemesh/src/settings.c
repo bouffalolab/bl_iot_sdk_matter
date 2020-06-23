@@ -35,7 +35,11 @@
 #include "settings.h"
 #if defined(BFLB_BLE)
 #include "mesh_settings.h"
+#ifdef CONFIG_BT_SETTINGS
+#if defined(CONFIG_BT_SETTINGS)
 #include "easyflash.h"
+#endif
+#endif
 #endif
 
 /* Tracking of what storage changes are pending for App and Net Keys. We
@@ -475,7 +479,7 @@ static int sig_mod_set(void)
 {
     struct bt_mesh_elem *elem;
     struct bt_mesh_model *model;
-    struct bt_mesh_comp * comp;
+    const struct bt_mesh_comp * comp;
     int i, j;
     int err;
 
@@ -498,7 +502,7 @@ static int vnd_mod_set(void)
 {
 	struct bt_mesh_elem *elem;
     struct bt_mesh_model *model;
-    struct bt_mesh_comp * comp;
+    const struct bt_mesh_comp * comp;
     int i, j;
     int err;
 
@@ -1397,6 +1401,7 @@ static void store_rpl(struct bt_mesh_rpl *entry)
 
 static void clear_rpl(void)
 {
+#if defined(CONFIG_BT_SETTINGS)
 	int err;
 
 	err = ef_del_env(NV_MESH_RPL);
@@ -1406,7 +1411,7 @@ static void clear_rpl(void)
 	} else {
 		BT_DBG("Cleared RPL");
 	}
-
+#endif
 	(void)memset(bt_mesh.rpl, 0, sizeof(bt_mesh.rpl));
 }
 #else
@@ -1467,7 +1472,7 @@ static void store_pending_rpl(void)
 	int i;
 
 	BT_DBG("");
-
+#ifdef CONFIG_BT_SETTINGS
 	for (i = 0; i < ARRAY_SIZE(bt_mesh.rpl); i++) {
 		struct bt_mesh_rpl *rpl = &bt_mesh.rpl[i];
 
@@ -1476,6 +1481,7 @@ static void store_pending_rpl(void)
 			store_rpl(rpl);
 		}
 	}
+#endif
 }
 
 static void store_pending_hb_pub(void)
@@ -1780,7 +1786,7 @@ static void store_pending_mod_bind(struct bt_mesh_model *mod, bool vnd)
 {
 	u16_t keys[CONFIG_BT_MESH_MODEL_KEY_COUNT];
 	char path[20];
-	int i, count, err;
+	int i, count, err = 0;
 
     #if defined(BFLB_BLE)
     memset(keys, 0, sizeof(keys));
@@ -1797,13 +1803,15 @@ static void store_pending_mod_bind(struct bt_mesh_model *mod, bool vnd)
 
 	if (count) {
         #if defined(BFLB_BLE)
-        err = bt_settings_set_bin((const char *)path, (const u8_t *)keys, sizeof(keys)); 
+              err = bt_settings_set_bin((const char *)path, (const u8_t *)keys, sizeof(keys)); 
         #else
 		err = settings_save_one(path, keys, count * sizeof(keys[0]));
         #endif
 	} else {
-	    #if defined(BFLB_BLE)
-        err = ef_del_env((const char *)path);
+	 #if defined(BFLB_BLE)
+	 #if defined(CONFIG_BT_SETTINGS)
+            err = ef_del_env((const char *)path);
+        #endif
         #else
 		err = settings_delete(path);
         #endif
@@ -1828,7 +1836,7 @@ static void store_pending_mod_sub(struct bt_mesh_model *mod, bool vnd)
 {
 	u16_t groups[CONFIG_BT_MESH_MODEL_GROUP_COUNT];
 	char path[20];
-	int i, count, err;
+	int i, count, err = 0;
 
     #if defined(BFLB_BLE)
     memset(groups, 0, sizeof(groups));
@@ -1850,8 +1858,10 @@ static void store_pending_mod_sub(struct bt_mesh_model *mod, bool vnd)
 					count * sizeof(groups[0]));
         #endif
 	} else {
-	    #if defined(BFLB_BLE)
-        err = ef_del_env((const char *)path);
+	 #if defined(BFLB_BLE)
+	 #if defined(CONFIG_BT_SETTINGS)
+              err = ef_del_env((const char *)path);
+        #endif
         #else
 		err = settings_delete(path);
         #endif
@@ -1876,15 +1886,17 @@ static void store_pending_mod_pub(struct bt_mesh_model *mod, bool vnd)
 {
 	struct mod_pub_val pub;
 	char path[20];
-	int err;
+	int err = 0;
     
 	encode_mod_path(mod, vnd, "pub", path, sizeof(path));
 
 	if (!mod->pub || mod->pub->addr == BT_MESH_ADDR_UNASSIGNED) {
         #if defined(BFLB_BLE)
-        err = ef_del_env((const char *)path);
+        #if defined(CONFIG_BT_SETTINGS)
+            err = ef_del_env((const char *)path);
+        #endif
         #else
-		err = settings_delete(path);
+	    err = settings_delete(path);
         #endif
 	} else {
 		pub.addr = mod->pub->addr;
@@ -1896,9 +1908,9 @@ static void store_pending_mod_pub(struct bt_mesh_model *mod, bool vnd)
 		pub.cred = mod->pub->cred;
 
         #if defined(BFLB_BLE)
-        err = bt_settings_set_bin((const char *)path, (const u8_t *)&pub, sizeof(pub));
+            err = bt_settings_set_bin((const char *)path, (const u8_t *)&pub, sizeof(pub));
         #else
-		err = settings_save_one(path, &pub, sizeof(pub));
+	     err = settings_save_one(path, &pub, sizeof(pub));
         #endif
 	}
 
@@ -1996,7 +2008,9 @@ static void store_pending(struct k_work *work)
 
 void bt_mesh_store_rpl(struct bt_mesh_rpl *entry)
 {
+#ifdef CONFIG_BT_SETTINGS
 	entry->store = true;
+#endif
 	schedule_store(BT_MESH_RPL_PENDING);
 }
 

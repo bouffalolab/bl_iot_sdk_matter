@@ -95,6 +95,7 @@ static intCallback_Type * pdsIntCbfArra[4][1]={{NULL},{NULL},{NULL},{NULL}};
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION PDS_Reset(void)
 {
     uint32_t tmpVal = 0;
@@ -120,6 +121,7 @@ BL_Err_Type ATTR_TCM_SECTION PDS_Reset(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION PDS_Enable(PDS_CTL_Type *cfg,PDS_CTL4_Type *cfg4,uint32_t pdsSleepCnt)
 {
     /* PDS sleep time 0 <=> sleep forever */
@@ -156,6 +158,7 @@ BL_Err_Type ATTR_TCM_SECTION PDS_Enable(PDS_CTL_Type *cfg,PDS_CTL4_Type *cfg4,ui
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION PDS_Force_Config(PDS_CTL2_Type *cfg2,PDS_CTL3_Type *cfg3)
 {
     /* PDS_CTL2 config */
@@ -175,6 +178,7 @@ BL_Err_Type ATTR_TCM_SECTION PDS_Force_Config(PDS_CTL2_Type *cfg2,PDS_CTL3_Type 
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION PDS_RAM_Config(PDS_RAM_CFG_Type *ramCfg)
 {
     uint32_t tmpVal = 0;
@@ -213,6 +217,7 @@ BL_Err_Type ATTR_TCM_SECTION PDS_RAM_Config(PDS_RAM_CFG_Type *ramCfg)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION PDS_Default_Level_Config(PDS_DEFAULT_LV_CFG_Type *defaultLvCfg,PDS_RAM_CFG_Type *ramCfg,uint32_t pdsSleepCnt)
 {
     /* RAM config need fix after ECO */
@@ -335,7 +340,7 @@ PDS_STS_Type PDS_Get_PdsStstus(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type /*ATTR_TCM_SECTION*/ PDS_Int_Callback_Install(PDS_INT_Type intType,intCallback_Type* cbFun)
+BL_Err_Type PDS_Int_Callback_Install(PDS_INT_Type intType,intCallback_Type* cbFun)
 {
     pdsIntCbfArra[intType][0] = cbFun;
     
@@ -385,7 +390,7 @@ BL_Err_Type ATTR_CLOCK_SECTION PDS_Select_RC32M_As_PLL_Ref(void)
     uint32_t tmpVal = 0;
     
     tmpVal = BL_RD_REG(PDS_BASE,PDS_CLKPLL_TOP_CTRL);
-    //tmpVal = BL_CLR_REG_BIT(tmpVal,PDS_CLKPLL_REFCLK_SEL);
+    tmpVal = BL_CLR_REG_BIT(tmpVal,PDS_CLKPLL_REFCLK_SEL);
     tmpVal = BL_SET_REG_BIT(tmpVal,PDS_CLKPLL_XTAL_RC32M_SEL);
     BL_WR_REG(PDS_BASE,PDS_CLKPLL_TOP_CTRL,tmpVal);
     

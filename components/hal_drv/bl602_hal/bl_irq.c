@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdint.h>
 #include <stdio.h>
 
@@ -71,14 +100,14 @@ void bl_irq_default(void)
     }
 }
 
-//XXX magic number used here
-static void (*handler_list[16 + 64])(void) = {
-
+static void (*handler_list[2][16 + 64])(void) = {
+    
 };
+
 
 static inline void _irq_num_check(int irqnum)
 {
-    if (irqnum < 0 || irqnum >= sizeof(handler_list)/sizeof(handler_list[0])) {
+    if (irqnum < 0 || irqnum >= sizeof(handler_list[0])/sizeof(handler_list[0][0])) {
         blog_error("illegal irqnum %d\r\n", irqnum);
         while (1) {
             /*Deap loop here, TODO ass blog_assert*/
@@ -86,41 +115,66 @@ static inline void _irq_num_check(int irqnum)
     }
 }
 
-void bl_irq_register(int irqnum, void *handler)
+void bl_irq_register_with_ctx(int irqnum, void *handler, void *ctx)
 {
     _irq_num_check(irqnum);
-    if (handler_list[irqnum] && handler_list[irqnum] != handler) {
-        blog_warn("IRQ %d already registered with %p\r\n",
-            irqnum,
-            handler_list[irqnum]
+    if (handler_list[0][irqnum] && handler_list[0][irqnum] != handler) {
+        blog_warn("IRQ %d already registered with %p \r\n",
+             irqnum,
+             handler_list[0][irqnum]
         );
     }
-    handler_list[irqnum] = handler;
+   
+    if (handler == NULL) {
+        blog_error("handler is NULL pointer! \r\n");
+        return;
+    }
+
+    if (NULL == ctx) {
+        handler_list[0][irqnum] = handler;
+        handler_list[1][irqnum] = NULL;
+    }
+    else {
+        handler_list[0][irqnum] = handler;
+        handler_list[1][irqnum] = ctx;
+    }
+
+    return;
+    
+}
+
+void bl_irq_register(int irqnum, void *handler)
+{
+    bl_irq_register_with_ctx(irqnum, handler, NULL);
 }
 
 void bl_irq_unregister(int irqnum, void *handler)
 {
     _irq_num_check(irqnum);
-    if (handler_list[irqnum] != handler) {
+    if (handler_list[0][irqnum] != handler) {
         blog_warn("IRQ %d:%p Not match with registered %p\r\n",
             irqnum,
             handler,
-            handler_list[irqnum]
+            handler_list[0][irqnum]
         );
     }
-    handler_list[irqnum] = handler;
+    handler_list[0][irqnum] = handler;
 }
 
 void interrupt_entry(uint32_t mcause) 
 {
-    void (*handler)(void) = NULL;
-
+    void *handler = NULL;
     mcause &= 0x7FFFFFF;
-    if (mcause < sizeof(handler_list)/sizeof(handler_list[0])) {
-        handler = handler_list[mcause];
+    if (mcause < sizeof(handler_list[0])/sizeof(handler_list[0][0])) {
+        handler = handler_list[0][mcause];
     }
     if (handler) {
-        handler();
+        if (handler_list[1][mcause]) {
+           ((void (*)(void *))handler)(handler_list[1][mcause]);//handler(ctx)
+        }
+        else {
+            ((void (*)(void))handler)();
+        }
     } else {
         printf("Cannot handle mcause 0x%lx:%lu, adjust to externel(0x%lx:%lu)\r\n",
                 mcause,

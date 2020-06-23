@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <FreeRTOS.h>
 #include <task.h>
 #include <timers.h>
@@ -309,6 +338,13 @@ struct _wifi_conn {
     char pask[64];
 };
 
+struct _wifi_state {
+    uint8_t state;
+    char ip[16];
+    char gw[16];
+    char mask[16];
+};
+
 static void wifi_sta_connect(char *ssid, char *password)
 {
     wifi_interface_t wifi_interface;
@@ -345,11 +381,25 @@ static void wifiprov_scan(void *p_arg)
 
 static void wifiprov_wifi_state_get(void *p_arg)
 {
-    int state;
-    void (*state_get_cb)(int) = (void (*)(int))p_arg;
+    ip4_addr_t ip, gw, mask;
+    struct _wifi_state state;
+    void (*state_get_cb)(void *) = (void (*)(void *))p_arg;
 
-    wifi_mgmr_state_get(&state);
-    state_get_cb(state);
+    memset(&state, 0, sizeof(state));
+    wifi_mgmr_state_get((int *)&state.state);
+    wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
+
+    strcpy(state.ip, ip4addr_ntoa(&ip));
+    strcpy(state.mask, ip4addr_ntoa(&mask));
+    strcpy(state.gw, ip4addr_ntoa(&gw));
+
+    printf("IP  :%s \r\n", state.ip);
+    printf("GW  :%s \r\n", state.gw);
+    printf("MASK:%s \r\n", state.mask);
+
+    if (state_get_cb) {
+        state_get_cb(&state);
+    }
 }
 
 static void event_cb_wifi_event(input_event_t *event, void *private_data)
@@ -452,9 +502,9 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
 
 static void event_cb_cli(input_event_t *event, void *p_arg)
 {
-    char *cmd1 = "cmd_init\r\n";
-    char *cmd2 = "cmd_start_adv 0 0 0100 0100\r\n";
-    char *cmd3 = "cmd_stop_adv\r\n";
+    char *cmd1 = "ble_init\r\n";
+    char *cmd2 = "ble_start_adv 0 0 0100 0100\r\n";
+    char *cmd3 = "ble_stop_adv\r\n";
 
     switch (event->code) {
         case CODE_CLI_BLSYNC_START :
@@ -569,8 +619,8 @@ static void __opt_feature_init(void)
 
 static void blsync_ble_start_entry (void *p_arg)
 {
-    char *cmd1 = "cmd_init\r\n";
-    char *cmd2 = "cmd_start_adv 0 0 0100 0100\r\n";
+    char *cmd1 = "ble_init\r\n";
+    char *cmd2 = "ble_start_adv 0 0 0100 0100\r\n";
 
     vTaskDelay(1000);
     stack_ble();

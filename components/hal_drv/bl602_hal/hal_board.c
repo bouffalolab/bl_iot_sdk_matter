@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdint.h>
 #include <stdio.h>
 #include <bl_efuse.h>
@@ -7,7 +36,8 @@
 
 #include <libfdt.h>
 
-#include <utils_log.h>
+#include <blog.h>
+#define USER_UNUSED(a) ((void)(a))
 
 #define BL_FDT32_TO_U8(addr, byte_offset)   ((uint8_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
 #define BL_FDT32_TO_U16(addr, byte_offset)  ((uint16_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
@@ -27,12 +57,12 @@ static int update_mac_config_get_mac_from_dtb(const void *fdt, int offset1, uint
     if (6 == lentmp) {
 
         memcpy(mac_addr, addr_prop, 6);
-        log_info("sta_mac_addr :\r\n");
-        log_buf(mac_addr, 6);
+        //blog_info("sta_mac_addr :\r\n");
+        //blog_buf(mac_addr, 6);
 
         bl_wifi_sta_mac_addr_set(mac_addr);
     } else {
-        log_error("sta_mac_addr NULL.\r\n");
+        blog_error("sta_mac_addr NULL.\r\n");
         return -1;
     }
 
@@ -40,12 +70,12 @@ static int update_mac_config_get_mac_from_dtb(const void *fdt, int offset1, uint
     if (6 == lentmp) {
 
         memcpy(mac_addr, addr_prop, 6);
-        log_info("ap_mac_addr :\r\n");
-        log_buf(mac_addr, 6);
+        //blog_info("ap_mac_addr :\r\n");
+        //blog_buf(mac_addr, 6);
 
         bl_wifi_ap_mac_addr_set(mac_addr);
     } else {
-        log_error("ap_mac_addr NULL.\r\n");
+        blog_error("ap_mac_addr NULL.\r\n");
         return -1;
     }
 
@@ -105,10 +135,10 @@ static void update_mac_config_with_order(const void *fdt, int offset1, const cha
             {
                 if (0 == update_mac_config_get_mac_from_efuse(mac_addr)) {
                     set = 1;
-                    log_debug("get MAC from B ready\r\n");
+                    blog_debug("get MAC from B ready\r\n");
                     goto break_scan;
                 } else {
-                    log_debug("get MAC from B failed\r\n");
+                    blog_debug("get MAC from B failed\r\n");
                 }
             }
             break;
@@ -116,10 +146,10 @@ static void update_mac_config_with_order(const void *fdt, int offset1, const cha
             {
                 if (0 == update_mac_config_get_mac_from_dtb(fdt, offset1, mac_addr)) {
                     set = 1;
-                    log_debug("get MAC from F ready\r\n");
+                    blog_debug("get MAC from F ready\r\n");
                     goto break_scan;
                 } else {
-                    log_debug("get MAC from F failed\r\n");
+                    blog_debug("get MAC from F failed\r\n");
                 }
             }
             break;
@@ -127,10 +157,10 @@ static void update_mac_config_with_order(const void *fdt, int offset1, const cha
             {
                 if (0 == update_mac_config_get_mac_from_factory(mac_addr)) {
                     set = 1;
-                    log_debug("get MAC from M ready\r\n");
+                    blog_debug("get MAC from M ready\r\n");
                     goto break_scan;
                 } else {
-                    log_debug("get MAC from M failed\r\n");
+                    blog_debug("get MAC from M failed\r\n");
                 }
             }
             break;
@@ -142,11 +172,11 @@ static void update_mac_config_with_order(const void *fdt, int offset1, const cha
     }
 break_scan:
     if (0 == set) {
-        log_info("Using Default MAC address\r\n");
+        blog_info("Using Default MAC address\r\n");
         memcpy(mac_addr, mac_default, 6);
     }
     //FIXME maybe we should set a different MAC address
-    log_info("Set MAC addrress %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+    blog_info("Set MAC addrress %02X:%02X:%02X:%02X:%02X:%02X\r\n",
             mac_addr[0],
             mac_addr[1],
             mac_addr[2],
@@ -167,11 +197,11 @@ static void update_mac_config(const void *fdt, int offset1)
     countindex = fdt_stringlist_count(fdt, offset1, "mode");
     if (1 == countindex) {
         result = fdt_stringlist_get(fdt, offset1, "mode", 0, &lentmp);
-        log_info("MAC address mode length %d\r\n", lentmp);
+        blog_print("MAC address mode length %d\r\n", lentmp);
         if (lentmp <= MAC_ORDER_ADDR_LEN_MAX) {
             memcpy(mac_mode, result, lentmp);
             mac_mode[3] = '\0';
-            log_info("MAC address mode is %s\r\n", mac_mode);
+            blog_print("MAC address mode is %s\r\n", mac_mode);
             update_mac_config_with_order(fdt, offset1, mac_mode);
         }
     }
@@ -203,7 +233,7 @@ static int update_xtal_config_get_mac_from_dtb(const void *fdt, int offset1, uin
     addr_prop = fdt_getprop(fdt, offset1, "xtal", &lentmp);
 
     if (5*4 == lentmp) {
-        log_info(
+        blog_info(
             "xtal dtb in DEC :%u %u %u %u %u\r\n",
             BL_FDT32_TO_U8(addr_prop, 4*0),
             BL_FDT32_TO_U8(addr_prop, 4*1),
@@ -217,7 +247,7 @@ static int update_xtal_config_get_mac_from_dtb(const void *fdt, int offset1, uin
         capcode[3] = BL_FDT32_TO_U8(addr_prop, 4*3);
         capcode[4] = BL_FDT32_TO_U8(addr_prop, 4*4);
     } else {
-        log_error("xtal dtb NULL.");
+        blog_error("xtal dtb NULL.");
         return -1;
     }
     return 0;
@@ -237,10 +267,10 @@ static void update_xtal_config_with_order(const void *fdt, int offset1, const ch
             {
                 if (0 == update_xtal_config_get_mac_from_dtb(fdt, offset1, capcode)) {
                     set = 1;
-                    log_debug("get xtal from F ready\r\n");
+                    blog_debug("get xtal from F ready\r\n");
                     goto break_scan;
                 } else {
-                    log_debug("get xtal from F failed\r\n");
+                    blog_debug("get xtal from F failed\r\n");
                 }
             }
             break;
@@ -248,10 +278,10 @@ static void update_xtal_config_with_order(const void *fdt, int offset1, const ch
             {
                 if (0 == update_xtal_config_get_mac_from_factory(capcode)) {
                     set = 1;
-                    log_debug("get xtal from M ready\r\n");
+                    blog_debug("get xtal from M ready\r\n");
                     goto break_scan;
                 } else {
-                    log_debug("get xtal from M failed\r\n");
+                    blog_debug("get xtal from M failed\r\n");
                 }
             }
             break;
@@ -263,7 +293,7 @@ static void update_xtal_config_with_order(const void *fdt, int offset1, const ch
     }
 break_scan:
     if (0 == set) {
-        log_info("Using Default xtal\r\n");
+        blog_info("Using Default xtal\r\n");
         capcode[0] = 50;
         capcode[1] = 50;
         capcode[2] = 1;
@@ -282,11 +312,11 @@ static void update_xtal_config(const void *fdt, int offset1)
     countindex = fdt_stringlist_count(fdt, offset1, "xtal_mode");
     if (1 == countindex) {
         result = fdt_stringlist_get(fdt, offset1, "xtal_mode", 0, &lentmp);
-        log_info("xtal_mode length %d\r\n", lentmp);
+        blog_info("xtal_mode length %d\r\n", lentmp);
         if (lentmp <= XTAL_ORDER_ADDR_LEN_MAX) {
             memcpy(xtal_mode, result, lentmp);
             xtal_mode[sizeof(xtal_mode) - 1] = '\0';
-            log_info("xtal_mode is %s\r\n", xtal_mode);
+            blog_info("xtal_mode is %s\r\n", xtal_mode);
             update_xtal_config_with_order(fdt, offset1, xtal_mode);
         }
     }
@@ -303,16 +333,16 @@ static int update_poweroffset_config_get_mac_from_dtb(const void *fdt, int offse
         for (i = 0; i < 14; i++) {
             poweroffset[i] = BL_FDT32_TO_U32(addr_prop, 4*i);
         }
-        log_info("pwr_offset from dtb:\r\n");
-        log_buf(poweroffset, 14);
+        blog_info("pwr_offset from dtb:\r\n");
+        blog_buf(poweroffset, 14);
         for (i = 0; i < 14; i++) {
             poweroffset[i] -= PWR_OFFSET_BASE;
         }
-        log_info("pwr_offset from dtb (rebase on %d):\r\n", PWR_OFFSET_BASE);
+        blog_info("pwr_offset from dtb (rebase on %d):\r\n", PWR_OFFSET_BASE);
         //TODO FIXME log buffer
-        //log_buf_int8(poweroffset, 14);
+        //blog_buf_int8(poweroffset, 14);
     }  else {
-        log_error("pwr_offset NULL. lentmp = %d\r\n", lentmp);
+        blog_error("pwr_offset NULL. lentmp = %d\r\n", lentmp);
         return -1;
     }
     return 0;
@@ -334,23 +364,23 @@ static void update_poweroffset_config_with_order(const void *fdt, int offset1, c
             {
                 if (0 == bl_efuse_read_pwroft(poweroffset_tmp)) {
                     set = 1;
-                    log_debug("get pwr offset from B(b) ready\r\n");
+                    blog_debug("get pwr offset from B(b) ready\r\n");
                     if ('B' == order[i]) {
                         /*non-incremental mode*/
                         for (j = 0; j < sizeof(poweroffset); j++) {
                             poweroffset[j] = poweroffset_tmp[j];
                         }
-                        log_debug("Use pwr offset from B only\r\n");
+                        blog_debug("Use pwr offset from B only\r\n");
                         goto break_scan;
                     } else {
                         /*incremental mode*/
-                        log_debug("Use pwr offset from b in incremental mode\r\n");
+                        blog_debug("Use pwr offset from b in incremental mode\r\n");
                         for (j = 0; j < sizeof(poweroffset); j++) {
                             poweroffset[j] += poweroffset_tmp[j];
                         }
                     }
                 } else {
-                    log_debug("get pwr offset from B(b) failed\r\n");
+                    blog_debug("get pwr offset from B(b) failed\r\n");
                 }
             }
             break;
@@ -359,24 +389,24 @@ static void update_poweroffset_config_with_order(const void *fdt, int offset1, c
             {
                 if (0 == update_poweroffset_config_get_mac_from_dtb(fdt, offset1, poweroffset_tmp)) {
                     set = 1;
-                    log_debug("get pwr offset from F(f) ready\r\n");
+                    blog_debug("get pwr offset from F(f) ready\r\n");
                     if ('B' == order[i]) {
                         /*non-incremental mode*/
                         for (j = 0; j < sizeof(poweroffset); j++) {
                             poweroffset[j] = poweroffset_tmp[j];
                         }
-                        log_debug("Use pwr offset from F only\r\n");
+                        blog_debug("Use pwr offset from F only\r\n");
                         goto break_scan;
                     } else {
                         /*incremental mode*/
-                        log_debug("Use pwr offset from f in incremental mode\r\n");
+                        blog_debug("Use pwr offset from f in incremental mode\r\n");
                         for (j = 0; j < sizeof(poweroffset); j++) {
                             poweroffset[j] += poweroffset_tmp[j];
                         }
                     }
                     goto break_scan;
                 } else {
-                    log_debug("get pwr offset from F(f) failed\r\n");
+                    blog_debug("get pwr offset from F(f) failed\r\n");
                 }
             }
             break;
@@ -388,9 +418,9 @@ static void update_poweroffset_config_with_order(const void *fdt, int offset1, c
     }
 break_scan:
     if (0 == set) {
-        log_info("Using Default pwr offset\r\n");//all zeros actually
+        blog_info("Using Default pwr offset\r\n");//all zeros actually
     }
-    //log_buf_int8(poweroffset, 14);
+    //blog_buf_int8(poweroffset, 14);
     //TODO FIXME POWER OFFSET
     //bl60x_fw_power_offset_set(poweroffset);
 }
@@ -406,11 +436,11 @@ static void update_poweroffset_config(const void *fdt, int offset1)
     countindex = fdt_stringlist_count(fdt, offset1, "pwr_mode");
     if (1 == countindex) {
         result = fdt_stringlist_get(fdt, offset1, "pwr_mode", 0, &lentmp);
-        log_info("pwr_mode length %d\r\n", lentmp);
+        blog_info("pwr_mode length %d\r\n", lentmp);
         if (lentmp <= PWR_OFFSET_ORDER_ADDR_LEN_MAX) {
             memcpy(pwr_mode, result, lentmp);
             pwr_mode[sizeof(pwr_mode) - 1] = '\0';
-            log_info("pwr_mode is %s\r\n", pwr_mode);
+            blog_info("pwr_mode is %s\r\n", pwr_mode);
             update_poweroffset_config_with_order(fdt, offset1, pwr_mode);
         }
     }
@@ -431,7 +461,7 @@ static int hal_board_load_fdt_info(const void *dtb)
 
     wifi_offset = fdt_subnode_offset(fdt, 0, "wifi");
     if (!(wifi_offset > 0)) {
-       log_error("wifi NULL.\r\n");
+       blog_error("wifi NULL.\r\n");
     }
 
     offset1 = fdt_subnode_offset(fdt, wifi_offset, "brd_rf");
@@ -439,6 +469,10 @@ static int hal_board_load_fdt_info(const void *dtb)
         uint32_t channel_div_table[15];
         uint16_t channel_cnt_table[14];
         uint16_t lo_fcal_div = 0;
+
+        USER_UNUSED(lo_fcal_div);
+        USER_UNUSED(channel_div_table);
+        USER_UNUSED(channel_cnt_table);
 
         /* set xtal */
         update_xtal_config(fdt, offset1);
@@ -449,10 +483,10 @@ static int hal_board_load_fdt_info(const void *dtb)
             for (i = 0; i < 15; i++) {
                 channel_div_table[i] = BL_FDT32_TO_U32(addr_prop, 4*i);
             }
-            log_info("channel_div_table :\r\n");
-            log_buf(channel_div_table, 15*4);
+            blog_info("channel_div_table :\r\n");
+            blog_buf(channel_div_table, 15*4);
         }  else {
-            log_error("channel_div_table NULL.\r\n");
+            blog_error("channel_div_table NULL.\r\n");
         }
 
         addr_prop = fdt_getprop(fdt, offset1, "channel_cnt_table", &lentmp);
@@ -460,18 +494,18 @@ static int hal_board_load_fdt_info(const void *dtb)
             for (i = 0; i < 14; i++) {
                 channel_cnt_table[i] = BL_FDT32_TO_U16(addr_prop, 4*i);
             }
-            log_info("channel_cnt_table :\r\n");
-            log_buf(channel_cnt_table, 14*4);
+            blog_info("channel_cnt_table :\r\n");
+            blog_buf(channel_cnt_table, 14*4);
         }  else {
-            log_error("channel_cnt_table NULL.\r\n");
+            blog_error("channel_cnt_table NULL.\r\n");
         }
 
         addr_prop = fdt_getprop(fdt, offset1, "lo_fcal_div", &lentmp);
         if (4 == lentmp) {
             lo_fcal_div = BL_FDT32_TO_U16(addr_prop, 4*0);
-            log_info("lo_fcal_div : %d\r\n", lo_fcal_div);
+            blog_info("lo_fcal_div : %d\r\n", lo_fcal_div);
         }  else {
-            log_error("lo_fcal_div NULL.\r\n");
+            blog_error("lo_fcal_div NULL.\r\n");
         }
 
         //TODO FIXME POWER
@@ -488,11 +522,11 @@ static int hal_board_load_fdt_info(const void *dtb)
         /* set country_code */
         addr_prop = fdt_getprop(fdt, offset1, "country_code", &lentmp);
         if (4 == lentmp) {
-            log_info("country_code : %d\r\n", BL_FDT32_TO_U8(addr_prop, 4*0));
+            blog_info("country_code : %d\r\n", BL_FDT32_TO_U8(addr_prop, 4*0));
 
             bl_wifi_country_code_set(BL_FDT32_TO_U8(addr_prop, 4*0));
         }  else {
-            log_error("country_code NULL.\r\n");
+            blog_error("country_code NULL.\r\n");
         }
     }
 
@@ -502,18 +536,19 @@ static int hal_board_load_fdt_info(const void *dtb)
         /* set tx_pwr_tbl */
         uint8_t pwr_table[16*4];
 
+        USER_UNUSED(pwr_table);
         addr_prop = fdt_getprop(fdt, offset1, "pwr_table", &lentmp);
         if (16*4*4 == lentmp) {
             for (i = 0; i < 16*4; i++) {
                 pwr_table[i] = BL_FDT32_TO_U32(addr_prop, 4*i);
             }
-            log_info("pwr_table :\r\n");
-            log_buf(pwr_table, 16*4);
+            blog_info("pwr_table :\r\n");
+            blog_buf(pwr_table, 16*4);
 
             //TODO FIXME POWER
             //bl_wifi_power_table_set((bl_tx_pwr_tbl_t *)pwr_table);
         }  else {
-            log_error("pwr_table NULL. lentmp = %d\r\n", lentmp);
+            blog_error("pwr_table NULL. lentmp = %d\r\n", lentmp);
         }
 
         update_poweroffset_config(fdt, offset1);
@@ -533,7 +568,7 @@ static int hal_board_load_fdt_info(const void *dtb)
         if (1 == countindex) {
             result = fdt_stringlist_get(fdt, offset1, "ssid", 0, &lentmp);
             if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
-                log_info("ap_ssid string[%d] = %s, ap_ssid_len = %d\r\n", 0, result, lentmp);
+                blog_info("ap_ssid string[%d] = %s, ap_ssid_len = %d\r\n", 0, result, lentmp);
                 memcpy(ap_ssid, result, lentmp);
                 ap_ssid[lentmp] = '\0';
                 ap_ssid_len = lentmp;
@@ -544,7 +579,7 @@ static int hal_board_load_fdt_info(const void *dtb)
         if (1 == countindex) {
             result = fdt_stringlist_get(fdt, offset1, "pwd", 0, &lentmp);
             if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
-                log_info("ap_psk string[%d] = %s, ap_psk_len = %d\r\n", 0, result, lentmp);
+                blog_info("ap_psk string[%d] = %s, ap_psk_len = %d\r\n", 0, result, lentmp);
                 memcpy(ap_psk, result, lentmp);
                 ap_psk[lentmp] = '\0';
                 ap_psk_len = lentmp;
@@ -553,11 +588,11 @@ static int hal_board_load_fdt_info(const void *dtb)
 
         addr_prop = fdt_getprop(fdt, offset1, "ap_channel", &lentmp);
         if (addr_prop) {
-            log_info("ap_channel = %ld\r\n", BL_FDT32_TO_U32(addr_prop, 0));
+            blog_info("ap_channel = %ld\r\n", BL_FDT32_TO_U32(addr_prop, 0));
 
             ap_channel = BL_FDT32_TO_U32(addr_prop, 0);
         } else {
-            log_error("ap_channel NULL.\r\n");
+            blog_error("ap_channel NULL.\r\n");
         }
 
         bl_wifi_ap_info_set(ap_ssid, ap_ssid_len,
@@ -569,6 +604,139 @@ static int hal_board_load_fdt_info(const void *dtb)
 }
 #endif
 
+#ifdef CONFIG_USER_DTS_INAPP
+/*
+ {
+    model = "bl bl602 iot board";
+    wifi {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        region {
+            country_code = <86>;
+        };
+        mac {
+            mode = "MBF";
+            sta_mac_addr = [C8 43 57 82 73 40];
+            ap_mac_addr = [C8 43 57 82 73 02];
+        };
+        ap {
+            ssid = "bl_test_005";
+            pwd = "12345678";
+            ap_channel = <11>;
+            auto_chan_detect = "disable";
+        };
+        brd_rf {
+            xtal_mode = "MF";
+            xtal = <36 36 0 60 60>;
+            pwr_mode = "bf";
+            pwr_table = <0x4 0x3 0x3 0xBA 0x4 0x3 0x4 0xB0 0x4 0x3 0x5 0xA7 0x3 0x3 0x0 0x9F 0x3 0x3 0x1 0x95 0x3 0x3 0x2 0x8C 0x3 0x3 0x3 0x81 0x3 0x3 0x4 0x77 0x3 0x3 0x5 0x6E 0x2 0x3 0x0 0x65 0x2 0x3 0x1 0x5B 0x2 0x3 0x2 0x52 0x2 0x3 0x3 0x48 0x2 0x3 0x4 0x3E 0x2 0x3 0x5 0x34 0x1 0x3 0x3 0xA>;
+            pwr_offset = <10 10 10 10 10 10 10 10 10 10 10 10 10 10>;
+            channel_div_table = <0x1EEC4EC4 0x1EFCB7CB 0x1F0D20D2 0x1F1D89D8 0x1F2DF2DF 0x1F3E5BE5 0x1F4EC4EC 0x1F5F2DF2 0x1F6F96F9 0x1F800000 0x1F906906 0x1FA0D20D 0x1FB13B13 0x1FD89D89 0x201F81F8>;
+            channel_cnt_table = <0xA78A 0xA7E3 0xA83C 0xA895 0xA8ED 0xA946 0xA99F 0xA9F8 0xAA51 0xAAAA 0xAB03 0xAB5C 0xABB5 0xAC8A>;
+            lo_fcal_div = <0x56B>;
+        };
+    };
+};
+*/
+const uint8_t factory_dtb[] = {//1126
+  0xd0, 0x0d, 0xfe, 0xed, 0x00, 0x00, 0x04, 0x66, 0x00, 0x00, 0x00, 0x38,
+  0x00, 0x00, 0x03, 0x98, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x11,
+  0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xce,
+  0x00, 0x00, 0x03, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x13,
+  0x00, 0x00, 0x00, 0x00, 0x62, 0x6c, 0x20, 0x62, 0x6c, 0x36, 0x30, 0x32,
+  0x20, 0x69, 0x6f, 0x74, 0x20, 0x62, 0x6f, 0x61, 0x72, 0x64, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x01, 0x77, 0x69, 0x66, 0x69, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x06,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
+  0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x72, 0x65, 0x67, 0x69, 0x6f, 0x6e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x21, 0x00, 0x00, 0x00, 0x56,
+  0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x6d, 0x61, 0x63, 0x00,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x2e,
+  0x4d, 0x42, 0x46, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x06,
+  0x00, 0x00, 0x00, 0x33, 0xc8, 0x43, 0x57, 0x82, 0x73, 0x40, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x40,
+  0xc8, 0x43, 0x57, 0x82, 0x73, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x01, 0x61, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x4c, 0x62, 0x6c, 0x5f, 0x74,
+  0x65, 0x73, 0x74, 0x5f, 0x30, 0x30, 0x35, 0x00, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x51, 0x31, 0x32, 0x33, 0x34,
+  0x35, 0x36, 0x37, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x55, 0x00, 0x00, 0x00, 0x0b,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x60,
+  0x64, 0x69, 0x73, 0x61, 0x62, 0x6c, 0x65, 0x00, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x01, 0x62, 0x72, 0x64, 0x5f, 0x72, 0x66, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x71,
+  0x4d, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x14,
+  0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x24,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x00, 0x3c,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x80,
+  0x62, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x01, 0x00,
+  0x00, 0x00, 0x00, 0x89, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0xba, 0x00, 0x00, 0x00, 0x04,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xb0,
+  0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x05,
+  0x00, 0x00, 0x00, 0xa7, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9f, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x95,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x8c, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x81, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x77,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x05,
+  0x00, 0x00, 0x00, 0x6e, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x5b,
+  0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x3e,
+  0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x05,
+  0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x03,
+  0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x93, 0x00, 0x00, 0x00, 0x0a,
+  0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a,
+  0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a,
+  0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a,
+  0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a,
+  0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x3c,
+  0x00, 0x00, 0x00, 0x9e, 0x1e, 0xec, 0x4e, 0xc4, 0x1e, 0xfc, 0xb7, 0xcb,
+  0x1f, 0x0d, 0x20, 0xd2, 0x1f, 0x1d, 0x89, 0xd8, 0x1f, 0x2d, 0xf2, 0xdf,
+  0x1f, 0x3e, 0x5b, 0xe5, 0x1f, 0x4e, 0xc4, 0xec, 0x1f, 0x5f, 0x2d, 0xf2,
+  0x1f, 0x6f, 0x96, 0xf9, 0x1f, 0x80, 0x00, 0x00, 0x1f, 0x90, 0x69, 0x06,
+  0x1f, 0xa0, 0xd2, 0x0d, 0x1f, 0xb1, 0x3b, 0x13, 0x1f, 0xd8, 0x9d, 0x89,
+  0x20, 0x1f, 0x81, 0xf8, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x38,
+  0x00, 0x00, 0x00, 0xb0, 0x00, 0x00, 0xa7, 0x8a, 0x00, 0x00, 0xa7, 0xe3,
+  0x00, 0x00, 0xa8, 0x3c, 0x00, 0x00, 0xa8, 0x95, 0x00, 0x00, 0xa8, 0xed,
+  0x00, 0x00, 0xa9, 0x46, 0x00, 0x00, 0xa9, 0x9f, 0x00, 0x00, 0xa9, 0xf8,
+  0x00, 0x00, 0xaa, 0x51, 0x00, 0x00, 0xaa, 0xaa, 0x00, 0x00, 0xab, 0x03,
+  0x00, 0x00, 0xab, 0x5c, 0x00, 0x00, 0xab, 0xb5, 0x00, 0x00, 0xac, 0x8a,
+  0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xc2,
+  0x00, 0x00, 0x05, 0x6b, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x09, 0x6d, 0x6f, 0x64, 0x65,
+  0x6c, 0x00, 0x23, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x2d, 0x63,
+  0x65, 0x6c, 0x6c, 0x73, 0x00, 0x23, 0x73, 0x69, 0x7a, 0x65, 0x2d, 0x63,
+  0x65, 0x6c, 0x6c, 0x73, 0x00, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x72, 0x79,
+  0x5f, 0x63, 0x6f, 0x64, 0x65, 0x00, 0x6d, 0x6f, 0x64, 0x65, 0x00, 0x73,
+  0x74, 0x61, 0x5f, 0x6d, 0x61, 0x63, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x00,
+  0x61, 0x70, 0x5f, 0x6d, 0x61, 0x63, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x00,
+  0x73, 0x73, 0x69, 0x64, 0x00, 0x70, 0x77, 0x64, 0x00, 0x61, 0x70, 0x5f,
+  0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x00, 0x61, 0x75, 0x74, 0x6f,
+  0x5f, 0x63, 0x68, 0x61, 0x6e, 0x5f, 0x64, 0x65, 0x74, 0x65, 0x63, 0x74,
+  0x00, 0x78, 0x74, 0x61, 0x6c, 0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x00, 0x78,
+  0x74, 0x61, 0x6c, 0x00, 0x70, 0x77, 0x72, 0x5f, 0x6d, 0x6f, 0x64, 0x65,
+  0x00, 0x70, 0x77, 0x72, 0x5f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x00, 0x70,
+  0x77, 0x72, 0x5f, 0x6f, 0x66, 0x66, 0x73, 0x65, 0x74, 0x00, 0x63, 0x68,
+  0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f, 0x64, 0x69, 0x76, 0x5f, 0x74, 0x61,
+  0x62, 0x6c, 0x65, 0x00, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f,
+  0x63, 0x6e, 0x74, 0x5f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x00, 0x6c, 0x6f,
+  0x5f, 0x66, 0x63, 0x61, 0x6c, 0x5f, 0x64, 0x69, 0x76, 0x00
+};
+
+#endif
+
 uint32_t hal_board_get_factory_addr(void)
 {
     return factory_addr;
@@ -576,24 +744,29 @@ uint32_t hal_board_get_factory_addr(void)
 
 int hal_board_cfg(uint8_t board_code)
 {
+#ifdef CONFIG_USER_DTS_INAPP
+    factory_addr = (uint32_t)factory_dtb;
+#else
     int ret;
     uint32_t size;
 
+    USER_UNUSED(ret);
     ret = hal_boot2_partition_addr_active("factory", &factory_addr, &size);
-    printf("[MAIN] [BOARD] [FLASH] addr from partition is %08x, ret is %d\r\n", (unsigned int)factory_addr, ret);
+    blog_info("[MAIN] [BOARD] [FLASH] addr from partition is %08x, ret is %d\r\n", (unsigned int)factory_addr, ret);
     if (0 == factory_addr) {
-        printf("[MAIN] [BOARD] [FLASH] Dead loop. Reason: NO valid Param Parition found\r\n");
+        blog_error("[MAIN] [BOARD] [FLASH] Dead loop. Reason: NO valid Param Parition found\r\n");
         while (1) {
         }
     }
 
     ret = hal_boot2_partition_bus_addr_active("factory", &factory_addr, &size);
-    printf("[MAIN] [BOARD] [XIP] addr from partition is %08x, ret is %d\r\n", (unsigned int)factory_addr, ret);
+    blog_info("[MAIN] [BOARD] [XIP] addr from partition is %08x, ret is %d\r\n", (unsigned int)factory_addr, ret);
     if (0 == factory_addr) {
-        printf("[MAIN] [BOARD] [XIP] Dead loop. Reason: NO valid Param Parition found\r\n");
+        blog_error("[MAIN] [BOARD] [XIP] Dead loop. Reason: NO valid Param Parition found\r\n");
         while (1) {
         }
     }
+#endif
 
 #ifndef FEATURE_WIFI_DISABLE
     hal_board_load_fdt_info((const void *)factory_addr);

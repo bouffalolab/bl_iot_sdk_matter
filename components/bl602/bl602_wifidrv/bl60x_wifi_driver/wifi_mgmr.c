@@ -1,10 +1,31 @@
-/**
- ****************************************************************************************
+/*
+ * Copyright (c) 2020 Bouffalolab.
  *
- * @file wifi_mgmr.c
- * Copyright (C) Bouffalo Lab 2016-2018
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
  *
- ****************************************************************************************
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdint.h>
@@ -22,6 +43,9 @@
 #include "include/wifi_mgmr_ext.h"
 #include "os_hal.h"
 #include "hal_sys.h"
+
+#include <blog.h>
+#define USER_UNUSED(a) ((void)(a))
 
 #define DEBUG_HEADER "[WF][SM] "
 #define mgmr_TASK_PRIORITY     (28)
@@ -46,6 +70,7 @@ static bool stateGlobalGuard( void *ch, struct event *event )
 {
     wifi_mgmr_msg_t *msg;
 
+    USER_UNUSED(msg);
     msg = event->data;
     os_printf(DEBUG_HEADER "%s:event is 0x%08X\r\n", __func__, msg->ev);
     return false;
@@ -86,11 +111,29 @@ char *wifi_mgmr_auth_to_str(uint8_t auth)
     }
 }
 
+char *wifi_mgmr_cipher_to_str(wifi_mgmr_cipher_t cipher)
+{
+    if (cipher.ccmp == 1) {
+        return "ccmp";
+    } else if (cipher.tkip == 1) {
+        return "tkip";
+    } else if (cipher.wep40 == 1) {
+        return "wep40";
+    } else if (cipher.wep104 == 1) {
+        return "wep104";
+    } else{
+        return "open";
+    }
+}
+
 static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
 {
+#define SCAN_UPDATE_LIMIT_TIME_MS (3000)
+
     int i, empty = -1, oldest = -1;
     uint32_t lastseen = 0xFFFFFFFF;
-    static uint32_t counter = 0;
+    uint32_t counter = 0;
+    uint32_t lastseen_found = 0;
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_scan_item_t *scan;
 
@@ -100,7 +143,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
         return false;
     }
 #ifdef DEBUG_SCAN_BEACON
-    os_printf(DEBUG_HEADER "channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, auth %s \t, SSID %s\r\n",
+    os_printf(DEBUG_HEADER "channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, auth %s, pair_key:%s, group_key:%s \t, SSID %s\r\n",
             scan->channel,
             scan->bssid[0],
             scan->bssid[1],
@@ -112,14 +155,20 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
             scan->ppm_abs,
             scan->ppm_rel,
             wifi_mgmr_auth_to_str(scan->auth),
+            wifi_mgmr_cipher_to_str(scan->rsn_ucstCipher),
+            wifi_mgmr_cipher_to_str(scan->rsn_mcstCipher),
             scan->ssid
     );
 #endif
     if (scan->channel > wifiMgmr.channel_nums || !scan->channel){
-        return false;
+        goto __exit;
     }
+    if (0 == scan->ssid[0]) {
+        goto __exit;
+    }
+
     /*update scan_items, we just store the newly found item, or update exsiting one*/
-    counter++;
+    counter = os_tick_get();
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
         if(wifiMgmr.scan_items[i].channel > wifiMgmr.channel_nums){
             memset(&wifiMgmr.scan_items[i], 0, sizeof(wifi_mgmr_scan_item_t));
@@ -128,20 +177,34 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
 
         if (wifiMgmr.scan_items[i].is_used) {
             /*track the oldest scan_item*/
-            if (wifiMgmr.scan_items[i].timestamp_lastseen < lastseen) {
+            if ((0 == lastseen_found) ||
+                ((int32_t)wifiMgmr.scan_items[i].timestamp_lastseen - (int32_t)lastseen < 0)) {
+                lastseen_found = 1;
                 lastseen = wifiMgmr.scan_items[i].timestamp_lastseen;
                 oldest = i;
             }
+
             /*bssid and ssid must be the same at the same time*/
             if (0 == memcmp(wifiMgmr.scan_items[i].bssid, scan->bssid, sizeof(scan->bssid)) &&
                     0 == strcmp(scan->ssid, wifiMgmr.scan_items[i].ssid)) {
+
                 /*exactly the same scan item found*/
-                wifiMgmr.scan_items[i].channel = scan->channel;
-                wifiMgmr.scan_items[i].rssi = scan->rssi;
-                wifiMgmr.scan_items[i].ppm_abs = scan->ppm_abs;
-                wifiMgmr.scan_items[i].ppm_rel = scan->ppm_rel;
-                wifiMgmr.scan_items[i].timestamp_lastseen = counter;
-                wifiMgmr.scan_items[i].auth = scan->auth;
+                if ((scan->rssi < wifiMgmr.scan_items[i].rssi) &&
+                    ((int32_t)os_tick_get() - (int32_t)wifiMgmr.scan_items[i].timestamp_lastseen < SCAN_UPDATE_LIMIT_TIME_MS)) {
+
+                    blog_info("skip update %s with rssi %d\r\n", scan->ssid, scan->rssi);
+
+                } else {
+
+                    wifiMgmr.scan_items[i].channel = scan->channel;
+                    wifiMgmr.scan_items[i].rssi = scan->rssi;
+                    wifiMgmr.scan_items[i].ppm_abs = scan->ppm_abs;
+                    wifiMgmr.scan_items[i].ppm_rel = scan->ppm_rel;
+                    wifiMgmr.scan_items[i].timestamp_lastseen = counter;
+                    wifiMgmr.scan_items[i].auth = scan->auth;
+                    memcpy(&wifiMgmr.scan_items[i].rsn_mcstCipher, &scan->rsn_mcstCipher, sizeof(wifi_mgmr_cipher_t));
+                    memcpy(&wifiMgmr.scan_items[i].rsn_ucstCipher, &scan->rsn_ucstCipher, sizeof(wifi_mgmr_cipher_t));
+                }
                 break;
             }
         } else {
@@ -163,6 +226,8 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
             wifiMgmr.scan_items[i].is_used = 1;
         }
     }
+
+__exit:
 
     /*we always return false, since we only store the info from beacon frame*/
     return false;
@@ -317,7 +382,7 @@ static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
     if (WIFI_MGMR_EVENT_FW_DATA_RAW_SEND == msg->ev) {
         pkt = msg->data1;
         len = (int)msg->data2;
-        printf("------>>>>>> RAW Send CMD, pkt %p, len %d\r\n", pkt, len);
+        blog_info("------>>>>>> RAW Send CMD, pkt %p, len %d\r\n", pkt, len);
         bl_main_raw_send(pkt, len);
     }
 
@@ -685,6 +750,7 @@ static void stateConnectedIPNoAction_ipgot(void *oldStateData, struct event *eve
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_ipgot_msg_t *ipgot;
 
+    USER_UNUSED(ipgot);
     msg = event->data;
     ipgot = (wifi_mgmr_ipgot_msg_t*)msg->data;
     os_printf(DEBUG_HEADER 
@@ -1164,9 +1230,9 @@ void wifi_mgmr_set_connect_stat_info(struct wifi_event_sm_connect_ind *ind, uint
     wifiMgmr.wifi_mgmr_stat_info.chan_band = ind->band;
     wifiMgmr.wifi_mgmr_stat_info.type_ind = type_ind;
 
-    printf("[RX] wifi_mgmr_set_connect_stat_info, wifiMgmr.wifi_mgmr_stat_info:\r\n");
-    printf("[RX]   status_code %u\r\n", wifiMgmr.wifi_mgmr_stat_info.status_code);
-    printf("[RX]   MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+    blog_info("[RX] wifi_mgmr_set_connect_stat_info, wifiMgmr.wifi_mgmr_stat_info:\r\n");
+    blog_info("[RX]   status_code %u\r\n", wifiMgmr.wifi_mgmr_stat_info.status_code);
+    blog_info("[RX]   MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
              wifiMgmr.wifi_mgmr_stat_info.bssid[0],
              wifiMgmr.wifi_mgmr_stat_info.bssid[1],
              wifiMgmr.wifi_mgmr_stat_info.bssid[2],
@@ -1174,9 +1240,9 @@ void wifi_mgmr_set_connect_stat_info(struct wifi_event_sm_connect_ind *ind, uint
              wifiMgmr.wifi_mgmr_stat_info.bssid[4],
              wifiMgmr.wifi_mgmr_stat_info.bssid[5]
     );
-    printf("[RX]   band %u\r\n", wifiMgmr.wifi_mgmr_stat_info.chan_band);
-    printf("[RX]   center_freq %u\r\n", wifiMgmr.wifi_mgmr_stat_info.chan_freq);
-    printf("[RX]   type_ind %u\r\n", wifiMgmr.wifi_mgmr_stat_info.type_ind);
+    blog_info("[RX]   band %u\r\n", wifiMgmr.wifi_mgmr_stat_info.chan_band);
+    blog_info("[RX]   center_freq %u\r\n", wifiMgmr.wifi_mgmr_stat_info.chan_freq);
+    blog_info("[RX]   type_ind %u\r\n", wifiMgmr.wifi_mgmr_stat_info.type_ind);
 }
 
 int wifi_mgmr_set_country_code_internal(char *country_code)
@@ -1185,7 +1251,7 @@ int wifi_mgmr_set_country_code_internal(char *country_code)
     strncpy(wifiMgmr.country_code, country_code, sizeof(wifiMgmr.country_code));
     wifiMgmr.country_code[2] = '\0';
     wifiMgmr.channel_nums = bl_main_get_channel_nums();
-    printf("country code:%s, support channel nums:%d\r\n", wifiMgmr.country_code, wifiMgmr.channel_nums);
+    blog_info("country code:%s, support channel nums:%d\r\n", wifiMgmr.country_code, wifiMgmr.channel_nums);
 
     return 0;
 }

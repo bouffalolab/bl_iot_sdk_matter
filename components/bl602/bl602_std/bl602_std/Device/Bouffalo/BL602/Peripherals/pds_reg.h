@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    pds_reg.h
   * @version V1.2
-  * @date    2019-12-05
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -153,9 +153,6 @@
 #define PDS_CR_SLEEP_DURATION_LEN                               (32U)
 #define PDS_CR_SLEEP_DURATION_MSK                               (((1U<<PDS_CR_SLEEP_DURATION_LEN)-1)<<PDS_CR_SLEEP_DURATION_POS)
 #define PDS_CR_SLEEP_DURATION_UMSK                              (~(((1U<<PDS_CR_SLEEP_DURATION_LEN)-1)<<PDS_CR_SLEEP_DURATION_POS))
-
-/* 0x8 : PDS_TIME2 */
-#define PDS_TIME2_OFFSET                                        (0x8)
 
 /* 0xC : PDS_INT */
 #define PDS_INT_OFFSET                                          (0xC)
@@ -787,13 +784,8 @@ struct  pds_reg {
         uint32_t WORD;
     } PDS_TIME1;
 
-    /* 0x8 : PDS_TIME2 */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } PDS_TIME2;
+    /* 0x8  reserved */
+    uint8_t RESERVED0x8[4];
 
     /* 0xC : PDS_INT */
     union {

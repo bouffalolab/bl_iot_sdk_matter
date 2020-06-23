@@ -39,7 +39,7 @@ struct blesync_wifi_func {
     void (*local_connect_remote_ap) (struct wifi_conn *conn_info);
     void (*local_disconnect_remote_ap) (void);
     void (*local_wifi_scan) (void(*complete)(void *));
-    void (*local_wifi_state_get) (void(*state_get)(int));
+    void (*local_wifi_state_get) (void(*state_get)(void *));
 };
 
 struct queue_buf {
@@ -47,14 +47,17 @@ struct queue_buf {
     uint32_t len;
 };
 
-typedef struct bl_ble_sync {
-//    StreamBufferHandle_t xStreamBuffer;
-//    StaticStreamBuffer_t xStreamBufferStruct;
-//    uint8_t data_buf[BLE_PROV_BUF_SIZE];
+struct wifi_state {
+    uint8_t state;
+    char ip[16];
+    char gw[16];
+    char mask[16];
+};
 
+typedef struct bl_ble_sync {
     SemaphoreHandle_t xSemaphore;
     StaticSemaphore_t xSemaphoreBuffer;
-    uint8_t wifi_state;
+    struct wifi_state state;
 
     QueueHandle_t xQueue1;
     StaticQueue_t xQueueBuffer;

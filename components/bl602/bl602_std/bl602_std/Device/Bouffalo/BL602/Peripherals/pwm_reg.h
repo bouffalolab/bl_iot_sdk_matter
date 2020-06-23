@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    pwm_reg.h
   * @version V1.2
-  * @date    2019-10-23
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -803,6 +803,8 @@ struct  pwm_reg {
 
 typedef volatile struct pwm_reg pwm_reg_t;
 
+
+/*Following is reg patch*/
 
 /* 0x0 : pwm_clkdiv */
 #define PWM_CLKDIV_OFFSET                                       (0x0)

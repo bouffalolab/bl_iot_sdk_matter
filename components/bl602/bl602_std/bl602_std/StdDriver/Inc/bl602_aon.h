@@ -78,7 +78,7 @@ BL_Err_Type AON_Power_Off_MBG(void);
 /*----------*/
 BL_Err_Type AON_Power_On_XTAL(void);
 BL_Err_Type AON_Set_Xtal_CapCode(uint8_t capIn,uint8_t capOut);
-uint8_t ATTR_CLOCK_SECTION AON_Get_Xtal_CapCode(void);
+uint8_t AON_Get_Xtal_CapCode(void);
 BL_Err_Type AON_Power_Off_XTAL(void);
 /*----------*/
 BL_Err_Type AON_Power_On_BG(void);
@@ -97,7 +97,6 @@ uint8_t AON_Trim_Parity(uint32_t val,uint8_t len);
 /*----------*/
 BL_Err_Type AON_LowPower_Enter_PDS0(void);
 BL_Err_Type AON_LowPower_Exit_PDS0(void);
-/*----------*/;
 
 /*@} end of group AON_Public_Functions */
 

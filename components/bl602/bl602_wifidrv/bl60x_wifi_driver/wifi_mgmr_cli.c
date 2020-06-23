@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 #include <string.h>
 #include <FreeRTOS.h>
@@ -241,7 +270,7 @@ int wifi_mgmr_cli_scanlist(void)
     printf("****************************************************************************************************\r\n");
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
         if (wifiMgmr.scan_items[i].is_used) {
-            printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, auth %15s SSID %s\r\n",
+            printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, auth %15s, pair_key:%s, grp_key:%s, SSID %s\r\n",
                     i,
                     wifiMgmr.scan_items[i].channel,
                     wifiMgmr.scan_items[i].bssid[0],
@@ -254,6 +283,8 @@ int wifi_mgmr_cli_scanlist(void)
                     wifiMgmr.scan_items[i].ppm_abs,
                     wifiMgmr.scan_items[i].ppm_rel,
                     wifi_mgmr_auth_to_str(wifiMgmr.scan_items[i].auth),
+                    wifi_mgmr_cipher_to_str(wifiMgmr.scan_items[i].rsn_ucstCipher),
+                    wifi_mgmr_cipher_to_str(wifiMgmr.scan_items[i].rsn_mcstCipher),
                     wifiMgmr.scan_items[i].ssid
             );
         } else {
@@ -296,6 +327,15 @@ static void wifi_capcode_cmd(char *buf, int len, int argc, char **argv)
 static void wifi_scan_cmd(char *buf, int len, int argc, char **argv)
 {
     wifi_mgmr_scan(NULL, NULL);
+}
+
+static void wifi_ip_info(char *buf, int len, int argc, char **argv)
+{
+    ip4_addr_t ip, gw, mask;
+    wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
+    printf("IP  :%s \r\n", ip4addr_ntoa(&ip) );
+    printf("GW  :%s \r\n", ip4addr_ntoa(&gw));
+    printf("MASK:%s \r\n", ip4addr_ntoa(&mask));
 }
 
 static void wifi_mon_cmd(char *buf, int len, int argc, char **argv)
@@ -346,6 +386,48 @@ static void wifi_connect_cmd(char *buf, int len, int argc, char **argv)
 
     wifi_interface = wifi_mgmr_sta_enable();
     wifi_mgmr_sta_connect(wifi_interface, argv[1], argv[2], NULL, NULL, 0, 0);
+}
+
+static void wifi_sta_get_state_cmd(char *buf, int len, int argc, char **argv)
+{
+    int state = 0;
+
+    wifi_mgmr_state_get(&state);
+
+    printf("%s:wifi state = 0x%x\r\n", __func__, state);
+    if(state == WIFI_STATE_UNKNOWN){
+        printf("wifi current state: WIFI_STATE_UNKNOWN\r\n");
+    } else if(state == WIFI_STATE_IDLE) {
+        printf("wifi current state: WIFI_STATE_IDLE\r\n");
+    } else if(state == WIFI_STATE_CONNECTING) {
+        printf("wifi current state: WIFI_STATE_CONNECTING\r\n");
+    } else if(state == WIFI_STATE_CONNECTED_IP_GETTING) {
+        printf("wifi current state: WIFI_STATE_CONNECTED_IP_GETTING\r\n");
+    } else if(state == WIFI_STATE_CONNECTED_IP_GOT) {
+        printf("wifi current state: WIFI_STATE_CONNECTED_IP_GOT\r\n");
+    } else if(state == WIFI_STATE_DISCONNECT) {
+        printf("wifi current state: WIFI_STATE_DISCONNECT\r\n");
+    } else if(state == WIFI_STATE_WITH_AP_IDLE) {
+        printf("wifi current state: WIFI_STATE_WITH_AP_IDLE\r\n");
+    } else if(state == WIFI_STATE_WITH_AP_CONNECTING) {
+        printf("wifi current state: WIFI_STATE_WITH_AP_CONNECTING\r\n");
+    } else if(state == WIFI_STATE_WITH_AP_CONNECTED_IP_GETTING) {
+        printf("wifi current state: WIFI_STATE_WITH_AP_CONNECTED_IP_GETTING\r\n");
+    } else if(state == WIFI_STATE_WITH_AP_CONNECTED_IP_GOT) {
+        printf("wifi current state: WIFI_STATE_WITH_AP_CONNECTED_IP_GOT\r\n");
+    } else if(state == WIFI_STATE_WITH_AP_DISCONNECT) {
+        printf("wifi current state: WIFI_STATE_WITH_AP_DISCONNECT\r\n");
+    } else if(state == WIFI_STATE_IFDOWN) {
+        printf("wifi current state: WIFI_STATE_IFDOWN\r\n");
+    } else if(state == WIFI_STATE_SNIFFER) {
+        printf("wifi current state: WIFI_STATE_SNIFFER\r\n");
+    } else if(state == WIFI_STATE_PSK_ERROR) {
+        printf("wifi current state: WIFI_STATE_PSK_ERROR\r\n");
+    } else if(state == WIFI_STATE_NO_AP_FOUND) {
+        printf("wifi current state: WIFI_STATE_NO_AP_FOUND\r\n");
+    } else {
+        printf("wifi current state: invalid\r\n");
+    }
 }
 
 static void wifi_disable_autoreconnect_cmd(char *buf, int len, int argc, char **argv)
@@ -610,10 +692,12 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "rf_dump", "rf dump", cmd_rf_dump},
         { "wifi_capcode", "wifi capcode", wifi_capcode_cmd},
         { "wifi_scan", "wifi scan", wifi_scan_cmd},
+        { "wifi_ip_info", "wifi scan", wifi_ip_info},
         { "wifi_mon", "wifi monitor", wifi_mon_cmd},
         { "wifi_raw_send", "wifi raw send test", cmd_wifi_raw_send},
         { "wifi_sta_disconnect", "wifi station disconnect", wifi_disconnect_cmd},
         { "wifi_sta_connect", "wifi station connect", wifi_connect_cmd},
+        { "wifi_sta_get_state", "wifi sta get state", wifi_sta_get_state_cmd},
         { "wifi_sta_autoconnect_enable", "wifi station enable auto reconnect", wifi_enable_autoreconnect_cmd},
         { "wifi_sta_autoconnect_disable", "wifi station disable auto reconnect", wifi_disable_autoreconnect_cmd},
         { "rc_fix_en", "wifi rate control fixed rate enable", wifi_rc_fixed_enable},

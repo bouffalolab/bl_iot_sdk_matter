@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 #include <fdt.h>
 #include <libfdt.h>
@@ -5,7 +34,12 @@
 #include <loopset.h>
 
 #include "hal_gpio.h"
+#include "bl_gpio.h"
 
+#include <blog.h>
+
+#define USER_UNUSED(a) ((void)(a))
+#define GPIO_MAX_NUM        31
 #define GPIO_MAX_NUM_STR    "max_num"
 #define BL_FDT32_TO_U8(addr, byte_offset)   ((uint8_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
 #define BL_FDT32_TO_U16(addr, byte_offset)  ((uint16_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
@@ -49,10 +83,10 @@ static int _get_gpio_config(const void* fdt, uint32_t dtb_offset, const char *na
 
 
     /*
-     *  gpio1 {                                  
-     *  status = "okay";                     
-     *  pin  = <5>;                          
-     *  feature = "led";                     
+     *  gpio1 {
+     *  status = "okay";
+     *  pin  = <5>;
+     *  feature = "led";
      *  active = "Hi"; //Hi or Lo
      *  mode = "blink"; //blink or hearbeat
      *
@@ -146,6 +180,9 @@ int hal_gpio_init_from_dts(uint32_t fdt, uint32_t dtb_offset)
     num = _get_gpio_max((const void*)fdt, dtb_offset);
     blog_info("[HAL] [GPIO] Max num is %d\r\n", num);
 
+    USER_UNUSED(i);
+    USER_UNUSED(node);
+    USER_UNUSED(gpio_config);
     for (i = 0; i < num; i++) {
         snprintf(node, sizeof(node) - 1, "gpio%u", i);
         node[sizeof(node) - 1] = '\0';
@@ -160,4 +197,41 @@ int hal_gpio_init_from_dts(uint32_t fdt, uint32_t dtb_offset)
     }
 
     return 0;
+}
+
+static gpio_ctx_t *pstgpio_head = NULL;
+int hal_gpio_register_handler(void *func, int gpioPin, int intCtrlMod, int intTrgMod, void *arg)
+{
+    if (NULL == func || gpioPin > GPIO_MAX_NUM || intCtrlMod > 1 || intTrgMod > 3) {
+        printf("register paraments is not correct! \r\n");
+        return -1;
+    }
+
+    gpio_ctx_t *pstnode;
+
+    pstnode  = pvPortMalloc(sizeof(gpio_ctx_t));
+    if (!pstnode) {
+        printf("Malloc failed \r\n");
+        return -1;
+    }
+
+    pstnode->gpioPin = gpioPin;
+    pstnode->intCtrlMod = intCtrlMod;
+    pstnode->intTrgMod = intTrgMod;
+    pstnode->gpio_handler = func;
+    pstnode->arg = arg;
+
+    if (!pstgpio_head) {
+        pstgpio_head = pstnode;
+        pstnode->next = NULL;
+    }
+    else {
+        pstnode->next = pstgpio_head;
+        pstgpio_head = pstnode;
+    }
+
+    bl_gpio_register(pstgpio_head);
+
+    return 0;
+
 }

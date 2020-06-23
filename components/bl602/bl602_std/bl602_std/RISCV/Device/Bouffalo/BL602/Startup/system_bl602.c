@@ -62,6 +62,10 @@ void SystemInit (void)
     WDT_Disable();
     /* Clear RTC */
     HBN_Clear_RTC_INT();
+    /* Make OCRAM Idle from retention or sleep */
+    GLB_Set_OCRAM_Idle();
+    /* Disable embedded flash power up*/
+    HBN_Set_Embedded_Flash_Pullup(DISABLE);
 #endif
     /* Restore default setting*/
     GLB_UART_Sig_Swap_Set(UART_SIG_SWAP_NONE);

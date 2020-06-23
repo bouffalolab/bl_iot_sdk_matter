@@ -98,6 +98,7 @@ static intCallback_Type * hbnInt1CbfArra[4]={NULL,NULL,NULL,NULL};
  * @return None
  *
 *******************************************************************************/
+__WEAK
 void ATTR_TCM_SECTION HBN_Mode_Enter(HBN_APP_CFG_Type *cfg)
 {
     uint32_t valLow=0,valHigh=0;
@@ -146,6 +147,7 @@ void ATTR_TCM_SECTION HBN_Mode_Enter(HBN_APP_CFG_Type *cfg)
  * @return None
  *
 *******************************************************************************/
+__WEAK
 void ATTR_TCM_SECTION HBN_Power_Down_Flash(SPI_Flash_Cfg_Type *flashCfg)
 {
     SPI_Flash_Cfg_Type bhFlashCfg;
@@ -603,6 +605,7 @@ BL_Err_Type HBN_Set_BOR_Config(uint8_t enable,HBN_BOR_THRES_Type threshold,HBN_B
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Aon_Vout(HBN_LDO_LEVEL_Type ldoLevel)
 {
     uint32_t tmpVal;
@@ -624,6 +627,7 @@ BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Aon_Vout(HBN_LDO_LEVEL_Type ldoLevel)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Rt_Vout(HBN_LDO_LEVEL_Type ldoLevel)
 {
     uint32_t tmpVal;
@@ -645,6 +649,7 @@ BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Rt_Vout(HBN_LDO_LEVEL_Type ldoLevel)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Soc_Vout(HBN_LDO_LEVEL_Type ldoLevel)
 {
     uint32_t tmpVal;
@@ -659,6 +664,30 @@ BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Soc_Vout(HBN_LDO_LEVEL_Type ldoLevel)
 }
 
 /****************************************************************************//**
+ * @brief  HBN set ldo11 all voltage out
+ *
+ * @param  ldoLevel: LDO volatge level
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+__WEAK
+BL_Err_Type HBN_Set_Ldo11_All_Vout(HBN_LDO_LEVEL_Type ldoLevel)
+{
+    uint32_t tmpVal;
+
+    CHECK_PARAM(IS_HBN_LDO_LEVEL_TYPE(ldoLevel));
+
+    tmpVal=BL_RD_REG(HBN_BASE,HBN_GLB);
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,HBN_SW_LDO11_AON_VOUT_SEL,ldoLevel);
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,HBN_SW_LDO11_RT_VOUT_SEL,ldoLevel);
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,HBN_SW_LDO11SOC_VOUT_SEL_AON,ldoLevel);
+    BL_WR_REG(HBN_BASE,HBN_GLB,tmpVal);
+
+    return SUCCESS;
+}
+
+/****************************************************************************//**
  * @brief  HBN select 32K
  *
  * @param  clkType: HBN 32k clock type
@@ -666,6 +695,7 @@ BL_Err_Type ATTR_TCM_SECTION HBN_Set_Ldo11_Soc_Vout(HBN_LDO_LEVEL_Type ldoLevel)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_CLOCK_SECTION HBN_32K_Sel(HBN_32K_CLK_Type clkType)
 {
     uint32_t tmpVal;
@@ -783,7 +813,8 @@ BL_Err_Type ATTR_CLOCK_SECTION HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_Type rootClk)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Power_On_Xtal_32K(void)
+__WEAK
+BL_Err_Type ATTR_CLOCK_SECTION HBN_Power_On_Xtal_32K(void)
 {
     uint32_t tmpVal = 0;
 
@@ -806,7 +837,8 @@ BL_Err_Type HBN_Power_On_Xtal_32K(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Power_Off_Xtal_32K(void)
+__WEAK
+BL_Err_Type ATTR_CLOCK_SECTION HBN_Power_Off_Xtal_32K(void)
 {
     uint32_t tmpVal = 0;
 
@@ -826,7 +858,8 @@ BL_Err_Type HBN_Power_Off_Xtal_32K(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Power_On_RC32K(void)
+__WEAK
+BL_Err_Type ATTR_CLOCK_SECTION HBN_Power_On_RC32K(void)
 {
     uint32_t tmpVal = 0;
 
@@ -848,7 +881,8 @@ BL_Err_Type HBN_Power_On_RC32K(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type HBN_Power_Off_RC32K(void)
+__WEAK
+BL_Err_Type ATTR_CLOCK_SECTION HBN_Power_Off_RC32K(void)
 {
     uint32_t tmpVal = 0;
 
@@ -1172,6 +1206,7 @@ BL_Err_Type HBN_Clear_IRQ(HBN_INT_Type irqType)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION HBN_Hw_Pu_Pd_Cfg(uint8_t enable)
 {
     uint32_t tmpVal;
@@ -1214,6 +1249,7 @@ BL_Err_Type HBN_Aon_Pad_IeSmt_Cfg(uint8_t padCfg)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION HBN_Pin_WakeUp_Mask(uint8_t maskVal)
 {
     uint32_t tmpVal;
@@ -1401,6 +1437,29 @@ BL_Err_Type ATTR_TCM_SECTION HBN_GPIO7_Dbg_Pull_Cfg(BL_Fun_Type pupdEn,BL_Fun_Ty
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,HBN_REG_EN_HW_PU_PD,pupdEn);
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,HBN_REG_AON_PAD_IE_SMT,iesmtEn);
     BL_WR_REG(HBN_BASE,HBN_IRQ_MODE,tmpVal);
+
+    return SUCCESS;
+}
+
+/****************************************************************************//**
+ * @brief  Set Embedded Flash Pullup enabe or disable
+ *
+ * @param  enable: Enable or disable
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION HBN_Set_Embedded_Flash_Pullup(uint8_t enable)
+{
+    uint32_t tmpVal = 0;
+
+    tmpVal=BL_RD_REG(HBN_BASE,HBN_RSV3);
+
+    enable=(!enable);
+    tmpVal=((tmpVal&0xfffffffe)|(enable&0x01));
+
+    BL_WR_REG(HBN_BASE,HBN_RSV3,tmpVal);
 
     return SUCCESS;
 }

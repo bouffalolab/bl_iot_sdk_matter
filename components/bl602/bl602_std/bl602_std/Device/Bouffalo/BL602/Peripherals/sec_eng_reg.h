@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    sec_eng_reg.h
   * @version V1.2
-  * @date    2019-10-23
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -751,11 +751,11 @@
 #define SEC_ENG_SE_TRNG_0_HT_OD_EN_LEN                          (1U)
 #define SEC_ENG_SE_TRNG_0_HT_OD_EN_MSK                          (((1U<<SEC_ENG_SE_TRNG_0_HT_OD_EN_LEN)-1)<<SEC_ENG_SE_TRNG_0_HT_OD_EN_POS)
 #define SEC_ENG_SE_TRNG_0_HT_OD_EN_UMSK                         (~(((1U<<SEC_ENG_SE_TRNG_0_HT_OD_EN_LEN)-1)<<SEC_ENG_SE_TRNG_0_HT_OD_EN_POS))
-#define SEC_ENG_SE_TRNG_0_ROSC_EN                               SEC_ENG_SE_TRNG_0_ROSC_EN
-#define SEC_ENG_SE_TRNG_0_ROSC_EN_POS                           (31U)
-#define SEC_ENG_SE_TRNG_0_ROSC_EN_LEN                           (1U)
-#define SEC_ENG_SE_TRNG_0_ROSC_EN_MSK                           (((1U<<SEC_ENG_SE_TRNG_0_ROSC_EN_LEN)-1)<<SEC_ENG_SE_TRNG_0_ROSC_EN_POS)
-#define SEC_ENG_SE_TRNG_0_ROSC_EN_UMSK                          (~(((1U<<SEC_ENG_SE_TRNG_0_ROSC_EN_LEN)-1)<<SEC_ENG_SE_TRNG_0_ROSC_EN_POS))
+#define SEC_ENG_SE_TRNG_0_ROSC_DIS                              SEC_ENG_SE_TRNG_0_ROSC_DIS
+#define SEC_ENG_SE_TRNG_0_ROSC_DIS_POS                          (31U)
+#define SEC_ENG_SE_TRNG_0_ROSC_DIS_LEN                          (1U)
+#define SEC_ENG_SE_TRNG_0_ROSC_DIS_MSK                          (((1U<<SEC_ENG_SE_TRNG_0_ROSC_DIS_LEN)-1)<<SEC_ENG_SE_TRNG_0_ROSC_DIS_POS)
+#define SEC_ENG_SE_TRNG_0_ROSC_DIS_UMSK                         (~(((1U<<SEC_ENG_SE_TRNG_0_ROSC_DIS_LEN)-1)<<SEC_ENG_SE_TRNG_0_ROSC_DIS_POS))
 
 /* 0x240 : se_trng_0_test_out_0 */
 #define SEC_ENG_SE_TRNG_0_TEST_OUT_0_OFFSET                     (0x240)
@@ -1726,7 +1726,7 @@ struct  sec_eng_reg {
             uint32_t se_trng_0_ht_apt_c             : 10; /* [25:16],        r/w,      0x37a */
             uint32_t se_trng_0_ht_od_en             :  1; /* [   26],        r/w,        0x0 */
             uint32_t reserved_27_30                 :  4; /* [30:27],       rsvd,        0x0 */
-            uint32_t se_trng_0_rosc_en              :  1; /* [   31],        r/w,        0x1 */
+            uint32_t se_trng_0_rosc_dis             :  1; /* [   31],        r/w,        0x1 */
         }BF;
         uint32_t WORD;
     } se_trng_0_ctrl_3;
@@ -2007,6 +2007,8 @@ struct  sec_eng_reg {
 
 typedef volatile struct sec_eng_reg sec_eng_reg_t;
 
+
+/*Following is reg patch*/
 
 /* 0x0 : se_sha_ctrl */
 #define SEC_ENG_SE_SHA_CTRL_OFFSET                              (0x0)
@@ -2447,6 +2449,8 @@ typedef volatile struct sec_eng_sha_reg sec_eng_sha_reg_t;
 
 #define SEC_ENG_SHA_OFFSET     0x000
 
+
+/*Following is reg patch*/
 
 /* 0x0 : se_aes_ctrl */
 #define SEC_ENG_SE_AES_CTRL_OFFSET                              (0x0)
@@ -2937,6 +2941,8 @@ typedef volatile struct sec_eng_aes_reg sec_eng_aes_reg_t;
 #define SEC_ENG_AES_OFFSET     0x100
 
 
+/*Following is reg patch*/
+
 /* 0x0 : se_trng_ctrl_0 */
 #define SEC_ENG_SE_TRNG_CTRL_0_OFFSET                           (0x0)
 #define SEC_ENG_SE_TRNG_BUSY                                    SEC_ENG_SE_TRNG_BUSY
@@ -3138,11 +3144,11 @@ typedef volatile struct sec_eng_aes_reg sec_eng_aes_reg_t;
 #define SEC_ENG_SE_TRNG_HT_OD_EN_LEN                            (1U)
 #define SEC_ENG_SE_TRNG_HT_OD_EN_MSK                            (((1U<<SEC_ENG_SE_TRNG_HT_OD_EN_LEN)-1)<<SEC_ENG_SE_TRNG_HT_OD_EN_POS)
 #define SEC_ENG_SE_TRNG_HT_OD_EN_UMSK                           (~(((1U<<SEC_ENG_SE_TRNG_HT_OD_EN_LEN)-1)<<SEC_ENG_SE_TRNG_HT_OD_EN_POS))
-#define SEC_ENG_SE_TRNG_ROSC_EN                                 SEC_ENG_SE_TRNG_ROSC_EN
-#define SEC_ENG_SE_TRNG_ROSC_EN_POS                             (31U)
-#define SEC_ENG_SE_TRNG_ROSC_EN_LEN                             (1U)
-#define SEC_ENG_SE_TRNG_ROSC_EN_MSK                             (((1U<<SEC_ENG_SE_TRNG_ROSC_EN_LEN)-1)<<SEC_ENG_SE_TRNG_ROSC_EN_POS)
-#define SEC_ENG_SE_TRNG_ROSC_EN_UMSK                            (~(((1U<<SEC_ENG_SE_TRNG_ROSC_EN_LEN)-1)<<SEC_ENG_SE_TRNG_ROSC_EN_POS))
+#define SEC_ENG_SE_TRNG_ROSC_DIS                                SEC_ENG_SE_TRNG_ROSC_DIS
+#define SEC_ENG_SE_TRNG_ROSC_DIS_POS                            (31U)
+#define SEC_ENG_SE_TRNG_ROSC_DIS_LEN                            (1U)
+#define SEC_ENG_SE_TRNG_ROSC_DIS_MSK                            (((1U<<SEC_ENG_SE_TRNG_ROSC_DIS_LEN)-1)<<SEC_ENG_SE_TRNG_ROSC_DIS_POS)
+#define SEC_ENG_SE_TRNG_ROSC_DIS_UMSK                           (~(((1U<<SEC_ENG_SE_TRNG_ROSC_DIS_LEN)-1)<<SEC_ENG_SE_TRNG_ROSC_DIS_POS))
 
 /* 0x40 : se_trng_test_out_0 */
 #define SEC_ENG_SE_TRNG_TEST_OUT_0_OFFSET                       (0x40)
@@ -3328,7 +3334,7 @@ struct  sec_eng_trng_reg {
             uint32_t se_trng_ht_apt_c               : 10; /* [25:16],        r/w,      0x37a */
             uint32_t se_trng_ht_od_en               :  1; /* [   26],        r/w,        0x0 */
             uint32_t reserved_27_30                 :  4; /* [30:27],       rsvd,        0x0 */
-            uint32_t se_trng_rosc_en                :  1; /* [   31],        r/w,        0x1 */
+            uint32_t se_trng_rosc_dis               :  1; /* [   31],        r/w,        0x1 */
         }BF;
         uint32_t WORD;
     } se_trng_ctrl_3;

@@ -1,11 +1,32 @@
 
-/**
- ****************************************************************************************
+/*
+ * Copyright (c) 2020 Bouffalolab.
  *
- * @file bl_rx.c
- * Copyright (C) Bouffalo Lab 2016-2018
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
  *
- ****************************************************************************************
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
@@ -20,6 +41,9 @@
 #include "bl_utils.h"
 #include "ieee80211.h"
 #include <bl60x_fw_api.h>
+
+#include <blog.h>
+#define USER_UNUSED(a) ((void)(a))
 
 static wifi_event_sm_connect_ind_cb_t cb_sm_connect_ind;
 static void* cb_sm_connect_ind_env;
@@ -460,9 +484,8 @@ static int find_ie_ds(uint8_t *buffer, int len, uint8_t *result)
 /*we only return if we found the proper RSN element*/
 static int find_ie_rsn_is_ok(uint8_t *buffer, int len)
 {
-    int i;
+    int i = 0;
 
-    i = 0;
     while (i < len) {
 #define IE_ID_RSN_INFORMATION 0x30
         if (IE_ID_RSN_INFORMATION == buffer[0]) {
@@ -497,6 +520,28 @@ static int bl_rx_scanu_result_ind(struct bl_hw *bl_hw,
                 } else {
                     ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WEP;
                 }
+
+                memcpy(&ind_new.rsn_ucstCipher, &ind->rsn_ucstCipher, sizeof(Cipher_t));
+                memcpy(&ind_new.rsn_mcstCipher, &ind->rsn_mcstCipher, sizeof(Cipher_t));
+                /*
+                blog_info("bl_rx:rsn wpa2 pairwise ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
+                    ind->rsn_ucstCipher.ccmp,ind->rsn_ucstCipher.tkip,
+                    ind->rsn_ucstCipher.wep104,ind->rsn_ucstCipher.wep40);
+                blog_info("bl_rx:rsn wpa2 group ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
+                    ind->rsn_mcstCipher.ccmp,ind->rsn_mcstCipher.tkip,
+                    ind->rsn_mcstCipher.wep104,ind->rsn_mcstCipher.wep40);
+                */
+
+                memcpy(&ind_new.wpa_ucstCipher, &ind->wpa_ucstCipher, sizeof(Cipher_t));
+                memcpy(&ind_new.wpa_mcstCipher, &ind->wpa_mcstCipher, sizeof(Cipher_t));
+                /*
+                blog_info("bl_rx:wpa pairwise ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
+                    ind->wpa_ucstCipher.ccmp,ind->wpa_ucstCipher.tkip,
+                    ind->wpa_ucstCipher.wep104,ind->wpa_ucstCipher.wep40);
+                blog_info("bl_rx:wpa group ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
+                    ind->wpa_mcstCipher.ccmp,ind->wpa_mcstCipher.tkip,
+                    ind->wpa_mcstCipher.wep104,ind->wpa_mcstCipher.wep40);
+                */
             } else {
                 /*This is an open BSS*/
                 ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_OPEN;
@@ -558,6 +603,7 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
     struct bl_vif *bl_vif = NULL;
     int index = 0;
 
+    USER_UNUSED(index);
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
     for(int i = 0;i < sizeof(reason_list)/sizeof(reason_list[0]);i++) {
@@ -696,17 +742,17 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
             ind->sta_addr.array[4] & 0xFF,
             ind->sta_addr.array[5] & 0xFF
     );
-    printf("[WF]    tsflo: 0x%lx\r\n", ind->tsflo);
-    printf("[WF]    tsfhi: 0x%lx\r\n", ind->tsfhi);
-    printf("[WF]    rssi: %d\r\n", ind->rssi);
-    printf("[WF]    data rate: 0x%x\r\n", ind->data_rate);
+    blog_info("[WF]    tsflo: 0x%lx\r\n", ind->tsflo);
+    blog_info("[WF]    tsfhi: 0x%lx\r\n", ind->tsfhi);
+    blog_info("[WF]    rssi: %d\r\n", ind->rssi);
+    blog_info("[WF]    data rate: 0x%x\r\n", ind->data_rate);
 
     os_printf("[WF]    vif_idx %u\r\n", ind->vif_idx);
     os_printf("[WF]    sta_idx %u\r\n", ind->sta_idx);
     if (ind->sta_idx < sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0])) {
         sta = &(bl_hw->sta_table[ind->sta_idx]);
         if (sta->is_used) {
-            printf("-------------------------Warning: sta_idx already used: %d\r\n", ind->sta_idx);
+            blog_info("-------------------------Warning: sta_idx already used: %d\r\n", ind->sta_idx);
         }
         memcpy(sta->sta_addr.array, ind->sta_addr.array, 6);
         sta->sta_idx = ind->sta_idx;
@@ -734,7 +780,7 @@ static int bl_rx_apm_sta_del_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
     if (ind->sta_idx < sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0])) {
         sta = &(bl_hw->sta_table[ind->sta_idx]);
         if (0 == sta->is_used) {
-            printf("[WF]    -------------------------Warning: sta_idx already empty: %d\r\n", ind->sta_idx);
+            blog_info("[WF]    -------------------------Warning: sta_idx already empty: %d\r\n", ind->sta_idx);
         }
         sta->is_used = 0;
     } else {

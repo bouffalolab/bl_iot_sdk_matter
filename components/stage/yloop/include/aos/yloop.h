@@ -86,6 +86,11 @@ extern "C" {
 #define CODE_CLI_DATA_RAW                  1
 #endif
 
+/* IR event */
+#define  EV_IR                             0x0006
+#define  CODE_IR_RECEIVE_NEC               1
+#define  CODE_IR_RECEIVE_NEC_REPEAT        2
+
 typedef struct {
     /* The time event is generated, auto filled by aos event system */
     uint32_t time;

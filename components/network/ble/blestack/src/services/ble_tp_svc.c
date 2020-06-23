@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 /****************************************************************************
 FILE NAME
     ble_tp_svc.c
@@ -9,6 +38,8 @@ NOTES
 
 #include <errno.h>
 #include <stdbool.h>
+#include <FreeRTOS.h>
+#include <task.h>
 
 #include "bluetooth.h"
 #include "conn.h"
@@ -22,7 +53,7 @@ static void ble_tp_disconnected(struct bt_conn *conn, u8_t reason);
 
 
 struct bt_conn *ble_tp_conn;
-
+TaskHandle_t ble_tp_task_h;
 
 static struct bt_conn_cb ble_tp_conn_callbacks = {
 	.connected	=   ble_tp_connected,
@@ -56,18 +87,18 @@ NAME
     ble_tp_notify
 */ 
 
-int ble_tp_notify(void *data, u16_t len)
+static void ble_tp_notify_task(void *pvParameters)
 {
-	int err = -1;
-	u8_t *send_data = (u8_t*)data;
-	u16_t slen = len;
+    int err = -1;
+    u16_t slen = 244;
 
-	if(ble_tp_conn)
-	{
-		err = bt_gatt_notify(ble_tp_conn, get_attr(BT_CHAR_BLE_TP_TX_ATTR_INDEX), send_data, slen);
-	}
+    char data[244] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09};
 
-	return err;
+    while(1)
+    {
+        err = bt_gatt_notify(ble_tp_conn, get_attr(BT_CHAR_BLE_TP_TX_ATTR_VAL_INDEX), data, slen);
+        printf("bletp tx : %d\n", err);
+    }
 }
 
 /*************************************************************************
@@ -76,24 +107,19 @@ NAME
 */ 
 static void ble_tp_ccc_cfg_changed(const struct bt_gatt_attr *attr, u16_t value)
 {
-	ARG_UNUSED(attr);
-
-	bool enotify = (value == BT_GATT_CCC_NOTIFY);
-	printf("%s, Notify enable? %d\n", __func__, enotify);
-	    
-	char data[256] = {};
-	for(u8_t i = 0; i < 0xff; i++)
-	{
-		data[i] = i;
-	}
-
-	if(enotify)
-	{
-		while(1)
-		{
-			ble_tp_notify(data, 244);
-		}
-	}
+    if(value == BT_GATT_CCC_NOTIFY) {
+        if(xTaskCreate(ble_tp_notify_task, (char*)"bletp", 256, NULL, 15, &ble_tp_task_h) == pdPASS)
+        {
+                printf("Create throughput tx task success .\n");
+        }
+        else
+        {
+                printf("Create throughput tx taskfail .\n");
+        }
+    } else {
+        printf("Delete throughput tx task .\n");
+        vTaskDelete(ble_tp_task_h);
+    }
 
 }
 
@@ -105,7 +131,7 @@ static int ble_tp_recv(struct bt_conn *conn,
 			  const struct bt_gatt_attr *attr, const void *buf,
 			  u16_t len, u16_t offset, u8_t flags)
 {
-	printf("%s, Receive write data len : %d bytes\n", __func__, len);
+	printf("bletp rx\n");
 	return 0;
 }
 

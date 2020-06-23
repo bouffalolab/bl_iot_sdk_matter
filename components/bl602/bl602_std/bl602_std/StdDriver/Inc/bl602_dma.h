@@ -330,6 +330,8 @@ void DMA_Int_Callback_Install(DMA_Chan_Type dmaChan,DMA_INT_Type intType,intCall
 void DMA_LLI_PpBuf_Start_New_Transmit(DMA_LLI_PP_Buf *dmaPpBuf);
 void DMA_LLI_PpStruct_Start(DMA_LLI_PP_Struct *dmaPpStruct);
 void DMA_LLI_PpStruct_Stop(DMA_LLI_PP_Struct *dmaPpStruct);
+BL_Err_Type DMA_LLI_PpStruct_Set_Transfer_Len(DMA_LLI_PP_Struct *dmaPpStruct,
+                                              uint16_t Ping_Transfer_len,uint16_t Pong_Transfer_len);
 
 /*@} end of group DMA_Public_Functions */
 

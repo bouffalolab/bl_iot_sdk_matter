@@ -1,3 +1,5 @@
+include $(COMPONENT_PATH)/../ble_common.mk
+
 ##################################################################################
 #
 # Component Makefile
@@ -84,10 +86,13 @@ ble_stack_srcs  := src/port/bl_port.c \
 					src/host/gatt.c \
 					src/host/hci_core.c \
 					src/host/hci_ecc.c \
-					src/host/keys.c \
 					src/host/l2cap.c \
-					src/host/smp.c \
 					src/host/uuid.c \
+					
+ifneq ($(CONFIG_DISABLE_BT_SMP), 1)
+ble_stack_srcs  += src/host/smp.c \
+                   src/host/keys.c
+endif
 					
 ifeq ($(CONFIG_BT_OAD_CLIENT),1)
 ble_stack_srcs   += src/host_cmdproc/oadc_cmdproc.c
@@ -103,7 +108,8 @@ ble_stack_srcs   += src/profiles/oad/oad_api.c \
 endif
 
 ifeq ($(CONFIG_BT_STACK_CLI),1)
-ble_stack_srcs   += src/cli_cmds/stack_cli_cmds.c
+ble_stack_srcs   += src/cli_cmds/ble_cli_cmds.c \
+					src/cli_cmds/pts_cli_cmds.c
 endif
 
 ifeq ($(CONFIG_BT_BAS_SERVER),1)
@@ -131,7 +137,3 @@ COMPONENT_SRCS := $(ble_stack_srcs)
 COMPONENT_OBJS   := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 
 COMPONENT_SRCDIRS := $(ble_stack_srcs_dirs)
-
-
-
-include $(COMPONENT_PATH)/../ble_common.mk

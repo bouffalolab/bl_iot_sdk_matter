@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 
 #include <sec_eng_reg.h>
@@ -6,6 +35,8 @@
 
 #include "bl_sec.h"
 #include "bl_irq.h"
+
+#include <blog.h>
 
 #define REG_VALUE_TRNG_INIT (0x40004200)
 #define REG_VALUE_TRNG_VAL  (0x40004208)
@@ -54,7 +85,7 @@ static inline void wait_trng4feed()
     val = BL_CLR_REG_BIT(val, SEC_ENG_SE_TRNG_TRIG_1T);
     BL_WR_REG(TRNGx, SEC_ENG_SE_TRNG_CTRL_0, val);
 
-    printf("Feed random number is %08lx\r\n", trng_buffer[0]);
+    blog_info("Feed random number is %08lx\r\n", trng_buffer[0]);
     trng_buffer[0] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_0);
     trng_buffer[1] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_1);
     trng_buffer[2] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_2);
@@ -104,7 +135,7 @@ void sec_trng_IRQHandler(void)
     val = BL_CLR_REG_BIT(val, SEC_ENG_SE_TRNG_TRIG_1T);
     BL_WR_REG(TRNGx, SEC_ENG_SE_TRNG_CTRL_0, val);
 
-    printf("random number is %08lx\r\n", trng_buffer[0]);
+    blog_info("random number is %08lx\r\n", trng_buffer[0]);
     trng_buffer[0] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_0);
     trng_buffer[1] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_1);
     trng_buffer[2] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_2);
@@ -135,24 +166,10 @@ int bl_exp_mod(uint32_t *src, uint32_t *result, int len, uint32_t *exp, int exp_
 
 int bl_sec_test(void)
 {
-    puts("------------------TRNG TEST---------------------------------\r\n");
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    printf("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
-    puts("------------------------------------------------------------\r\n");
+    blog_print("------------------TRNG TEST---------------------------------\r\n");
+    blog_print("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
+    blog_print("**********TRNG TEST rand[%08x]**************\r\n", bl_rand());
+    blog_print("------------------------------------------------------------\r\n");
 
     return 0;
 }
@@ -165,19 +182,19 @@ void _dump_rsa_data(const uint8_t *data, int size)
         switch (i & 0xF) {
             case 0x0:
             {
-                printf("[%04X]:", i);
-                printf(" %02X", data[i]);
+                blog_print("[%04X]:", i);
+                blog_print(" %02X", data[i]);
             }
             break;
             case 0xF:
             {
-                printf(" %02X", data[i]);
+                blog_print(" %02X", data[i]);
                 puts("\r\n");
             }
             break;
             default:
             {
-                printf(" %02X", data[i]);
+                blog_print(" %02X", data[i]);
             }
         }
     }
@@ -190,7 +207,7 @@ static void RSA_Compare_Data(const uint8_t *expected, const uint8_t *input, uint
     for (i = 0; i < len; i++) {
         if (input[i] != expected[i]) {
             is_failed = 1;
-            printf("%s[%02d], %02x %02x\r\n",
+            blog_info("%s[%02d], %02x %02x\r\n",
                 input[i] ==expected[i] ? "S" : "F",
                 i,
                 input[i],
@@ -199,9 +216,9 @@ static void RSA_Compare_Data(const uint8_t *expected, const uint8_t *input, uint
         }
     }
     if (is_failed) {
-        printf("====== Failed %lu Bytes======\r\n", len);
+        blog_error("====== Failed %lu Bytes======\r\n", len);
     } else {
-        printf("====== Success %lu Bytes=====\r\n", len);
+        blog_info("====== Success %lu Bytes=====\r\n", len);
     }
 }
 
@@ -620,7 +637,7 @@ static void _pka_test_case_xgcd(void)
     );
 
 #if 0
-    printf("Dumping Step count %d\r\n", count++);
+    blog_info("Dumping Step count %d\r\n", count++);
     dump_xgcd_step(result);
 #endif
     while (!pka_a_eq_0) {
@@ -697,7 +714,7 @@ static void _pka_test_case_xgcd(void)
                 SEC_ENG_PKA_REG_SIZE_256, 10
         );
 #if 0
-        printf("Dumping Step count %d\r\n", count++);
+        blog_info("Dumping Step count %d\r\n", count++);
         dump_xgcd_step(result);
 #endif
     }

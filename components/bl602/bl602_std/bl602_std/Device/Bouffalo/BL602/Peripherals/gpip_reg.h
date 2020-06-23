@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    gpip_reg.h
   * @version V1.2
-  * @date    2019-10-21
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -206,9 +206,6 @@
 #define GPIP_TXFIFOWRPTR_MSK                                    (((1U<<GPIP_TXFIFOWRPTR_LEN)-1)<<GPIP_TXFIFOWRPTR_POS)
 #define GPIP_TXFIFOWRPTR_UMSK                                   (~(((1U<<GPIP_TXFIFOWRPTR_LEN)-1)<<GPIP_TXFIFOWRPTR_POS))
 
-/* 0x50 : gpdac_tx_singen_ctrl0 */
-#define GPIP_GPDAC_TX_SINGEN_CTRL0_OFFSET                       (0x50)
-
 
 struct  gpip_reg {
     /* 0x0 : gpadc_config */
@@ -298,14 +295,6 @@ struct  gpip_reg {
         }BF;
         uint32_t WORD;
     } gpdac_tx_fifo_status;
-
-    /* 0x50 : gpdac_tx_singen_ctrl0 */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } gpdac_tx_singen_ctrl0;
 
 };
 

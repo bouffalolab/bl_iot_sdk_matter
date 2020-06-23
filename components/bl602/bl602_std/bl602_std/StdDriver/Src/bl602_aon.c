@@ -235,7 +235,8 @@ BL_Err_Type ATTR_CLOCK_SECTION AON_Power_Off_XTAL(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_On_BG(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_On_BG(void)
 {
     uint32_t tmpVal = 0;
     
@@ -257,7 +258,8 @@ BL_Err_Type AON_Power_On_BG(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_Off_BG(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_Off_BG(void)
 {
     uint32_t tmpVal = 0;
     
@@ -279,7 +281,8 @@ BL_Err_Type AON_Power_Off_BG(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_On_LDO11_SOC(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_On_LDO11_SOC(void)
 {
     uint32_t tmpVal = 0;
     
@@ -300,7 +303,8 @@ BL_Err_Type AON_Power_On_LDO11_SOC(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_Off_LDO11_SOC(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_Off_LDO11_SOC(void)
 {
     uint32_t tmpVal = 0;
     
@@ -321,7 +325,8 @@ BL_Err_Type AON_Power_Off_LDO11_SOC(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_On_LDO15_RF(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_On_LDO15_RF(void)
 {
     uint32_t tmpVal = 0;
     
@@ -343,7 +348,8 @@ BL_Err_Type AON_Power_On_LDO15_RF(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_Off_LDO15_RF(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_Off_LDO15_RF(void)
 {
     uint32_t tmpVal = 0;
     
@@ -363,7 +369,8 @@ BL_Err_Type AON_Power_Off_LDO15_RF(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_On_SFReg(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_On_SFReg(void)
 {
     uint32_t tmpVal = 0;
     
@@ -385,7 +392,8 @@ BL_Err_Type AON_Power_On_SFReg(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type AON_Power_Off_SFReg(void)
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION AON_Power_Off_SFReg(void)
 {
     uint32_t tmpVal = 0;
     
@@ -430,7 +438,6 @@ BL_Err_Type ATTR_TCM_SECTION AON_LowPower_Enter_PDS0(void)
 
     return SUCCESS;
 }
-
 
 /****************************************************************************//**
  * @brief  Power on the power powered down in PDS0

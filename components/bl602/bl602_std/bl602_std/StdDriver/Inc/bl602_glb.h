@@ -579,6 +579,8 @@ typedef struct {
 /*----------*/
 GLB_ROOT_CLK_Type GLB_Get_Root_CLK_Sel(void);
 BL_Err_Type GLB_Set_System_CLK_Div(uint8_t hclkDiv,uint8_t bclkDiv);
+uint8_t GLB_Get_BCLK_Div(void);
+uint8_t GLB_Get_HCLK_Div(void);
 BL_Err_Type Update_SystemCoreClockWith_XTAL(GLB_PLL_XTAL_Type xtalType);
 BL_Err_Type GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB_SYS_CLK_Type clkFreq);
 BL_Err_Type System_Core_Clock_Update_From_RC32M(void);
@@ -610,6 +612,7 @@ uint32_t GLB_BMX_Get_Err_Addr(void);
 BL_Err_Type BMX_ERR_INT_Callback_Install(BMX_ERR_INT_Type intType,intCallback_Type* cbFun);
 BL_Err_Type BMX_TIMEOUT_INT_Callback_Install(BMX_TO_INT_Type intType,intCallback_Type* cbFun);
 /*----------*/
+BL_Err_Type GLB_Set_OCRAM_Idle(void);
 BL_Err_Type GLB_Set_SRAM_RET(uint32_t value);
 uint32_t GLB_Get_SRAM_RET(void);
 BL_Err_Type GLB_Set_SRAM_SLP(uint32_t value);
@@ -650,6 +653,9 @@ BL_Err_Type GLB_IR_LED_Driver_Disable(void);
 BL_Err_Type GLB_IR_LED_Driver_Ibias(uint8_t ibias);
 /*----------*/
 BL_Err_Type GLB_GPIO_Init(GLB_GPIO_Cfg_Type *cfg);
+BL_Err_Type GLB_GPIO_Func_Init(uint8_t gpioFun,GLB_GPIO_Type *pinList,uint8_t cnt);
+BL_Err_Type GLB_GPIO_INPUT_Enable(GLB_GPIO_Type gpioPin);
+BL_Err_Type GLB_GPIO_INPUT_Disable(GLB_GPIO_Type gpioPin);
 BL_Err_Type GLB_GPIO_OUTPUT_Enable(GLB_GPIO_Type gpioPin);
 BL_Err_Type GLB_GPIO_OUTPUT_Disable(GLB_GPIO_Type gpioPin);
 BL_Err_Type GLB_GPIO_Set_HZ(GLB_GPIO_Type gpioPin);

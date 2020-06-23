@@ -2649,6 +2649,13 @@ static void node_reset(struct bt_mesh_model *model,
 		BT_ERR("Unable to send Node Reset Status");
 	}
 
+#if defined(BFLB_BLE)
+    /*Fix issue:for proxy node, OP_NODE_RESET_STATUS cannot be sent out because le link is disconnected 
+    *before sending OP_NODE_RESET_STATUS.
+    *delay the task to make node reset later to make sure OP_NODE_RESET_STATUS can be sent out.
+    */
+    vTaskDelay(500);
+#endif
 	bt_mesh_reset();
 }
 

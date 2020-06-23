@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -5,6 +34,9 @@
 #include "bl_boot2.h"
 #include "bl_flash.h"
 #include "hal_boot2.h"
+
+#include <blog.h>
+#define USER_UNUSED(a) ((void)(a))
 
 #define PARTITION_BOOT2_RAM_ADDR_ACTIVE (0x42049C00)
 #define PARTITION_HEADER_BOOT2_RAM_ADDR (0x42049C04)
@@ -44,27 +76,39 @@ static void _dump_partition(void)
     int i;
     PtTable_Stuff_Config *part = &boot2_partition_table.table;
 
-    printf("======= PtTable_Config @%p=======\r\n", part);
-    printf("magicCode 0x%08X;", (unsigned int)(part->ptTable.magicCode));
-    printf(" version 0x%04X;", part->ptTable.version);
-    printf(" entryCnt %u;", part->ptTable.entryCnt);
-    printf(" age %lu;", part->ptTable.age);
-    printf(" crc32 0x%08X\r\n", (unsigned int)part->ptTable.crc32);
+    USER_UNUSED(i);
+    USER_UNUSED(part);
 
-    printf("idx  type device activeIndex     name   Address[0]  Address[1]  Length[0]   Length[1]   age\r\n");
+    blog_info("======= PtTable_Config @%p=======\r\n", part);
+    blog_info("magicCode 0x%08X;", (unsigned int)(part->ptTable.magicCode));
+    blog_info(" version 0x%04X;", part->ptTable.version);
+    blog_info(" entryCnt %u;", part->ptTable.entryCnt);
+    blog_info(" age %lu;", part->ptTable.age);
+    blog_info(" crc32 0x%08X\r\n", (unsigned int)part->ptTable.crc32);
+
+    blog_info("idx  type device activeIndex     name   Address[0]  Address[1]  Length[0]   Length[1]   age\r\n");
     for (i = 0; i < part->ptTable.entryCnt; i++) {
-        printf("[%02d] ", i);
-        printf(" %02u", part->ptEntries[i].type);
-        printf("     %u", part->ptEntries[i].device);
-        printf("         %u", part->ptEntries[i].activeIndex);
-        printf("      %8s", part->ptEntries[i].name);
-        printf("  %p", (void*)(part->ptEntries[i].Address[0]));
-        printf("  %p", (void*)(part->ptEntries[i].Address[1]));
-        printf("  %p", (void*)(part->ptEntries[i].maxLen[0]));
-        printf("  %p", (void*)(part->ptEntries[i].maxLen[1]));
-        printf("  %lu\r\n", (part->ptEntries[i].age));
+        blog_info("[%02d] ", i);
+        blog_info(" %02u", part->ptEntries[i].type);
+        blog_info("     %u", part->ptEntries[i].device);
+        blog_info("         %u", part->ptEntries[i].activeIndex);
+        blog_info("      %8s", part->ptEntries[i].name);
+        blog_info("  %p", (void*)(part->ptEntries[i].Address[0]));
+        blog_info("  %p", (void*)(part->ptEntries[i].Address[1]));
+        blog_info("  %p", (void*)(part->ptEntries[i].maxLen[0]));
+        blog_info("  %p", (void*)(part->ptEntries[i].maxLen[1]));
+        blog_info("  %lu\r\n", (part->ptEntries[i].age));
     }
 }
+
+uint32_t hal_boot2_get_flash_addr(void)
+{
+    extern uint8_t __boot2_flashCfg_src;
+
+    return  (uint32_t)(&__boot2_flashCfg_src + 
+            (sizeof(boot2_partition_table.table.ptEntries[0]) * boot2_partition_table.table.ptTable.entryCnt));
+}
+
 
 int hal_boot2_partition_bus_addr(const char *name, uint32_t *addr0, uint32_t *addr1, uint32_t *size0, uint32_t *size1, int *active)
 {
@@ -226,7 +270,7 @@ int hal_boot2_init(void)
 {
     boot2_partition_table.partition_active_idx = *(uint8_t*)PARTITION_BOOT2_RAM_ADDR_ACTIVE;
 
-    printf("[HAL] [BOOT2] Active Partition[%u] consumed %d Bytes\r\n",
+    blog_info("[HAL] [BOOT2] Active Partition[%u] consumed %d Bytes\r\n",
             boot2_partition_table.partition_active_idx,
             sizeof(PtTable_Stuff_Config)
     );

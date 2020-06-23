@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 /* hci_core.c - HCI core Bluetooth handling */
 
 /*
@@ -100,8 +129,9 @@ struct bt_dev bt_dev = {
 };
 
 static bt_ready_cb_t ready_cb;
-
 static bt_le_scan_cb_t *scan_dev_found_cb;
+
+u8_t adv_ch_map = 0x7;
 
 #if defined(CONFIG_BT_HCI_VS_EVT_USER)
 static bt_hci_vnd_evt_cb_t *hci_vnd_evt_cb;
@@ -1564,12 +1594,13 @@ static void le_remote_feat_complete(struct net_buf *buf)
 	    BT_FEAT_LE_DLE(conn->le.features)) {
 		hci_le_set_data_len(conn);
 	}
-
+	
+#if !defined(CONFIG_BT_STACK_PTS)
 	if (IS_ENABLED(CONFIG_BT_PERIPHERAL) &&
 	    conn->role == BT_CONN_ROLE_SLAVE) {
 		slave_update_conn_param(conn);
 	}
-
+#endif
 done:
 	bt_conn_unref(conn);
 }
@@ -5356,7 +5387,7 @@ static int bt_init(void)
 #endif
 
 
-
+#if defined(CONFIG_BT_SMP)
 #if defined(BFLB_BLE_PATCH_SETTINGS_LOAD)
     #if defined(CFG_SLEEP)
     if(HBN_Get_Status_Flag() == 0)
@@ -5366,6 +5397,7 @@ static int bt_init(void)
             keys_commit();
     }
 #endif
+#endif //CONFIG_BT_SMP
     if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
         if (!bt_dev.id_count) {
 	        BT_INFO("No ID address. App must call settings_load()");
@@ -6067,7 +6099,7 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
 
 	set_param.min_interval = sys_cpu_to_le16(param->interval_min);
 	set_param.max_interval = sys_cpu_to_le16(param->interval_max);
-	set_param.channel_map  = 0x07;
+	set_param.channel_map  = adv_ch_map;
 
 	if (bt_dev.adv_id != param->id) {
 		atomic_clear_bit(bt_dev.flags, BT_DEV_RPA_VALID);
@@ -6499,6 +6531,22 @@ int set_ad_and_rsp_d(u16_t hci_op, u8_t *data, u32_t ad_len)
     return bt_hci_cmd_send_sync(hci_op,buf,NULL);
 }
 
+int set_adv_channel_map(u8_t channel)
+{
+    int err = 0;
+
+    if(channel >= 1 && channel <= 7)
+    {
+        adv_ch_map = channel;
+    }
+    else
+    {
+        err = -1;
+    }
+
+    return err;
+}
+
 int bt_get_local_address(bt_addr_le_t *adv_addr)
 {
 	int err = 0;
@@ -6582,10 +6630,7 @@ static bool valid_le_scan_param(const struct bt_le_scan_param *param)
 }
 
 #if defined(CONFIG_BT_STACK_PTS)
-int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb, u8_t addre_type)
-#else
-int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb)
-#endif
+int bt_le_pts_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb, u8_t addre_type)
 {
 	int err;
 
@@ -6619,11 +6664,55 @@ int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb)
 			  param->filter_dup & BT_LE_SCAN_FILTER_WHITELIST);
 #endif /* defined(CONFIG_BT_WHITELIST) */
 
-    #if defined(CONFIG_BT_STACK_PTS)
     err = start_le_scan_with_isrpa(param->type, param->interval, param->window, addre_type);
-    #else
+ 
+	if (err) {
+		atomic_clear_bit(bt_dev.flags, BT_DEV_EXPLICIT_SCAN);
+		return err;
+	}
+
+	scan_dev_found_cb = cb;
+
+	return 0;
+
+}
+#endif
+int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb)
+
+{
+	int err;
+
+	if (!atomic_test_bit(bt_dev.flags, BT_DEV_READY)) {
+		return -EAGAIN;
+	}
+
+	/* Check that the parameters have valid values */
+	if (!valid_le_scan_param(param)) {
+		return -EINVAL;
+	}
+
+	/* Return if active scan is already enabled */
+	if (atomic_test_and_set_bit(bt_dev.flags, BT_DEV_EXPLICIT_SCAN)) {
+		return -EALREADY;
+	}
+
+	if (atomic_test_bit(bt_dev.flags, BT_DEV_SCANNING)) {
+		err = set_le_scan_enable(BT_HCI_LE_SCAN_DISABLE);
+		if (err) {
+			atomic_clear_bit(bt_dev.flags, BT_DEV_EXPLICIT_SCAN);
+			return err;
+		}
+	}
+
+	atomic_set_bit_to(bt_dev.flags, BT_DEV_SCAN_FILTER_DUP,
+			  param->filter_dup & BT_LE_SCAN_FILTER_DUPLICATE);
+
+#if defined(CONFIG_BT_WHITELIST)
+	atomic_set_bit_to(bt_dev.flags, BT_DEV_SCAN_WL,
+			  param->filter_dup & BT_LE_SCAN_FILTER_WHITELIST);
+#endif /* defined(CONFIG_BT_WHITELIST) */
+
 	err = start_le_scan(param->type, param->interval, param->window);
-    #endif
 	if (err) {
 		atomic_clear_bit(bt_dev.flags, BT_DEV_EXPLICIT_SCAN);
 		return err;
@@ -6745,25 +6834,28 @@ int bt_le_set_chan_map(u8_t chan_map[5])
 	return bt_hci_cmd_send_sync(BT_HCI_OP_LE_SET_HOST_CHAN_CLASSIF,
 				    buf, NULL);
 }
-#if defined(CFG_HCI_WORK_MODE)
-int bt_le_set_work_mode(uint8_t work_mode)
+#if defined(CONFIG_SET_TX_PWR)
+int bt_set_tx_pwr(uint8_t power)
 {
-    struct bt_hci_cp_le_set_set_work_mode set_param;
+    struct bt_hci_cp_vs_set_tx_pwr set_param;
 	struct net_buf *buf;
 	int err;
 
+    if(power < 0 || power > 20)
+        return BT_HCI_ERR_INVALID_PARAM;
+    
 	memset(&set_param, 0, sizeof(set_param));
 
-	set_param.work_mode= work_mode;
+	set_param.power = power;
 
-	buf = bt_hci_cmd_create(BT_HCI_OP_LE_SET_WORK_MODE, sizeof(set_param));
+	buf = bt_hci_cmd_create(BT_HCI_OP_VS_SET_TX_PWR, sizeof(set_param));
 	if (!buf) {
 		return -ENOBUFS;
 	}
 
 	net_buf_add_mem(buf, &set_param, sizeof(set_param));
 
-	err = bt_hci_cmd_send(BT_HCI_OP_LE_SET_WORK_MODE, buf);
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_VS_SET_TX_PWR, buf, NULL);
 
 	if (err) {
 		return err;
@@ -6772,6 +6864,7 @@ int bt_le_set_work_mode(uint8_t work_mode)
 	return 0;
 }
 #endif
+
 struct net_buf *bt_buf_get_rx(enum bt_buf_type type, s32_t timeout)
 {
 	struct net_buf *buf;

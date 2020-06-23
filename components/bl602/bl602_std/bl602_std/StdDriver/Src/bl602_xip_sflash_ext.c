@@ -61,7 +61,6 @@
 /** @defgroup  XIP_SFLASH_EXT_Private_Variables
  *  @{
  */
-static uint8_t aesEnable;
 
 /*@} end of group XIP_SFLASH_EXT_Private_Variables */
 
@@ -84,15 +83,15 @@ static uint8_t aesEnable;
 /****************************************************************************//**
  * @brief  XIP SFlash option save
  *
- * @param  None
+ * @param  aesEnable: AES enable status pointer
  *
  * @return None
  *
 *******************************************************************************/
-void XIP_SFlash_Opt_Enter(void)
+void ATTR_TCM_SECTION XIP_SFlash_Opt_Enter(uint8_t *aesEnable)
 {
-    aesEnable=SF_Ctrl_Is_AES_Enable();
-    if(aesEnable){
+    *aesEnable=SF_Ctrl_Is_AES_Enable();
+    if(*aesEnable){
         SF_Ctrl_AES_Disable();
     }
 }
@@ -100,12 +99,12 @@ void XIP_SFlash_Opt_Enter(void)
 /****************************************************************************//**
  * @brief  XIP SFlash option restore
  *
- * @param  None
+ * @param  aesEnable: AES enable status
  *
  * @return None
  *
 *******************************************************************************/
-void XIP_SFlash_Opt_Exit(void)
+void ATTR_TCM_SECTION XIP_SFlash_Opt_Exit(uint8_t aesEnable)
 {
     if(aesEnable){
         SF_Ctrl_AES_Enable();

@@ -159,6 +159,16 @@ typedef struct {
     uint32_t pinInfo                                 :  1;    /*!< Efuse pin info 0:QFN40, 1:QFN56 */
 }Efuse_Device_Info_Type;
 
+/**
+ *  @brief Efuse Capcode type definition
+ */
+typedef struct {
+    uint32_t capCode                                 :  6;    /*!< Cap code value */
+    uint32_t parity                                  :  1;    /*!< Parity of capcode */
+    uint32_t en                                      :  1;    /*!< Enable status */
+    uint32_t rsvd                                    : 24;    /*!< Reserved */
+}Efuse_Capcode_Info_Type;
+
 /*@} end of group EF_CTRL_Public_Types */
 
 /** @defgroup  EF_CTRL_Public_Constants
@@ -229,6 +239,7 @@ typedef struct {
  *  @{
  */
 void EF_Ctrl_Load_Efuse_R0(void);
+void EF_Ctrl_Program_Efuse_0(void);
 BL_Sts_Type EF_Ctrl_Busy(void);
 BL_Sts_Type EF_Ctrl_AutoLoad_Done(void);
 void EF_Ctrl_Write_Dbg_Pwd(uint32_t passWdLow, uint32_t passWdHigh,uint8_t program);
@@ -269,6 +280,15 @@ BL_Sts_Type EF_Ctrl_Crc_Is_Busy(void);
 void EF_Ctrl_Crc_Set_Golden(uint32_t goldenValue);
 BL_Err_Type EF_Ctrl_Crc_Result(void);
 void EF_Ctrl_Sw_AHB_Clk_0(void);
+uint8_t  EF_Ctrl_Is_MAC_Address_Slot_Empty(uint8_t slot,uint8_t reload);
+BL_Err_Type EF_Ctrl_Write_MAC_Address_Opt(uint8_t slot,uint8_t mac[6],uint8_t program);
+BL_Err_Type EF_Ctrl_Read_MAC_Address_Opt(uint8_t slot,uint8_t mac[6],uint8_t reload);
+uint8_t  EF_Ctrl_Is_CapCode_Slot_Empty(uint8_t slot,uint8_t reload);
+BL_Err_Type EF_Ctrl_Write_CapCode_Opt(uint8_t slot,uint8_t code,uint8_t program);
+BL_Err_Type EF_Ctrl_Read_CapCode_Opt(uint8_t slot,uint8_t *code,uint8_t reload);
+uint8_t  EF_Ctrl_Is_PowerOffset_Slot_Empty(uint8_t slot,uint8_t reload);
+BL_Err_Type EF_Ctrl_Write_PowerOffset_Opt(uint8_t slot,int8_t pwrOffset[3],uint8_t program);
+BL_Err_Type EF_Ctrl_Read_PowerOffset_Opt(uint8_t slot,int8_t pwrOffset[3],uint8_t reload);
 
 /*@} end of group EF_CTRL_Public_Functions */
 

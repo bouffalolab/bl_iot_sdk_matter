@@ -162,6 +162,46 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK_Div(uint8_t hclkDiv,uint8_t bc
 #endif
 
 /****************************************************************************//**
+ * @brief  Get Bus clock divider
+ *
+ * @param  None
+ *
+ * @return Clock Divider
+ *
+*******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
+__WEAK
+uint8_t ATTR_CLOCK_SECTION GLB_Get_BCLK_Div(void)
+{
+    uint32_t tmpVal;
+
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_CLK_CFG0);
+
+    return BL_GET_REG_BITS_VAL(tmpVal,GLB_REG_BCLK_DIV);
+}
+#endif
+
+/****************************************************************************//**
+ * @brief  Get CPU clock divider
+ *
+ * @param  None
+ *
+ * @return Clock Divider
+ *
+*******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
+__WEAK
+uint8_t ATTR_CLOCK_SECTION GLB_Get_HCLK_Div(void)
+{
+    uint32_t tmpVal;
+
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_CLK_CFG0);
+
+    return BL_GET_REG_BITS_VAL(tmpVal,GLB_REG_HCLK_DIV);
+}
+#endif
+
+/****************************************************************************//**
  * @brief  update SystemCoreClock value
  *
  * @param  xtalType: XTAL frequency type
@@ -233,6 +273,9 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB
     GLB_Set_System_CLK_Div(0,0);
     SystemCoreClockSet(32*1000*1000);
     
+    /* Select PKA clock from hclk */
+    GLB_Set_PKA_CLK_Sel(GLB_PKA_CLK_HCLK);
+
     if(xtalType==GLB_PLL_XTAL_NONE){
         if(clkFreq==GLB_SYS_CLK_RC32M){
             return SUCCESS;
@@ -297,6 +340,9 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB
     
     GLB_CLK_SET_DUMMY_WAIT;
     
+    /* select PKA clock from 120M since we power up PLL */
+    GLB_Set_PKA_CLK_Sel(GLB_PKA_CLK_PLL120M);
+
     return SUCCESS;
 }
 
@@ -637,7 +683,8 @@ BL_Err_Type GLB_Set_SPI_CLK(uint8_t enable,uint8_t div)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type GLB_Set_PKA_CLK_Sel(GLB_PKA_CLK_Type clkSel)
+__WEAK
+BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_PKA_CLK_Sel(GLB_PKA_CLK_Type clkSel)
 {
     uint32_t tmpVal = 0;
     
@@ -1075,6 +1122,34 @@ void __IRQ BMX_TO_IRQHandler(void)
     }
 }
 #endif
+
+/****************************************************************************//**
+ * @brief  set OCRAM IDLE
+ *
+ * @param  None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type GLB_Set_OCRAM_Idle(void)
+{
+    uint32_t tmpVal = 0;
+
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
+    tmpVal=BL_SET_REG_BIT(tmpVal,GLB_OCRAM_MBIST_MODE);
+    BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
+
+
+    tmpVal=BL_RD_REG(PDS_BASE,PDS_RAM1);
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,PDS_CR_NP_SRAM_PWR,0);
+    BL_WR_REG(PDS_BASE,PDS_RAM1,tmpVal);
+
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_OCRAM_MBIST_MODE);
+    BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
+
+    return SUCCESS;
+}
 
 /****************************************************************************//**
  * @brief  set sram_ret value
@@ -1846,6 +1921,95 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_Init(GLB_GPIO_Cfg_Type *cfg)
 #endif
 
 /****************************************************************************//**
+ * @brief  init GPIO function in pin list
+ *
+ * @param  gpioFun: GPIO pin function
+ * @param  pinList: GPIO pin list
+ * @param  cnt: GPIO pin count
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type GLB_GPIO_Func_Init(GLB_GPIO_FUNC_Type gpioFun,GLB_GPIO_Type *pinList,uint8_t cnt)
+{
+    GLB_GPIO_Cfg_Type gpioCfg = {
+        .gpioPin=GLB_GPIO_PIN_0,
+        .gpioFun=(uint8_t)gpioFun,
+        .gpioMode=GPIO_MODE_AF,
+        .pullType=GPIO_PULL_UP,
+        .drive=1,
+        .smtCtrl=1
+    };
+    
+    if(gpioFun==GPIO_FUN_ANALOG){
+        gpioCfg.pullType=GPIO_PULL_NONE;
+    }
+    
+    for(uint8_t i=0;i<cnt;i++){
+        gpioCfg.gpioPin=pinList[i];
+        GLB_GPIO_Init(&gpioCfg);
+    }
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
+ * @brief  GPIO set input function enable
+ *
+ * @param  gpioPin: GPIO pin
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Enable(GLB_GPIO_Type gpioPin)
+{
+    uint32_t tmpVal;
+    uint32_t pinOffset;
+    
+    pinOffset=(gpioPin>>1)<<2;
+    tmpVal=*(uint32_t *)(GLB_BASE+GLB_GPIO_OFFSET+pinOffset);
+    if(gpioPin%2==0){
+        /* [0] is ie */
+        tmpVal=BL_SET_REG_BIT(tmpVal,GLB_REG_GPIO_0_IE);
+    }else{
+        /* [16] is ie */
+        tmpVal=BL_SET_REG_BIT(tmpVal,GLB_REG_GPIO_1_IE);
+    }
+    *(uint32_t *)(GLB_BASE+GLB_GPIO_OFFSET+pinOffset)=tmpVal;
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
+ * @brief  GPIO set input function disable
+ *
+ * @param  gpioPin: GPIO pin
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+__WEAK
+BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Disable(GLB_GPIO_Type gpioPin)
+{
+    uint32_t tmpVal;
+    uint32_t pinOffset;
+    
+    pinOffset=(gpioPin>>1)<<2;
+    tmpVal=*(uint32_t *)(GLB_BASE+GLB_GPIO_OFFSET+pinOffset);
+    if(gpioPin%2==0){
+        /* [0] is ie */
+        tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_REG_GPIO_0_IE);
+    }else{
+        /* [16] is ie */
+        tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_REG_GPIO_1_IE);
+    }
+    *(uint32_t *)(GLB_BASE+GLB_GPIO_OFFSET+pinOffset)=tmpVal;
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
  * @brief  GPIO set output function enable
  *
  * @param  gpioPin: GPIO pin
@@ -1853,6 +2017,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_Init(GLB_GPIO_Cfg_Type *cfg)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Enable(GLB_GPIO_Type gpioPin)
 {
     uint32_t tmpVal;
@@ -1872,6 +2037,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Enable(GLB_GPIO_Type gpioPin)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Disable(GLB_GPIO_Type gpioPin)
 {
     uint32_t tmpVal;
@@ -1891,6 +2057,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Disable(GLB_GPIO_Type gpioPin)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_Set_HZ(GLB_GPIO_Type gpioPin)
 {
     uint32_t *pOut;

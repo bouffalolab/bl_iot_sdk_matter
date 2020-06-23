@@ -89,6 +89,7 @@ struct bt_mesh_net bt_mesh = {
 	},
 };
 
+#if !defined(BFLB_BLE_MESH_PATCH_NET_DECODE)
 static u32_t dup_cache[4];
 static int   dup_cache_next;
 
@@ -111,6 +112,7 @@ static bool check_dup(struct net_buf_simple *data)
 
 	return false;
 }
+#endif
 
 static u64_t msg_hash(struct bt_mesh_net_rx *rx, struct net_buf_simple *pdu)
 {

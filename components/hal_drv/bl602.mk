@@ -18,6 +18,7 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/bl_timer.c \
                   bl602_hal/bl_gpio.c \
                   bl602_hal/bl_gpio_cli.c \
+                  bl602_hal/bl_hbn.c \
                   bl602_hal/bl_efuse.c \
                   bl602_hal/bl_flash.c \
                   bl602_hal/bl_pwm.c \
@@ -28,11 +29,17 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/bl_wdt_cli.c \
                   bl602_hal/hal_uart.c \
                   bl602_hal/hal_gpio.c \
+                  bl602_hal/hal_hbn.c \
                   bl602_hal/hal_pwm.c \
                   bl602_hal/hal_boot2.c \
                   bl602_hal/hal_sys.c \
                   bl602_hal/hal_board.c \
-
+                  bl602_hal/bl_adc.c \
+                  bl602_hal/hal_ir.c \
+                  bl602_hal/bl_ir.c \
+                  bl602_hal/bl_dac_audio.c \
+                  bl602_hal/hal_button.c \
+                  bl602_hal/hal_hbnram.c \
 
 COMPONENT_SRCDIRS := bl602_hal
 

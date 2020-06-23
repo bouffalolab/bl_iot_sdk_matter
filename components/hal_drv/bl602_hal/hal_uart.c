@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <device/vfs_uart.h>
 #include <vfs_err.h>
 #include <vfs_register.h>
@@ -9,8 +38,7 @@
 
 #include <libfdt.h>
 
-#include <utils_log.h>
-
+#include <blog.h>
 
 typedef struct uart_priv_data {
     aos_mutex_t    mutex;
@@ -23,22 +51,25 @@ static uart_dev_t *dev_uart1 = NULL;
 static int uart_dev_malloc(uart_dev_t **pdev)
 {
     if (*pdev) {
-        log_error("arg err.\r\n");
+        blog_error("arg err.\r\n");
         return -1;
     }
 
     *pdev = pvPortMalloc(sizeof(uart_dev_t));
     if (*pdev == 0) {
-        log_error("mem err.\r\n");
+        blog_error("mem err.\r\n");
         return -1;
     }
+    memset(*pdev, 0, sizeof(uart_dev_t));
 
+    (*pdev)->read_block_flag = UART_READ_CFG_NOBLOCK;
     (*pdev)->priv = NULL;
     (*pdev)->priv = pvPortMalloc(sizeof(uart_priv_data_t));
     if ((*pdev)->priv == NULL) {
-        log_error("mem err.\r\n");
+        blog_error("mem err.\r\n");
         return -1;
     }
+    memset((*pdev)->priv, 0, sizeof(uart_priv_data_t));
 
     return 0;
 }
@@ -46,12 +77,13 @@ static int uart_dev_malloc(uart_dev_t **pdev)
 static void uart_dev_setdef(uart_dev_t **pdev, uint8_t id)
 {
     if (*pdev == NULL) {
-        log_error("mem err.\r\n");
+        blog_error("mem err.\r\n");
         return;
     }
 
     (*pdev)->port = id;
-
+    (*pdev)->read_block_flag = UART_READ_CFG_NOBLOCK;
+    
     (*pdev)->config.baud_rate = 115200;
     (*pdev)->config.data_width = DATA_WIDTH_8BIT;
     (*pdev)->config.parity = NO_PARITY;
@@ -66,7 +98,7 @@ static int dev_uart_init(uint8_t id, const char *path)
     int ret;
 
     if ((id >= 3) || (path == 0)) {
-        log_error("arg err.\r\n");
+        blog_error("arg err.\r\n");
         return -1;
     }
 
@@ -81,7 +113,7 @@ static int dev_uart_init(uint8_t id, const char *path)
         } break;
         default:
         {
-            log_error("err.\r\n");
+            blog_error("err.\r\n");
             return -1;
         } break;
     }
@@ -229,38 +261,38 @@ static void fdt_uart_module_init(const void *fdt, int uart_offset)
     for (i = 0; i < UART_MODULE_MAX; i++) {
         offset1 = fdt_subnode_offset(fdt, uart_offset, uart_node[i]);
         if (0 >= offset1) {
-            log_info("uart[%d] %s NULL.\r\n", i, uart_node[i]);
+            blog_info("uart[%d] %s NULL.\r\n", i, uart_node[i]);
             continue;
         }
 
         countindex = fdt_stringlist_count(fdt, offset1, "status");
         if (countindex != 1) {
-            log_info("uart[%d] status_countindex = %d NULL.\r\n", i, countindex);
+            blog_info("uart[%d] status_countindex = %d NULL.\r\n", i, countindex);
             continue;
         }
         result = fdt_stringlist_get(fdt, offset1, "status", 0, &lentmp);
         if ((lentmp != 4) || (memcmp("okay", result, 4) != 0)) {
-            log_info("uart[%d] status = %s\r\n", i, result);
+            blog_info("uart[%d] status = %s\r\n", i, result);
             continue;
         }
 
         /* set path */
         countindex = fdt_stringlist_count(fdt, offset1, "path");
         if (countindex != 1) {
-            log_info("uart[%d] path_countindex = %d NULL.\r\n", i, countindex);
+            blog_info("uart[%d] path_countindex = %d NULL.\r\n", i, countindex);
             continue;
         }
         result = fdt_stringlist_get(fdt, offset1, "path", 0, &lentmp);
         if ((lentmp < 0) || (lentmp > 32))
         {
-            log_info("uart[%d] path lentmp = %d\r\n", i, lentmp);
+            blog_info("uart[%d] path lentmp = %d\r\n", i, lentmp);
         }
         path = (char *)result;
 
         /* set id */
         addr_prop = fdt_getprop(fdt, offset1, "baudrate", &lentmp);
         if (addr_prop == NULL) {
-            log_info("uart[%d] baudrate NULL.\r\n", i);
+            blog_info("uart[%d] baudrate NULL.\r\n", i);
             continue;
         }
         baudrate = BL_FDT32_TO_U32(addr_prop, 0);
@@ -268,7 +300,7 @@ static void fdt_uart_module_init(const void *fdt, int uart_offset)
         /* set id */
         addr_prop = fdt_getprop(fdt, offset1, "id", &lentmp);
         if (addr_prop == NULL) {
-            log_info("uart[%d] id NULL.\r\n", i);
+            blog_info("uart[%d] id NULL.\r\n", i);
             continue;
         }
         id = BL_FDT32_TO_U8(addr_prop, 0);
@@ -276,34 +308,34 @@ static void fdt_uart_module_init(const void *fdt, int uart_offset)
         for (j = 0; j < 4; j++) {
             offset2 = fdt_subnode_offset(fdt, offset1, "feature");
             if (0 >= offset2) {
-                log_info("uart[%d] feature NULL.\r\n", i);
+                blog_info("uart[%d] feature NULL.\r\n", i);
                 continue;
             }
             countindex = fdt_stringlist_count(fdt, offset2, feature_pin[j].featue_name);
             if (countindex != 1) {
-                log_info("uart[%d] %s countindex = %d.\r\n", i, feature_pin[j].featue_name, countindex);
+                blog_info("uart[%d] %s countindex = %d.\r\n", i, feature_pin[j].featue_name, countindex);
                 continue;
             }
             result = fdt_stringlist_get(fdt, offset2, feature_pin[j].featue_name, 0, &lentmp);
             if ((lentmp != 4) || (memcmp("okay", result, 4) != 0)) {
-                log_info("uart[%d] %s status = %s lentmp = %d\r\n", i, feature_pin[j].featue_name, result, lentmp);
+                blog_info("uart[%d] %s status = %s lentmp = %d\r\n", i, feature_pin[j].featue_name, result, lentmp);
                 continue;
             }
 
             /* get pin_name */
             offset2 = fdt_subnode_offset(fdt, offset1, "pin");
             if (0 >= offset2) {
-                log_info("uart[%d] pin NULL.\r\n", i);
+                blog_info("uart[%d] pin NULL.\r\n", i);
                 break;
             }
             addr_prop = fdt_getprop(fdt, offset2, feature_pin[j].pin_name, &lentmp);
             if (addr_prop == NULL) {
-                log_info("uart[%d] %s NULL.\r\n", i, feature_pin[j].pin_name);
+                blog_info("uart[%d] %s NULL.\r\n", i, feature_pin[j].pin_name);
                 continue;
             }
             feature_pin[j].value = BL_FDT32_TO_U8(addr_prop, 0);
         }
-        log_info("id = %d, %s = %d, %s = %d, %s = %d, %s = %d baudrate = %ld.\r\n",
+        blog_info("id = %d, %s = %d, %s = %d, %s = %d, %s = %d baudrate = %ld.\r\n",
             id,
             feature_pin[0].pin_name, feature_pin[0].value,
             feature_pin[1].pin_name, feature_pin[1].value,
@@ -317,11 +349,11 @@ static void fdt_uart_module_init(const void *fdt, int uart_offset)
         bl_uart_init(id, feature_pin[0].value, feature_pin[1].value,
             feature_pin[2].value, feature_pin[3].value, baudrate);
 
-        log_info("bl_uart_init %d ok.\r\n", id);
-        log_info("bl_uart_init %d baudrate = %ld ok.\r\n", id, baudrate);
+        blog_info("bl_uart_init %d ok.\r\n", id);
+        blog_info("bl_uart_init %d baudrate = %ld ok.\r\n", id, baudrate);
 
         if (dev_uart_init(id, (const char *)path) != 0) {
-            log_error("dev_uart_init err.\r\n");
+            blog_error("dev_uart_init err.\r\n");
         }
     }
     #undef UART_MODULE_MAX
@@ -335,7 +367,7 @@ int vfs_uart_init_simple_mode(uint8_t id, uint8_t pin_tx, uint8_t pin_rx, int ba
     bl_uart_init(id, pin_tx, pin_rx, 255, 255, baudrate);
 
     if (dev_uart_init(id, path) != 0) {
-        log_error("dev_uart_init err.\r\n");
+        blog_error("dev_uart_init err.\r\n");
     }
 
     return 0;

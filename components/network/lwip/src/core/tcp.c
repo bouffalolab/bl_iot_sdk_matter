@@ -2685,4 +2685,12 @@ tcp_ext_arg_invoke_callbacks_passive_open(struct tcp_pcb_listen *lpcb, struct tc
 }
 #endif /* LWIP_TCP_PCB_NUM_EXT_ARGS */
 
+#if LWIP_STATS
+int tcp_get_pcbs(struct tcp_pcb **const**list)
+{
+  *list = tcp_pcb_lists;
+  return LWIP_ARRAYSIZE(tcp_pcb_lists);
+}
+#endif
+
 #endif /* LWIP_TCP */

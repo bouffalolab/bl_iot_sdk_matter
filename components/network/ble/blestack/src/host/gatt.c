@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 /* gatt.c - Generic Attribute Profile handling */
 
 /*
@@ -888,7 +917,7 @@ static void sc_process(struct k_work *work)
 		 "Indicate already pending");
 
 	BT_DBG("start 0x%04x end 0x%04x", sc->start, sc->end);
-
+	
 	sc_range[0] = sys_cpu_to_le16(sc->start);
 	sc_range[1] = sys_cpu_to_le16(sc->end);
 
@@ -911,6 +940,31 @@ static void sc_process(struct k_work *work)
 
 	atomic_set_bit(sc->flags, SC_INDICATE_PENDING);
 }
+
+#if defined(CONFIG_BT_STACK_PTS)
+int service_change_test(struct bt_gatt_indicate_params *params,const struct bt_conn *con)
+{
+	u16_t sc_range[2];
+	
+	if(!params->attr){
+		#if defined(BFLB_BLE_DISABLE_STATIC_ATTR)
+		params->attr = &gatt_attrs[2];
+		#else
+		params->attr = &_1_gatt_svc.attrs[2];
+		#endif
+	}	
+	sc_range[0] = 0x000e;
+	sc_range[1] = 0x001e;
+	
+	params->data = &sc_range[0];
+	params->len = sizeof(sc_range);
+		
+	if (bt_gatt_indicate(con, params)) {
+		/* No connections to indicate */
+		return;
+	}
+}
+#endif
 
 #if defined(CONFIG_BT_SETTINGS_CCC_STORE_ON_WRITE)
 static struct gatt_ccc_store {
@@ -1692,6 +1746,7 @@ static int gatt_send(struct bt_conn *conn, struct net_buf *buf,
 	} else {
 		err = bt_att_send(conn, buf, NULL, NULL);
 	}
+
 
 	if (err) {
 		BT_ERR("Error sending ATT PDU: %d", err);

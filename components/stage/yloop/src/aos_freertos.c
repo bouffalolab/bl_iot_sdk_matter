@@ -385,7 +385,15 @@ void *aos_malloc(unsigned int size)
 #if !defined(USE_STDLIB_MALLOC)
 void *calloc(size_t nmemb, size_t size)
 {
-    return pvPortMalloc(nmemb * size);
+    void *ptr;
+    size_t total;
+
+    total = nmemb * size;
+    ptr = pvPortMalloc(total);
+    if (ptr) {
+        memset(ptr, 0, total);
+    }
+    return ptr;
 }
 #endif
 

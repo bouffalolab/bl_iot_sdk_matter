@@ -5,6 +5,9 @@
 #include "stdio.h"
 #include "stdint.h"
 #include "string.h"
+#ifdef BFLB_MCU_SDK
+#include "mcu_sdk_version.h"
+#endif
 
 void *	pvPortMalloc( size_t xWantedSize );
 void* 	pvPortRealloc(void* ptr, size_t newsize);
@@ -42,24 +45,7 @@ uint32_t bflb_platform_get_log(uint8_t *data,uint32_t maxlen);
 #define MSG_DBG(a,...)          bflb_platform_printf(a,##__VA_ARGS__)
 #define MSG_WAR(a,...)          bflb_platform_printf(a,##__VA_ARGS__)
 #define MSG_ERR(a,...)          bflb_platform_printf(a,##__VA_ARGS__)
-#define BL_CASE_FAIL            {MSG("Case Fail");while(1){BL602_Delay_US(10);}}
-#define BL_CASE_SUCCESS         {MSG("Case Success");while(1){BL602_Delay_US(10);}}
-
-
-
-#define WRITE_REG(a,v)    *((volatile uint32_t *)(a))=(v)
-#define MSG_PRINT_MSG_LEN  (0x200)
-#define SV_C_SHARE_LEN     (0x200)
-#define DBG_BASE           (0x5200bc00)
-
-#define MSG_PRINT_MARK_ADR          (DBG_BASE)
-#define MSG_PRINT_MSG_ADR           (MSG_PRINT_MARK_ADR+4)
-#define MSG_PRINT_MSG_MARK          (0xABCDABCD)
-#define MSG_PRINT_ERR_MSG_MARK      (0xCDABCDAB)
-
-#define SIM_END_MARK_ADR            (DBG_BASE+MSG_PRINT_MSG_LEN+4+SV_C_SHARE_LEN)
-#define SIM_END_MARK                (0xa5a55a5a)
-#define SIM_END                 WRITE_REG(SIM_END_MARK_ADR, SIM_END_MARK)
-#define SIM_FAIL                {MSG_ERR("sw sim fail"); SIM_END;}
+#define BL_CASE_FAIL            {MSG(__FILE__);MSG(" Case Fail");while(1){BL602_Delay_US(10);}}
+#define BL_CASE_SUCCESS         {MSG(__FILE__); MSG(" Case Success");while(1){BL602_Delay_US(10);}}
 
 #endif

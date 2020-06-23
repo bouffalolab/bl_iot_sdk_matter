@@ -16,7 +16,7 @@ SECTIONS
 {
   __stack_size = DEFINED(__stack_size) ? __stack_size : 2K;
   BOOT2_PT_ADDR = 0x42049C00;
-  BOOT2_FLASHCFG_ADDR = 0x42049d14;
+  BOOT2_FLASHCFG_ADDR = 0x42049c18;
 
   .init           :
   {
@@ -66,6 +66,12 @@ SECTIONS
     _bl_static_blogpri_code_end = .;
 
     *(.gnu.linkonce.r.*)
+    
+    /*Framework table section, use ALIGN here to avoid fill section*/
+    . = ALIGN(4);
+    _rom_framework_audio_device_start = .;
+    KEEP(*(.framework.audio_device))
+    _rom_framework_audio_device_end = .;
   } > flash
 
   /*put wifibss in the first place*/
@@ -109,6 +115,9 @@ SECTIONS
     PROVIDE( _data_run_end = ADDR(.data) + SIZEOF(.data));
 
     *(.tcm_code)
+    *(.tcm_const)
+    *(.sclock_rlt_code)
+    *(.sclock_rlt_const)
     *(.data .data.*)
     *(.gnu.linkonce.d.*)
 
@@ -250,4 +259,8 @@ SECTIONS
   PROVIDE(vTaskStartScheduler = 0x0000000021017610);
   PROVIDE(vPortDefineHeapRegions = 0x00000000210197da);
   PROVIDE(__LD_CONFIG_EM_SEL = __EM_SIZE);
+  
+  PROVIDE( _ld_symbol_rom_framework_audio_device_start = _rom_framework_audio_device_start);
+  PROVIDE( _ld_symbol_rom_framework_audio_device_end = _rom_framework_audio_device_end);
+
 }

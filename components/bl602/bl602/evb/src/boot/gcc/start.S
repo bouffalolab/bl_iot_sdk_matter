@@ -56,7 +56,7 @@ bl602_start:
 
 
 	/* Load boot2 flashCfg address */
-	la a0, __boot2_flashCfg_src
+	jal hal_boot2_get_flash_addr
 	la a1, __boot2_flashCfg_start
 	la a2, __boot2_flashCfg_end
 	bgeu a1, a2, 2f

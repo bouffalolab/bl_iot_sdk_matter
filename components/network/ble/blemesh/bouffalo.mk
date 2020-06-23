@@ -1,26 +1,4 @@
-CFLAGS += -DCONFIG_BT_MESH -DCONFIG_BT_MESH_PROV
-#CFLAGS += -DCONFIG_BT_SETTINGS
-ifeq ($(CONFIG_BT_MESH_PB_ADV),1)
-CFLAGS += -DCONFIG_BT_MESH_PB_ADV
-endif
-ifeq ($(CONFIG_BT_MESH_PB_GATT),1)
-CFLAGS += -DCONFIG_BT_MESH_PB_GATT
-endif
-ifeq ($(CONFIG_BT_MESH_FRIEND),1)
-CFLAGS += -DCONFIG_BT_MESH_FRIEND
-endif
-ifeq ($(CONFIG_BT_MESH_LOW_POWER),1)
-CFLAGS += -DCONFIG_BT_MESH_LOW_POWER
-endif
-ifeq ($(CONFIG_BT_MESH_PROXY),1)
-CFLAGS += -DCONFIG_BT_MESH_PROXY
-endif
-ifeq ($(CONFIG_BT_MESH_GATT_PROXY),1)
-CFLAGS += -DCONFIG_BT_MESH_GATT_PROXY
-endif
-ifeq ($(CONFIG_BLE_STACK_DBG_PRINT),1)
-CFLAGS += -DCFG_BLE_STACK_DBG_PRINT
-endif
+include $(COMPONENT_PATH)/../ble_common.mk
 
 # Component Makefile
 #
@@ -68,5 +46,3 @@ COMPONENT_OBJS   := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 COMPONENT_SRCDIRS:= src \
                     src/mesh_cli_cmds \
                     src/mesh_models/server
-
-include $(COMPONENT_PATH)/../ble_common.mk

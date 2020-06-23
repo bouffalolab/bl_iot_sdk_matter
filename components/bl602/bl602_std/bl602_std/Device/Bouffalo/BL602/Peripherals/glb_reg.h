@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    glb_reg.h
   * @version V1.2
-  * @date    2019-11-22
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -495,9 +495,6 @@
 #define GLB_WIFI_MBIST_FAIL_MSK                                 (((1U<<GLB_WIFI_MBIST_FAIL_LEN)-1)<<GLB_WIFI_MBIST_FAIL_POS)
 #define GLB_WIFI_MBIST_FAIL_UMSK                                (~(((1U<<GLB_WIFI_MBIST_FAIL_LEN)-1)<<GLB_WIFI_MBIST_FAIL_POS))
 
-/* 0x40 : RF_TEST_CONFIG */
-#define GLB_RF_TEST_CONFIG_OFFSET                               (0x40)
-
 /* 0x50 : bmx_cfg1 */
 #define GLB_BMX_CFG1_OFFSET                                     (0x50)
 #define GLB_BMX_TIMEOUT_EN                                      GLB_BMX_TIMEOUT_EN
@@ -861,9 +858,6 @@
 #define GLB_UART_SIG_7_SEL_LEN                                  (4U)
 #define GLB_UART_SIG_7_SEL_MSK                                  (((1U<<GLB_UART_SIG_7_SEL_LEN)-1)<<GLB_UART_SIG_7_SEL_POS)
 #define GLB_UART_SIG_7_SEL_UMSK                                 (~(((1U<<GLB_UART_SIG_7_SEL_LEN)-1)<<GLB_UART_SIG_7_SEL_POS))
-
-/* 0xC4 : UART_SIG_SEL_1 */
-#define GLB_UART_SIG_SEL_1_OFFSET                               (0xC4)
 
 /* 0xD0 : DBG_SEL_LL */
 #define GLB_DBG_SEL_LL_OFFSET                                   (0xD0)
@@ -1825,9 +1819,6 @@
 #define GLB_REG_GPIO_28_PD_MSK                                  (((1U<<GLB_REG_GPIO_28_PD_LEN)-1)<<GLB_REG_GPIO_28_PD_POS)
 #define GLB_REG_GPIO_28_PD_UMSK                                 (~(((1U<<GLB_REG_GPIO_28_PD_LEN)-1)<<GLB_REG_GPIO_28_PD_POS))
 
-/* 0x13C : GPIO_CFGCTL15 */
-#define GLB_GPIO_CFGCTL15_OFFSET                                (0x13C)
-
 /* 0x180 : GPIO_CFGCTL30 */
 #define GLB_GPIO_CFGCTL30_OFFSET                                (0x180)
 #define GLB_REG_GPIO_0_I                                        GLB_REG_GPIO_0_I
@@ -2239,9 +2230,6 @@
 #define GLB_REG_GPIO_INT_MODE_SET3_MSK                          (((1U<<GLB_REG_GPIO_INT_MODE_SET3_LEN)-1)<<GLB_REG_GPIO_INT_MODE_SET3_POS)
 #define GLB_REG_GPIO_INT_MODE_SET3_UMSK                         (~(((1U<<GLB_REG_GPIO_INT_MODE_SET3_LEN)-1)<<GLB_REG_GPIO_INT_MODE_SET3_POS))
 
-/* 0x200 : dll */
-#define GLB_DLL_OFFSET                                          (0x200)
-
 /* 0x224 : led_driver */
 #define GLB_LED_DRIVER_OFFSET                                   (0x224)
 #define GLB_LED_DIN_REG                                         GLB_LED_DIN_REG
@@ -2274,9 +2262,6 @@
 #define GLB_PU_LEDDRV_LEN                                       (1U)
 #define GLB_PU_LEDDRV_MSK                                       (((1U<<GLB_PU_LEDDRV_LEN)-1)<<GLB_PU_LEDDRV_POS)
 #define GLB_PU_LEDDRV_UMSK                                      (~(((1U<<GLB_PU_LEDDRV_LEN)-1)<<GLB_PU_LEDDRV_POS))
-
-/* 0x228 : usb_xcvr */
-#define GLB_USB_XCVR_OFFSET                                     (0x228)
 
 /* 0x308 : gpdac_ctrl */
 #define GLB_GPDAC_CTRL_OFFSET                                   (0x308)
@@ -2966,18 +2951,7 @@ struct  glb_reg {
     } MBIST_STAT;
 
     /* 0x38  reserved */
-    uint8_t RESERVED0x38[8];
-
-    /* 0x40 : RF_TEST_CONFIG */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } RF_TEST_CONFIG;
-
-    /* 0x44  reserved */
-    uint8_t RESERVED0x44[12];
+    uint8_t RESERVED0x38[24];
 
     /* 0x50 : bmx_cfg1 */
     union {
@@ -3198,16 +3172,8 @@ struct  glb_reg {
         uint32_t WORD;
     } UART_SIG_SEL_0;
 
-    /* 0xC4 : UART_SIG_SEL_1 */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } UART_SIG_SEL_1;
-
-    /* 0xc8  reserved */
-    uint8_t RESERVED0xc8[8];
+    /* 0xc4  reserved */
+    uint8_t RESERVED0xc4[12];
 
     /* 0xD0 : DBG_SEL_LL */
     union {
@@ -3578,16 +3544,8 @@ struct  glb_reg {
         uint32_t WORD;
     } GPIO_CFGCTL14;
 
-    /* 0x13C : GPIO_CFGCTL15 */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } GPIO_CFGCTL15;
-
-    /* 0x140  reserved */
-    uint8_t RESERVED0x140[64];
+    /* 0x13c  reserved */
+    uint8_t RESERVED0x13c[68];
 
     /* 0x180 : GPIO_CFGCTL30 */
     union {
@@ -3767,18 +3725,7 @@ struct  glb_reg {
     } GPIO_INT_MODE_SET3;
 
     /* 0x1cc  reserved */
-    uint8_t RESERVED0x1cc[52];
-
-    /* 0x200 : dll */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } dll;
-
-    /* 0x204  reserved */
-    uint8_t RESERVED0x204[32];
+    uint8_t RESERVED0x1cc[88];
 
     /* 0x224 : led_driver */
     union {
@@ -3795,16 +3742,8 @@ struct  glb_reg {
         uint32_t WORD;
     } led_driver;
 
-    /* 0x228 : usb_xcvr */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } usb_xcvr;
-
-    /* 0x22c  reserved */
-    uint8_t RESERVED0x22c[220];
+    /* 0x228  reserved */
+    uint8_t RESERVED0x228[224];
 
     /* 0x308 : gpdac_ctrl */
     union {
@@ -3973,6 +3912,8 @@ struct  glb_reg {
 
 typedef volatile struct glb_reg glb_reg_t;
 
+
+/*Following is reg patch*/
 
 /* 0x0 : GPIO_CFGCTL */
 #define GLB_GPIO_CFGCTL_OFFSET                                  (0x0)

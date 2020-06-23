@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    hbn_reg.h
   * @version V1.2
-  * @date    2019-12-05
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -711,7 +711,7 @@ struct  hbn_reg {
             uint32_t rc32k_ext_code_en              :  1; /* [   19],        r/w,        0x1 */
             uint32_t rc32k_cal_en                   :  1; /* [   20],        r/w,        0x0 */
             uint32_t reserved_21                    :  1; /* [   21],       rsvd,        0x0 */
-            uint32_t rc32k_code_fr_ext              : 10; /* [31:22],        r/w,      0x12c */
+            uint32_t rc32k_code_fr_ext              : 10; /* [31:22],        r/w,      0x140 */
         }BF;
         uint32_t WORD;
     } rc32k_ctrl0;

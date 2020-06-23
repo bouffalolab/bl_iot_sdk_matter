@@ -490,6 +490,7 @@ void DMA_LLI_PpStruct_Start(DMA_LLI_PP_Struct *dmaPpStruct){
 }
 
 
+
 /****************************************************************************//**
  * @brief  DMA LLI PingPong Structure Stop
  *
@@ -501,6 +502,39 @@ void DMA_LLI_PpStruct_Start(DMA_LLI_PP_Struct *dmaPpStruct){
 void DMA_LLI_PpStruct_Stop(DMA_LLI_PP_Struct *dmaPpStruct){
     DMA_Channel_Disable(dmaPpStruct->dmaChan);
 }
+
+/****************************************************************************//**
+ * @brief  DMA LLI PingPong Structure Start
+ *
+ * @param  dmaPpStruct: dma pp struct pointer
+ * @param  Ping_Transfer_len: ping len
+ * @param  Pong_Transfer_len: pong len
+ *
+ * @return Succrss or not
+ *
+*******************************************************************************/
+BL_Err_Type DMA_LLI_PpStruct_Set_Transfer_Len(DMA_LLI_PP_Struct *dmaPpStruct,uint16_t Ping_Transfer_len,uint16_t Pong_Transfer_len){
+    struct DMA_Control_Reg dmaCtrlRegVal_temp;
+
+    if(Ping_Transfer_len > 4096 || Pong_Transfer_len >4096){
+        return ERROR;
+    }
+
+    dmaCtrlRegVal_temp = PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX].dmaCtrl ;
+    dmaCtrlRegVal_temp.TransferSize = Ping_Transfer_len;
+    PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX].dmaCtrl = dmaCtrlRegVal_temp;  
+
+    dmaCtrlRegVal_temp = PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX].dmaCtrl ;
+    dmaCtrlRegVal_temp.TransferSize = Pong_Transfer_len;
+    PingPongListArra[dmaPpStruct->dmaChan][PONG_INDEX].dmaCtrl = dmaCtrlRegVal_temp; 
+
+    DMA_LLI_Init(dmaPpStruct->dmaChan, dmaPpStruct->DMA_LLI_Cfg);
+    DMA_LLI_Update(dmaPpStruct->dmaChan, (uint32_t)&PingPongListArra[dmaPpStruct->dmaChan][PING_INDEX]);
+
+    return SUCCESS;
+
+}
+
 
 
 

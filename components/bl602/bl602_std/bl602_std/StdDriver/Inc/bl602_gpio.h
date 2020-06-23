@@ -71,20 +71,7 @@ typedef enum
 #define  GPIO_PULL_UP                           ((uint32_t)0x00000000U)   /*!< GPIO pull up                          */
 #define  GPIO_PULL_DOWN                         ((uint32_t)0x00000001U)   /*!< GPIO pull down                        */
 #define  GPIO_PULL_NONE                         ((uint32_t)0x00000002U)   /*!< GPIO no pull up or down               */
-
-#define  GPIO_FUN_SDIO                          1
-#define  GPIO_FUN_FLASH                         2
-#define  GPIO_FUN_SPI                           4
-#define  GPIO_FUN_I2C                           6
-#define  GPIO_FUN_UART                          7
-#define  GPIO_FUN_PWM                           8
-#define  GPIO_FUN_EXT_PA                        9
-#define  GPIO_FUN_ATEST                         10
-#define  GPIO_FUN_SWGPIO                        11
-#define  GPIO_FUN_RF                            12
-#define  GPIO_FUN_SCAN_TEST                     13
-#define  GPIO_FUN_JTAG                          14
-#define  GPIO_FUN_DEBUG                         15
+typedef enum{    GPIO_FUN_SDIO        = 1,    GPIO_FUN_FLASH       = 2,    GPIO_FUN_SPI         = 4,    GPIO_FUN_I2C         = 6,    GPIO_FUN_UART        = 7,    GPIO_FUN_PWM         = 8,    GPIO_FUN_EXT_PA      = 9,    GPIO_FUN_ANALOG      = 10,    GPIO_FUN_SWGPIO      = 11,    GPIO_FUN_JTAG        = 14,}GLB_GPIO_FUNC_Type;
 
 typedef struct
 {
@@ -108,10 +95,7 @@ typedef struct
 #define GPIO0_FUN_FEM_GPIO_0                    9
 #define GPIO0_FUN_ATEST_IN                      10
 #define GPIO0_FUN_SWGPIO_0                      11
-#define GPIO0_FUN_RF_TEST_0                     12
-#define GPIO0_FUN_SCAN_IN_0                     13
 #define GPIO0_FUN_E21_TMS                       14
-#define GPIO0_FUN_DEBUG_0                       15
 /* GPIO1 function definition */
 #define GPIO1_FUN_SDIO_CMD                      1
 #define GPIO1_FUN_SF_D2                         2
@@ -124,10 +108,7 @@ typedef struct
 #define GPIO1_FUN_FEM_GPIO_1                    9
 #define GPIO1_FUN_ATEST_IP                      10
 #define GPIO1_FUN_SWGPIO_1                      11
-#define GPIO1_FUN_RF_TEST_1                     12
-#define GPIO1_FUN_SCAN_IN_1                     13
 #define GPIO1_FUN_E21_TDI                       14
-#define GPIO1_FUN_DEBUG_1                       15
 /* GPIO2 function definition */
 #define GPIO2_FUN_SDIO_DAT0                     1
 #define GPIO2_FUN_SF_D3                         2
@@ -140,10 +121,7 @@ typedef struct
 #define GPIO2_FUN_FEM_GPIO_2                    9
 #define GPIO2_FUN_ATEST_QN                      10
 #define GPIO2_FUN_SWGPIO_2                      11
-#define GPIO2_FUN_S_CCI_DO_E21_TCK              12
-#define GPIO2_FUN_SCAN_IN_2                     13
 #define GPIO2_FUN_E21_TCK                       14
-#define GPIO2_FUN_S_CCI_DO                      15
 /* GPIO3 function definition */
 #define GPIO3_FUN_SDIO_DAT1                     1
 #define GPIO3_FUN_UNUSED2                       2
@@ -156,10 +134,7 @@ typedef struct
 #define GPIO3_FUN_FEM_GPIO_3                    9
 #define GPIO3_FUN_ATEST_QP                      10
 #define GPIO3_FUN_SWGPIO_3                      11
-#define GPIO3_FUN_S_CCI_DI_E21_TDO              12
-#define GPIO3_FUN_SCAN_IN_3                     13
 #define GPIO3_FUN_E21_TDO                       14
-#define GPIO3_FUN_S_CCI_DI                      15
 /* GPIO4 function definition */
 #define GPIO4_FUN_SDIO_DAT2                     1
 #define GPIO4_FUN_UNUSED2                       2
@@ -172,10 +147,7 @@ typedef struct
 #define GPIO4_FUN_FEM_GPIO_0                    9
 #define GPIO4_FUN_GPIP_CH1                      10
 #define GPIO4_FUN_SWGPIO_4                      11
-#define GPIO4_FUN_S_CCI_CS_E21_TMS              12
-#define GPIO4_FUN_SCAN_IN_4                     13
 #define GPIO4_FUN_E21_TMS                       14
-#define GPIO4_FUN_S_CCI_CS                      15
 /* GPIO5 function definition */
 #define GPIO5_FUN_SDIO_DAT3                     1
 #define GPIO5_FUN_UNUSED2                       2
@@ -188,10 +160,7 @@ typedef struct
 #define GPIO5_FUN_FEM_GPIO_1                    9
 #define GPIO5_FUN_GPIP_CH4                      10
 #define GPIO5_FUN_SWGPIO_5                      11
-#define GPIO5_FUN_S_CCI_CLK_E21_TDI             12
-#define GPIO5_FUN_SCAN_IN_5                     13
 #define GPIO5_FUN_E21_TDI                       14
-#define GPIO5_FUN_S_CCI_CLK                     15
 /* GPIO6 function definition */
 #define GPIO6_FUN_UNUSED1                       1
 #define GPIO6_FUN_UNUSED2                       2
@@ -204,10 +173,7 @@ typedef struct
 #define GPIO6_FUN_FEM_GPIO_2                    9
 #define GPIO6_FUN_GPIP_CH5                      10
 #define GPIO6_FUN_SWGPIO_6                      11
-#define GPIO6_FUN_RF_TEST_2                     12
-#define GPIO6_FUN_UNUSED13                      13
 #define GPIO6_FUN_E21_TCK                       14
-#define GPIO6_FUN_DEBUG_2                       15
 /* GPIO7 function definition */
 #define GPIO7_FUN_UNUSED1                       1
 #define GPIO7_FUN_UNUSED2                       2
@@ -220,10 +186,7 @@ typedef struct
 #define GPIO7_FUN_FEM_GPIO_3                    9
 #define GPIO7_FUN_UNUSED10                      10
 #define GPIO7_FUN_SWGPIO_7                      11
-#define GPIO7_FUN_RF_TEST_3                     12
-#define GPIO7_FUN_SCAN_IN_6                     13
 #define GPIO7_FUN_E21_TDO                       14
-#define GPIO7_FUN_DEBUG_3                       15
 /* GPIO8 function definition */
 #define GPIO8_FUN_UNUSED1                       1
 #define GPIO8_FUN_UNUSED2                       2
@@ -236,10 +199,7 @@ typedef struct
 #define GPIO8_FUN_FEM_GPIO_0                    9
 #define GPIO8_FUN_UNUSED10                      10
 #define GPIO8_FUN_SWGPIO_8                      11
-#define GPIO8_FUN_RF_TEST_4                     12
-#define GPIO8_FUN_SCAN_RSTB                     13
 #define GPIO8_FUN_E21_TMS                       14
-#define GPIO8_FUN_DEBUG_4                       15
 /* GPIO9 function definition */
 #define GPIO9_FUN_UNUSED1                       1
 #define GPIO9_FUN_UNUSED2                       2
@@ -252,10 +212,7 @@ typedef struct
 #define GPIO9_FUN_FEM_GPIO_1                    9
 #define GPIO9_FUN_GPIP_CH6_GPIP_CH7             10
 #define GPIO9_FUN_SWGPIO_9                      11
-#define GPIO9_FUN_RF_TEST_5                     12
-#define GPIO9_FUN_UNUSED13                      13
 #define GPIO9_FUN_E21_TDI                       14
-#define GPIO9_FUN_DEBUG_5                       15
 /* GPIO10 function definition */
 #define GPIO10_FUN_UNUSED1                      1
 #define GPIO10_FUN_UNUSED2                      2
@@ -268,10 +225,7 @@ typedef struct
 #define GPIO10_FUN_FEM_GPIO_2                   9
 #define GPIO10_FUN_MICBIAS_GPIP_CH8_GPIP_CH9    10
 #define GPIO10_FUN_SWGPIO_10                    11
-#define GPIO10_FUN_RF_TEST_6                    12
-#define GPIO10_FUN_UNUSED13                     13
 #define GPIO10_FUN_E21_TCK                      14
-#define GPIO10_FUN_DEBUG_6                      15
 /* GPIO11 function definition */
 #define GPIO11_FUN_UNUSED1                      1
 #define GPIO11_FUN_UNUSED2                      2
@@ -284,10 +238,7 @@ typedef struct
 #define GPIO11_FUN_FEM_GPIO_3                   9
 #define GPIO11_FUN_IRLED_OUT_GPIP_CH10          10
 #define GPIO11_FUN_SWGPIO_11                    11
-#define GPIO11_FUN_RF_TEST_7                    12
-#define GPIO11_FUN_SCAN_EN                      13
 #define GPIO11_FUN_E21_TDO                      14
-#define GPIO11_FUN_DEBUG_7                      15
 /* GPIO12 function definition */
 #define GPIO12_FUN_UNUSED1                      1
 #define GPIO12_FUN_UNUSED2                      2
@@ -300,10 +251,7 @@ typedef struct
 #define GPIO12_FUN_FEM_GPIO_0                   9
 #define GPIO12_FUN_GPIP_CH0_GPADC_VREF_EXT      10
 #define GPIO12_FUN_SWGPIO_12                    11
-#define GPIO12_FUN_RF_TEST_8                    12
-#define GPIO12_FUN_SCAN_CLK                     13
 #define GPIO12_FUN_E21_TMS                      14
-#define GPIO12_FUN_DEBUG_8                      15
 /* GPIO13 function definition */
 #define GPIO13_FUN_UNUSED1                      1
 #define GPIO13_FUN_UNUSED2                      2
@@ -316,10 +264,7 @@ typedef struct
 #define GPIO13_FUN_FEM_GPIO_1                   9
 #define GPIO13_FUN_GPIP_CH3                     10
 #define GPIO13_FUN_SWGPIO_13                    11
-#define GPIO13_FUN_RF_TEST_9                    12
-#define GPIO13_FUN_UNUSED13                     13
 #define GPIO13_FUN_E21_TDI                      14
-#define GPIO13_FUN_DEBUG_9                      15
 /* GPIO14 function definition */
 #define GPIO14_FUN_UNUSED1                      1
 #define GPIO14_FUN_UNUSED2                      2
@@ -332,10 +277,7 @@ typedef struct
 #define GPIO14_FUN_FEM_GPIO_2                   9
 #define GPIO14_FUN_GPIP_CH2                     10
 #define GPIO14_FUN_SWGPIO_14                    11
-#define GPIO14_FUN_RF_TEST_10                   12
-#define GPIO14_FUN_SCAN_OUT_0                   13
 #define GPIO14_FUN_E21_TCK                      14
-#define GPIO14_FUN_DEBUG_10                     15
 /* GPIO15 function definition */
 #define GPIO15_FUN_UNUSED1                      1
 #define GPIO15_FUN_UNUSED2                      2
@@ -348,10 +290,7 @@ typedef struct
 #define GPIO15_FUN_FEM_GPIO_3                   9
 #define GPIO15_FUN_PSW_IRRCV_OUT_GPIP_CH11      10
 #define GPIO15_FUN_SWGPIO_15                    11
-#define GPIO15_FUN_RF_TEST_11                   12
-#define GPIO15_FUN_UNUSED13                     13
 #define GPIO15_FUN_E21_TDO                      14
-#define GPIO15_FUN_DEBUG_11                     15
 /* GPIO16 function definition */
 #define GPIO16_FUN_UNUSED1                      1
 #define GPIO16_FUN_UNUSED2                      2
@@ -364,10 +303,7 @@ typedef struct
 #define GPIO16_FUN_FEM_GPIO_0                   9
 #define GPIO16_FUN_UNUSED10                     10
 #define GPIO16_FUN_SWGPIO_16                    11
-#define GPIO16_FUN_RF_TEST_12                   12
-#define GPIO16_FUN_SCAN_OUT_1                   13
 #define GPIO16_FUN_E21_TMS                      14
-#define GPIO16_FUN_M_CCI_CLK_DEBUG_12           15
 /* GPIO17 function definition */
 #define GPIO17_FUN_UNUSED1                      1
 #define GPIO17_FUN_SF_D3                        2
@@ -380,10 +316,7 @@ typedef struct
 #define GPIO17_FUN_FEM_GPIO_1                   9
 #define GPIO17_FUN_PMIP_DC_TP_OUT               10
 #define GPIO17_FUN_SWGPIO_17                    11
-#define GPIO17_FUN_RF_TEST_13                   12
-#define GPIO17_FUN_SCAN_OUT_2                   13
 #define GPIO17_FUN_E21_TDI                      14
-#define GPIO17_FUN_M_CCI_CS_DEBUG_13            15
 /* GPIO18 function definition */
 #define GPIO18_FUN_UNUSED1                      1
 #define GPIO18_FUN_SF_D2                        2
@@ -396,10 +329,7 @@ typedef struct
 #define GPIO18_FUN_FEM_GPIO_2                   9
 #define GPIO18_FUN_UNUSED10                     10
 #define GPIO18_FUN_SWGPIO_18                    11
-#define GPIO18_FUN_RF_TEST_14                   12
-#define GPIO18_FUN_UNUSED13                     13
 #define GPIO18_FUN_E21_TCK                      14
-#define GPIO18_FUN_M_CCI_DAT0_DEBUG_14          15
 /* GPIO19 function definition */
 #define GPIO19_FUN_UNUSED1                      1
 #define GPIO19_FUN_SF_D1                        2
@@ -412,10 +342,7 @@ typedef struct
 #define GPIO19_FUN_FEM_GPIO_3                   9
 #define GPIO19_FUN_UNUSED10                     10
 #define GPIO19_FUN_SWGPIO_19                    11
-#define GPIO19_FUN_RF_TEST_15                   12
-#define GPIO19_FUN_UNUSED13                     13
 #define GPIO19_FUN_E21_TDO                      14
-#define GPIO19_FUN_M_CCI_DAT1_DEBUG_15          15
 /* GPIO20 function definition */
 #define GPIO20_FUN_UNUSED1                      1
 #define GPIO20_FUN_SF_D0                        2
@@ -428,10 +355,7 @@ typedef struct
 #define GPIO20_FUN_FEM_GPIO_0                   9
 #define GPIO20_FUN_UNUSED10                     10
 #define GPIO20_FUN_SWGPIO_20                    11
-#define GPIO20_FUN_RF_TEST_16                   12
-#define GPIO20_FUN_SCAN_OUT_3                   13
 #define GPIO20_FUN_E21_TMS                      14
-#define GPIO20_FUN_DEBUG_16                     15
 /* GPIO21 function definition */
 #define GPIO21_FUN_UNUSED1                      1
 #define GPIO21_FUN_SF_CS                        2
@@ -444,10 +368,7 @@ typedef struct
 #define GPIO21_FUN_FEM_GPIO_1                   9
 #define GPIO21_FUN_UNUSED10                     10
 #define GPIO21_FUN_SWGPIO_21                    11
-#define GPIO21_FUN_RF_TEST_17                   12
-#define GPIO21_FUN_SCAN_OUT_4                   13
 #define GPIO21_FUN_E21_TDI                      14
-#define GPIO21_FUN_DEBUG_17                     15
 /* GPIO22 function definition */
 #define GPIO22_FUN_UNUSED1                      1
 #define GPIO22_FUN_SF_CLK_OUT                   2
@@ -460,9 +381,6 @@ typedef struct
 #define GPIO22_FUN_FEM_GPIO_2                   9
 #define GPIO22_FUN_UNUSED10                     10
 #define GPIO22_FUN_SWGPIO_22                    11
-#define GPIO22_FUN_RF_TEST_18                   12
-#define GPIO22_FUN_SCAN_OUT_5                   13
 #define GPIO22_FUN_E21_TCK                      14
-#define GPIO22_FUN_DEBUG_18                     15
 
 #endif  /*__BL602_GPIO_H__ */

@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    aon_reg.h
   * @version V1.2
-  * @date    2019-11-20
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -1072,9 +1072,6 @@
 #define AON_HBNCORE_RESV1_DATA_MSK                              (((1U<<AON_HBNCORE_RESV1_DATA_LEN)-1)<<AON_HBNCORE_RESV1_DATA_POS)
 #define AON_HBNCORE_RESV1_DATA_UMSK                             (~(((1U<<AON_HBNCORE_RESV1_DATA_LEN)-1)<<AON_HBNCORE_RESV1_DATA_POS))
 
-/* 0x944 : hbncore_resv2 */
-#define AON_HBNCORE_RESV2_OFFSET                                (0x944)
-
 
 struct  aon_reg {
     /* 0x0  reserved */
@@ -1529,14 +1526,6 @@ struct  aon_reg {
         }BF;
         uint32_t WORD;
     } hbncore_resv1;
-
-    /* 0x944 : hbncore_resv2 */
-    union {
-        struct {
-            uint32_t reserved_0_31                  : 32; /* [31: 0],       rsvd,        0x0 */
-        }BF;
-        uint32_t WORD;
-    } hbncore_resv2;
 
 };
 

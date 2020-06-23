@@ -96,6 +96,7 @@ static intCallback_Type * l1cBmxToIntCbfArra[L1C_BMX_TO_INT_ALL]={NULL};
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION L1C_Set_Wrap(BL_Fun_Type wrap)
 {
     uint32_t tmpVal = 0;
@@ -132,6 +133,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_Set_Wrap(BL_Fun_Type wrap)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION L1C_Set_Way_Disable(uint8_t disableVal)
 {
     uint32_t tmpVal = 0;
@@ -164,6 +166,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_Set_Way_Disable(uint8_t disableVal)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+__WEAK
 BL_Err_Type ATTR_TCM_SECTION L1C_IROM_2T_Access_Set(uint8_t enable)
 {
     uint32_t tmpVal = 0;

@@ -406,6 +406,7 @@ BL_Err_Type HBN_Set_BOR_Config(uint8_t enable,HBN_BOR_THRES_Type threshold,HBN_B
 BL_Err_Type HBN_Set_Ldo11_Aon_Vout(HBN_LDO_LEVEL_Type ldoLevel);
 BL_Err_Type HBN_Set_Ldo11_Rt_Vout(HBN_LDO_LEVEL_Type ldoLevel);
 BL_Err_Type HBN_Set_Ldo11_Soc_Vout(HBN_LDO_LEVEL_Type ldoLevel);
+BL_Err_Type HBN_Set_Ldo11_All_Vout(HBN_LDO_LEVEL_Type ldoLevel);
 /*----------*/
 BL_Err_Type HBN_32K_Sel(HBN_32K_CLK_Type clkType);
 BL_Err_Type HBN_Set_UART_CLK_Sel(HBN_UART_CLK_Type clkSel);
@@ -451,6 +452,7 @@ BL_Err_Type HBN_Power_Off_Xtal_32K(void);
 BL_Err_Type HBN_Power_On_RC32K(void);
 BL_Err_Type HBN_Power_Off_RC32K(void);
 BL_Err_Type HBN_Trim_RC32K(void);
+BL_Err_Type HBN_Set_Embedded_Flash_Pullup(uint8_t enable);
 
 /*@} end of group HBN_Public_Functions */
 

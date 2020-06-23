@@ -1,0 +1,5 @@
+#!/bin/sh
+find . -name build_out|xargs rm -rf
+find . -name __pycache__|xargs rm -rf
+find . -name "*.pyc"|xargs rm -rf
+find . -name "*.swp"|xargs rm -rf

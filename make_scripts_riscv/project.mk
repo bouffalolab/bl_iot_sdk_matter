@@ -296,7 +296,7 @@ endif
 ifdef CONFIG_OPTIMIZATION_LEVEL_RELEASE
 OPTIMIZATION_FLAGS = -Os
 else
-OPTIMIZATION_FLAGS = -Og
+OPTIMIZATION_FLAGS = -Os
 endif
 
 ifdef CONFIG_OPTIMIZATION_ASSERTIONS_DISABLED
@@ -324,7 +324,7 @@ CFLAGS := $(strip \
 	$(CFLAGS) \
 	$(E21_CPU_CFLAGS) \
 	$(EXTRA_CFLAGS)) \
-	-save-temps
+	-save-temps=obj
 
 CXXFLAGS := $(strip \
 	$(CPPFLAGS) \

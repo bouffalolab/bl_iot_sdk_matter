@@ -37,7 +37,7 @@
 #include "string.h"
 #include "bl602_sflash.h"
 #include "bl602_sf_ctrl.h"
-#include "l1c_reg.h"
+#include "bl602_l1c.h"
 
 /** @addtogroup  BL602_Peripheral_Driver
  *  @{
@@ -1132,8 +1132,15 @@ BL_Err_Type ATTR_TCM_SECTION SFlash_Cache_Enable_Set(uint8_t wayDisable)
     uint32_t tmpVal;
     uint32_t cnt=0;
 
+    /* Set cacheable to 0 */
     tmpVal=BL_RD_REG(L1C_BASE,L1C_CONFIG);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,L1C_CACHEABLE);
+    tmpVal=BL_SET_REG_BIT(tmpVal,L1C_BYPASS);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,L1C_WAY_DIS);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,L1C_CNT_EN);
+    BL_WR_REG(L1C_BASE,L1C_CONFIG,tmpVal);
 
+    tmpVal=BL_RD_REG(L1C_BASE,L1C_CONFIG);
     /*Set Tag RAM to zero */
     tmpVal=BL_CLR_REG_BIT(tmpVal,L1C_INVALID_EN);
     BL_WR_REG(L1C_BASE,L1C_CONFIG,tmpVal);

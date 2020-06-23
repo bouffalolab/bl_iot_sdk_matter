@@ -39,9 +39,13 @@ static void scan_complete_cb(void *param)
     gp_index->w_ap_item++;
 }
 
-static void wifi_state_get_cb(int state)
+static void wifi_state_get_cb(void *p_arg)
 {
-    gp_index->wifi_state = state;
+    struct wifi_state *p_state = (struct wifi_state *)p_arg;
+    gp_index->state.state = p_state->state;
+    strcpy(gp_index->state.ip, p_state->ip);
+    strcpy(gp_index->state.mask, p_state->mask);
+    strcpy(gp_index->state.gw, p_state->gw);
     xSemaphoreGive(gp_index->xSemaphore);
 }
 
@@ -201,8 +205,16 @@ static int __recv_event(void *p_drv, struct pro_event *p_event)
                                      (TickType_t)PRO_CONFIG_TIMEOUT) != pdTRUE) {
                       return PRO_ERROR;
                   }
-                  pro_trans_layer_ack_read(gp_index->pro_handle,
-                                           &gp_index->wifi_state, 1);
+                  p_root = cJSON_CreateObject();
+                  cJSON_AddNumberToObject(p_root, "state", gp_index->state.state);
+                  cJSON_AddStringToObject(p_root, "ip", gp_index->state.ip);
+                  cJSON_AddStringToObject(p_root, "gw", gp_index->state.gw);
+                  cJSON_AddStringToObject(p_root, "mask", gp_index->state.mask);
+                  json_str = cJSON_Print(p_root);
+
+                  pro_trans_layer_ack_read(gp_index->pro_handle, json_str, strlen(json_str));
+                  cJSON_Delete(p_root);
+                  vPortFree(json_str);
               }
               break;
           case CMD_GET_VERSION:

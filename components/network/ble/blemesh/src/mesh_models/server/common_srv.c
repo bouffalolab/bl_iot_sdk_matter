@@ -12,6 +12,7 @@
  ****************************************************************************************
  */
 #include "common_srv.h"
+#include "bl_port.h"
 
 void bt_mesh_srv_update_last_rcvd_msg(struct bt_mesh_last_rcvd_msg *last_msg, u8_t tid, u16_t src_addr, u16_t dst_addr,
                                 int64_t rcvd_time)

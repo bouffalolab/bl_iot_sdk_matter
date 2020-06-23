@@ -138,7 +138,6 @@ void BL602_Delay_MS(uint32_t cnt);
 void *BL602_MemCpy(void *dst, const void *src, uint32_t n);
 uint32_t *BL602_MemCpy4(uint32_t *dst, const uint32_t *src, uint32_t n);
 void *BL602_MemCpy_Fast(void *pdst, const void *psrc, uint32_t n);
-void *ARCH_MemCpy_Fast(void *pdst, const void *psrc, uint32_t n);
 void* BL602_MemSet(void *s, uint8_t c, uint32_t n);
 uint32_t *BL602_MemSet4(uint32_t *dst, const uint32_t val, uint32_t n);
 int BL602_MemCmp(const void *s1, const void *s2, uint32_t n);

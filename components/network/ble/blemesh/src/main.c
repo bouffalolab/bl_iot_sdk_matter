@@ -41,6 +41,18 @@ int bt_mesh_provision(const u8_t net_key[16], u16_t net_idx,
 	bool pb_gatt_enabled;
 	int err;
 
+printf("\nmesh provision, network key :");
+for(int i = 0; i < 16; i++)
+{
+    printf("%02x", net_key[i]);
+}
+printf("\nmesh provision, device key :");
+for(int i = 0; i < 16; i++)
+{
+    printf("%02x", dev_key[i]);
+}
+printf("\nmesh provison, network key index :0x%04x flags :0x%02x iv index :0x%04x\n", net_idx, flags, iv_index);
+
 	BT_INFO("Primary Element: 0x%04x", addr);
 	BT_DBG("net_idx 0x%04x flags 0x%02x iv_index 0x%04x",
 	       net_idx, flags, iv_index);

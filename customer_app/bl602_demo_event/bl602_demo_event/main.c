@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <FreeRTOS.h>
 #include <task.h>
 #include <timers.h>
@@ -35,8 +64,10 @@
 #include <hal_uart.h>
 #include <hal_sys.h>
 #include <hal_gpio.h>
+#include <hal_hbn.h>
 #include <hal_boot2.h>
 #include <hal_board.h>
+#include <hal_button.h>
 #include <looprt.h>
 #include <loopset.h>
 #include <sntp.h>
@@ -45,7 +76,7 @@
 #include <bl_romfs.h>
 #include <fdt.h>
 
-#include <easyflash.h>
+//#include <easyflash.h>
 #include <bl60x_fw_api.h>
 #include <wifi_mgmr_ext.h>
 #include <utils_log.h>
@@ -196,7 +227,7 @@ static void _connect_wifi()
     char pmk[66], bssid[32], chan[10];
     char ssid[33], password[66];
     char val_buf[66];
-    char val_len = sizeof(val_buf) - 1;
+//    char val_len = sizeof(val_buf) - 1;
     uint8_t mac[6];
     uint8_t band = 0;
     uint16_t freq = 0;
@@ -218,7 +249,7 @@ static void _connect_wifi()
     memset(chan, 0, sizeof(chan));
 
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_SSID, val_buf, val_len, NULL);
+//    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_SSID, val_buf, val_len, NULL);
     if (val_buf[0]) {
         /*We believe that when ssid is set, wifi_confi is OK*/
         strncpy(ssid, val_buf, sizeof(ssid) - 1);
@@ -234,13 +265,13 @@ static void _connect_wifi()
     }
 
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PASSWORD, val_buf, val_len, NULL);
+//    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PASSWORD, val_buf, val_len, NULL);
     if (val_buf[0]) {
         strncpy(password, val_buf, sizeof(password) - 1);
     }
 
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PMK, val_buf, val_len, NULL);
+//    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PMK, val_buf, val_len, NULL);
     if (val_buf[0]) {
         strncpy(pmk, val_buf, sizeof(pmk) - 1);
     }
@@ -257,18 +288,18 @@ static void _connect_wifi()
                 strlen(ssid),
                 pmk
         );
-        ef_set_env(WIFI_AP_PSM_INFO_PMK, pmk);
-        ef_save_env();
+//        ef_set_env(WIFI_AP_PSM_INFO_PMK, pmk);
+//        ef_save_env();
     }
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_CHANNEL, val_buf, val_len, NULL);
+//    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_CHANNEL, val_buf, val_len, NULL);
     if (val_buf[0]) {
         strncpy(chan, val_buf, sizeof(chan) - 1);
         printf("connect wifi channel = %s\r\n", chan);
         _chan_str_to_hex(&band, &freq, chan);
     }
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
+//    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
     if (val_buf[0]) {
         strncpy(bssid, val_buf, sizeof(bssid) - 1);
         printf("connect wifi bssid = %s\r\n", bssid);
@@ -664,6 +695,11 @@ static void cmd_stack_ble(char *buf, int len, int argc, char **argv)
     ble_stack_start();
 }
 
+static void cmd_hbn_enter(char *buf, int len, int argc, char **argv)
+{
+    hal_hbn_enter();
+}
+
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
@@ -682,6 +718,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         /*TCP/IP network test*/
         {"http", "http client download test based on socket", http_test_cmd},
         {"httpc", "http client download test based on RAW TCP", cmd_httpc_test},
+        {"hbnenter", "hbnenter", cmd_hbn_enter},
 };
 
 static void _cli_init()
@@ -689,8 +726,10 @@ static void _cli_init()
     /*Put CLI which needs to be init here*/
 int codex_debug_cli_init(void);
     codex_debug_cli_init();
-    easyflash_cli_init();
+//    easyflash_cli_init();
     network_netutils_iperf_cli_register();
+    network_netutils_tcpclinet_cli_register();
+    network_netutils_netstat_cli_register();
     sntp_cli_init();
     bl_sys_time_cli_init();
     bl_sys_ota_cli_init();
@@ -730,6 +769,35 @@ static void __opt_feature_init(void)
 #endif
 }
 
+static void event_cb_key_event(input_event_t *event, void *private_data)
+{
+    switch (event->code) {
+        case KEY_1:
+        {
+            printf("[KEY_1] [EVT] INIT DONE %lld\r\n", aos_now_ms());
+            printf("short press \r\n");
+        }
+        break;
+        case KEY_2:
+        {
+            printf("[KEY_2] [EVT] INIT DONE %lld\r\n", aos_now_ms());
+            printf("long press \r\n");
+        }
+        break;
+        case KEY_3:
+        {
+            printf("[KEY_3] [EVT] INIT DONE %lld\r\n", aos_now_ms());
+            printf("longlong press \r\n");
+        }
+        break;
+        default:
+        {
+            printf("[KEY] [EVT] Unknown code %u, %lld\r\n", event->code, aos_now_ms());
+            /*nothing*/
+        }
+    }
+}
+
 static void aos_loop_proc(void *pvParameters)
 {
     int fd_console;
@@ -741,7 +809,7 @@ static void aos_loop_proc(void *pvParameters)
     looprt_start(proc_stack_looprt, 512, &proc_task_looprt);
     loopset_led_hook_on_looprt();
 
-    easyflash_init();
+//    easyflash_init();
     vfs_init();
     vfs_device_init();
 
@@ -755,6 +823,7 @@ static void aos_loop_proc(void *pvParameters)
 #endif
     if (0 == get_dts_addr("gpio", &fdt, &offset)) {
         hal_gpio_init_from_dts(fdt, offset);
+        fdt_button_module_init((const void *)fdt, (int)offset);
     }
 
     __opt_feature_init();
@@ -769,6 +838,7 @@ static void aos_loop_proc(void *pvParameters)
     }
 
     aos_register_event_filter(EV_WIFI, event_cb_wifi_event, NULL);
+    aos_register_event_filter(EV_KEY, event_cb_key_event, NULL);
 
     aos_loop_run();
 
@@ -897,7 +967,6 @@ static void system_thread_init()
 {
     /*nothing here*/
 }
-
 void bfl_main()
 {
     static StackType_t aos_loop_proc_stack[1024];

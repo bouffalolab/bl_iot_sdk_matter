@@ -28,10 +28,11 @@
 
 bool blemesh_inited = false;
 #if defined(CONFIG_BT_MESH_LOW_POWER)
-static u8_t dev_uuid[16] = {0xA8,0x01,0x71,0x5e,0x1c,0x00,0x00,0xe4,0x46,0x46,0x63,0xa7,0xf8,0x02,0x00,0x00};
+//below value is for Tmall Genie
+u8_t dev_uuid[16] = {0xA8,0x01,0x71,0x5e,0x1c,0x00,0x00,0xe4,0x46,0x46,0x63,0xa7,0xf8,0x02,0x00,0x00};
 u8_t auth_value[16] = {0x78,0x8A,0xE3,0xEE,0x0F,0x2A,0x7E,0xFA,0xD3,0x67,0x35,0x81,0x41,0xFE,0x1B,0x06};
 #else
-static u8_t dev_uuid[16] = {0xA8,0x01,0x71,0xe0,0x1a,0x00,0x00,0x0f,0x7e,0x35,0x63,0xa7,0xf8,0x02,0x00,0x00};
+u8_t dev_uuid[16] = {0xA8,0x01,0x71,0xe0,0x1a,0x00,0x00,0x0f,0x7e,0x35,0x63,0xa7,0xf8,0x02,0x00,0x00};
 u8_t auth_value[16] = {0x7f,0x80,0x1a,0xf4,0xa0,0x8c,0x50,0x39,0xae,0x7d,0x7b,0x44,0xa0,0x92,0xd9,0xc2};
 #endif
 
@@ -77,20 +78,21 @@ static int fault_test(struct bt_mesh_model *model, uint8_t test_id, uint16_t cid
 static void attn_on(struct bt_mesh_model *model);
 static void attn_off(struct bt_mesh_model *model);
 
-static void cmd_mesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_reset(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_seg_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_rpl_clr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_ivu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_iv_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void cmd_fault_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_set_dev_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_reset(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_seg_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_rpl_clr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_ivu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_iv_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_fault_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #if defined(CONFIG_BT_MESH_LOW_POWER)
-static void cmd_lpn_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_lpn_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
 static struct bt_mesh_prov prov = {
@@ -136,14 +138,14 @@ static struct bt_mesh_cfg_cli cfg_cli = {
 
 static struct bt_mesh_cfg_srv cfg_srv = {
 	.relay = BT_MESH_RELAY_ENABLED,
-	.beacon = BT_MESH_BEACON_ENABLED,
+	.beacon = BT_MESH_BEACON_ENABLED,//BT_MESH_BEACON_DISABLED,
 #if defined(CONFIG_BT_MESH_FRIEND)
 	.frnd = BT_MESH_FRIEND_DISABLED,
 #else
 	.frnd = BT_MESH_FRIEND_NOT_SUPPORTED,
 #endif
 #if defined(CONFIG_BT_MESH_GATT_PROXY)
-	.gatt_proxy = BT_MESH_GATT_PROXY_DISABLED,
+	.gatt_proxy = BT_MESH_GATT_PROXY_ENABLED,
 #else
 	.gatt_proxy = BT_MESH_GATT_PROXY_NOT_SUPPORTED,
 #endif
@@ -179,7 +181,7 @@ static struct bt_mesh_elem elements[] = {
 };
 
 static const struct bt_mesh_comp comp = {
-	.cid = BT_COMP_ID_LF,
+	.cid = BL_COMP_ID,
 	.elem = elements,
 	.elem_count = ARRAY_SIZE(elements),
 };
@@ -189,31 +191,33 @@ const struct cli_command btMeshCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 #else
 const struct cli_command btMeshCmdSet[] = {
 #endif
-    {"cmd_mesh_init", "\r\ncmd_mesh_init:[Initialize]\r\n Parameter[Null]\r\n", cmd_mesh_init},
-    {"cmd_pb", "\r\ncmd_pb:[Enable or disable provisioning]\r\n\
+    {"blemesh_init", "\r\nblemesh_init:[Initialize]\r\n Parameter[Null]\r\n", blemesh_init},
+    {"blemesh_set_dev_uuid", "\r\nblemesh_input_num:[input number in provisionging procedure]\r\n\
+     [Size:16 Octets, e.g.112233445566778899AA]\r\n", blemesh_set_dev_uuid},
+    {"blemesh_pb", "\r\nblemesh_pb:[Enable or disable provisioning]\r\n\
      [bear, 1:adv bear, 2:gatt bear]\r\n\
-     [enable, 0:disable provisioning, 1:enable provisioning]\r\n", cmd_pb},
+     [enable, 0:disable provisioning, 1:enable provisioning]\r\n", blemesh_pb},
     
-    {"cmd_reset", "\r\ncmd_reset:[Reset the state of the local mesh node]\r\n Parameter[Null]\r\n", cmd_reset},
-    {"cmd_net_send", "\r\ncmd_net_send:[Send a network packet]\r\n Parameter[TTL CTL SRC DST]\r\n", cmd_net_send},
-    {"cmd_seg_send", "\r\ncmd_seg_send:[Send a segmented message]\r\n Parameter[SRC DST]\r\n", cmd_seg_send},
-    {"cmd_rpl_clr", "\r\ncmd_rpl_clr:[Clear replay protection list]\r\n Parameter[Null]\r\n", cmd_rpl_clr},
-    {"cmd_ivu_test", "\r\ncmd_ivu_test:[Enable or disable iv update test mode]\r\n\
-     [enable, 0:disable, 1:enable]\r\n", cmd_ivu_test},
-    {"cmd_iv_update", "\r\ncmd_iv_update:[Enable or disable iv update procedure]\r\n\
-     [enable, 0:disable, 1:enable by sending secure network beacons]\r\n", cmd_iv_update},
-    {"cmd_fault_set", "\r\ncmd_fault_set:[Set current fault or registered fault values]\r\n\
+    {"blemesh_reset", "\r\nblemesh_reset:[Reset the state of the local mesh node]\r\n Parameter[Null]\r\n", blemesh_reset},
+    {"blemesh_net_send", "\r\nblemesh_net_send:[Send a network packet]\r\n Parameter[TTL CTL SRC DST]\r\n", blemesh_net_send},
+    {"blemesh_seg_send", "\r\nblemesh_seg_send:[Send a segmented message]\r\n Parameter[SRC DST]\r\n", blemesh_seg_send},
+    {"blemesh_rpl_clr", "\r\nblemesh_rpl_clr:[Clear replay protection list]\r\n Parameter[Null]\r\n", blemesh_rpl_clr},
+    {"blemesh_ivu_test", "\r\nblemesh_ivu_test:[Enable or disable iv update test mode]\r\n\
+     [enable, 0:disable, 1:enable]\r\n", blemesh_ivu_test},
+    {"blemesh_iv_update", "\r\nblemesh_iv_update:[Enable or disable iv update procedure]\r\n\
+     [enable, 0:disable, 1:enable by sending secure network beacons]\r\n", blemesh_iv_update},
+    {"blemesh_fault_set", "\r\nblemesh_fault_set:[Set current fault or registered fault values]\r\n\
      [type, 0:current fault, 1:registered fault]\r\n\
-     [fault, fault array in hex format]\r\n", cmd_fault_set},
+     [fault, fault array in hex format]\r\n", blemesh_fault_set},
     #if defined(CONFIG_BT_MESH_LOW_POWER)
-    {"cmd_lpn_set", "\r\ncmd_lpn_set:[Enable or disable low power node]\r\n\
-     [enable, 0:disable lpn, 1:enable lpn]\r\n", cmd_lpn_set},
+    {"blemesh_lpn_set", "\r\nblemesh_lpn_set:[Enable or disable low power node]\r\n\
+     [enable, 0:disable lpn, 1:enable lpn]\r\n", blemesh_lpn_set},
     #endif
-    {"cmd_input_num", "\r\ncmd_input_num:[input number in provisionging procedure]\r\n\
-     [Max Size:16 Octets, e.g.112233445566778899AA]\r\n", cmd_input_num},
+    {"blemesh_input_num", "\r\nblemesh_input_num:[input number in provisionging procedure]\r\n\
+     [Max Size:16 Octets, e.g.112233445566778899AA]\r\n", blemesh_input_num},
      
-    {"cmd_input_str", "\r\ncmd_input_str:[input Alphanumeric in provisionging procedure]\r\n\
-     [Max Size:16 Characters, e.g.123ABC]\r\n", cmd_input_str},
+    {"blemesh_input_str", "\r\nblemesh_input_str:[input Alphanumeric in provisionging procedure]\r\n\
+     [Max Size:16 Characters, e.g.123ABC]\r\n", blemesh_input_str},
 
     #if defined(BL70X)
     {NULL, NULL, "No handler / Invalid command", NULL}
@@ -221,7 +225,7 @@ const struct cli_command btMeshCmdSet[] = {
 };
 
 #if defined(CONFIG_BT_MESH_LOW_POWER)
-static void cmd_lpn_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_lpn_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     static bool lpn_enabled;
     u8_t enable;
@@ -269,7 +273,7 @@ static void lpn_cb(u16_t friend_addr, bool established)
 }
 #endif
 
-static void cmd_mesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     int err;
 
@@ -343,7 +347,7 @@ static const char *bearer2str(bt_mesh_prov_bearer_t bearer)
 }
 
 #if defined(CONFIG_BT_MESH_PROV)
-static void cmd_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     int err;
     uint8_t bearer;
@@ -416,7 +420,18 @@ static void prov_reset(void)
 	vOutputString("The local node has been reset and needs reprovisioning\r\n");
 }
 
-static void cmd_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_set_dev_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    if(argc != 2){
+        vOutputString("Number of Parameters is not correct\r\n");
+        return;
+    }
+
+    vOutputString("device uuid is %s\r\n", argv[1]);
+    co_get_bytearray_from_string(&argv[1], dev_uuid, 16);
+}
+
+static void blemesh_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int err;
     uint32_t num;
@@ -447,7 +462,7 @@ static void cmd_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	input_act = BT_MESH_NO_INPUT;
 }
 
-static void cmd_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int err;
 
@@ -494,13 +509,13 @@ static int input(bt_mesh_input_action_t act, u8_t size)
 	return 0;
 }
 
-static void cmd_reset(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_reset(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	bt_mesh_reset();
 	vOutputString("Local node reset complete\r\n");
 }
 
-static void cmd_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     uint8_t ttl;
     uint8_t ctl;
@@ -568,7 +583,7 @@ static uint16_t get_app_idx(void)
     return BT_MESH_KEY_UNUSED;
 }
 
-static void cmd_seg_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_seg_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     NET_BUF_SIMPLE_DEFINE(sdu, BT_MESH_TX_SDU_MAX);
     uint16_t src;
@@ -611,7 +626,7 @@ static void cmd_seg_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
     bt_mesh_trans_send(&tx, &sdu, NULL, NULL);
 }
 
-static void cmd_rpl_clr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_rpl_clr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 #if defined(CONFIG_BT_SETTINGS)
     int err;
@@ -626,7 +641,7 @@ static void cmd_rpl_clr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
     memset(bt_mesh.rpl, 0, sizeof(bt_mesh.rpl));
 }
 
-static void cmd_ivu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_ivu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     uint8_t enable;
     
@@ -648,7 +663,7 @@ static void cmd_ivu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
     }
 }
 
-static void cmd_iv_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_iv_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     uint8_t enable;
     
@@ -683,7 +698,7 @@ static void cmd_iv_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
     }
 }
 
-static void cmd_fault_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void blemesh_fault_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     uint8_t type;
     int i;
@@ -829,7 +844,7 @@ static void attn_off(struct bt_mesh_model *model)
 }
 
 #if defined(CONFIG_BT_MESH_GATT_PROXY)
-static void __attribute__((unused)) cmd_ident(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void __attribute__((unused)) blemesh_ident(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int err;
 

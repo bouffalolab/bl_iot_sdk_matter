@@ -123,6 +123,7 @@ void Trap_Handler(void){
 #ifndef BL602_USE_ROM_DRIVER
 #ifdef ARCH_ARM
 #ifndef __GNUC__
+__WEAK
 __ASM void ATTR_TCM_SECTION ASM_Delay_Us(uint32_t core,uint32_t cnt)
 {
     lsrs r0,#0x10
@@ -147,6 +148,7 @@ end
     bx   lr
 }
 #else
+__WEAK
 void ATTR_TCM_SECTION ASM_Delay_Us(uint32_t core,uint32_t cnt)
 {
     __asm__ __volatile__(
@@ -428,16 +430,15 @@ int ATTR_TCM_SECTION BL602_MemCmp(const void *s1, const void *s2, uint32_t n)
 
 * @return None
 *******************************************************************************/
-void ATTR_TCM_SECTION check_failed(uint8_t *file, uint32_t line)
+__WEAK
+void check_failed(uint8_t *file, uint32_t line)
 {
     /* Infinite loop */
     while(1);
 }
 #endif /* DEBUG */
-/*
-char *_sbrk(int incr)
-{}
-*/
+
+
 /*@} end of group DRIVER_Public_Functions */
 
 /*@} end of group DRIVER_COMMON */

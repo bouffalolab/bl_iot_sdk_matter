@@ -180,16 +180,12 @@ BL_Err_Type PWM_Channel_Init(PWM_CH_CFG_Type *chCfg)
     BL_WR_REG(PWMx, PWM_CONFIG, tmpVal);
 
     /* Config pwm division */
-    tmpVal = BL_RD_REG(PWMx, PWM_CLKDIV);
-    BL_WR_REG(PWMx, PWM_CLKDIV,  BL_SET_REG_BITS_VAL(tmpVal, PWM_CLK_DIV, chCfg->clkDiv));
+    BL_WR_REG(PWMx, PWM_CLKDIV, chCfg->clkDiv);
 
     /* Config pwm period and duty */
-    tmpVal = BL_RD_REG(PWMx, PWM_THRE1);
-    BL_WR_REG(PWMx, PWM_THRE1, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE1, chCfg->threshold1));
-    tmpVal = BL_RD_REG(PWMx, PWM_THRE2);
-    BL_WR_REG(PWMx, PWM_THRE2, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE2, chCfg->threshold2));
-    tmpVal = BL_RD_REG(PWMx, PWM_PERIOD);
-    BL_WR_REG(PWMx, PWM_PERIOD, BL_SET_REG_BITS_VAL(tmpVal, PWM_PERIOD, chCfg->period));
+    BL_WR_REG(PWMx, PWM_THRE1, chCfg->threshold1);
+    BL_WR_REG(PWMx, PWM_THRE2, chCfg->threshold2);
+    BL_WR_REG(PWMx, PWM_PERIOD, chCfg->period);
 
     /* Config interrupt pulse count */
     tmpVal = BL_RD_REG(PWMx, PWM_INTERRUPT);
@@ -212,7 +208,6 @@ BL_Err_Type PWM_Channel_Init(PWM_CH_CFG_Type *chCfg)
 *******************************************************************************/
 void PWM_Channel_Update(uint8_t ch, uint16_t period, uint16_t threshold1,uint16_t threshold2)
 {
-    uint32_t tmpVal;
     /* Get channel register */
     uint32_t PWMx = PWM_Get_Channel_Reg(ch);
 
@@ -220,16 +215,42 @@ void PWM_Channel_Update(uint8_t ch, uint16_t period, uint16_t threshold1,uint16_
     CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
 
     /* Config pwm period and duty */
-    tmpVal = BL_RD_REG(PWMx, PWM_THRE1);
-    BL_WR_REG(PWMx, PWM_THRE1, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE1, threshold1));
-    tmpVal = BL_RD_REG(PWMx, PWM_THRE2);
-    BL_WR_REG(PWMx, PWM_THRE2, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE2, threshold2));
-    tmpVal = BL_RD_REG(PWMx, PWM_PERIOD);
-    BL_WR_REG(PWMx, PWM_PERIOD, BL_SET_REG_BITS_VAL(tmpVal, PWM_PERIOD, period));
+    BL_WR_REG(PWMx, PWM_THRE1, threshold1);
+    BL_WR_REG(PWMx, PWM_THRE2, threshold2);
+    BL_WR_REG(PWMx, PWM_PERIOD, period);
 }
+
+/****************************************************************************//**
+ * @brief  PWM channel update clock divider
+ *
+ * @param  ch: PWM channel
+ * @param  div: Clock divider
+ *
+ * @return None
+ *
+*******************************************************************************/
+void PWM_Channel_Set_Div(uint8_t ch, uint16_t div)
+{
+    /* Get channel register */
+    uint32_t PWMx = PWM_Get_Channel_Reg(ch);
+
+    /* Check the parameters */
+    CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
+    
+    BL_WR_REG(PWMx, PWM_CLKDIV, div);
+}
+
+/****************************************************************************//**
+ * @brief  PWM channel update threshold1
+ *
+ * @param  ch: PWM channel
+ * @param  threshold1: threshold1
+ *
+ * @return None
+ *
+*******************************************************************************/
 void PWM_Channel_Set_Threshold1(uint8_t ch, uint16_t threshold1)
 {
-    uint32_t tmpVal;
     /* Get channel register */
     uint32_t PWMx = PWM_Get_Channel_Reg(ch);
 
@@ -237,12 +258,20 @@ void PWM_Channel_Set_Threshold1(uint8_t ch, uint16_t threshold1)
     CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
 
     /* Config pwm period and duty */
-    tmpVal = BL_RD_REG(PWMx, PWM_THRE1);
-    BL_WR_REG(PWMx, PWM_THRE1, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE1, threshold1));
+    BL_WR_REG(PWMx, PWM_THRE1, threshold1);
 }
+
+/****************************************************************************//**
+ * @brief  PWM channel update threshold2
+ *
+ * @param  ch: PWM channel
+ * @param  threshold2: threshold2
+ *
+ * @return None
+ *
+*******************************************************************************/
 void PWM_Channel_Set_Threshold2(uint8_t ch, uint16_t threshold2)
 {
-    uint32_t tmpVal;
     /* Get channel register */
     uint32_t PWMx = PWM_Get_Channel_Reg(ch);
 
@@ -250,12 +279,20 @@ void PWM_Channel_Set_Threshold2(uint8_t ch, uint16_t threshold2)
     CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
 
     /* Config pwm period and duty */
-    tmpVal = BL_RD_REG(PWMx, PWM_THRE2);
-    BL_WR_REG(PWMx, PWM_THRE2, BL_SET_REG_BITS_VAL(tmpVal, PWM_THRE2, threshold2));
+    BL_WR_REG(PWMx, PWM_THRE2, threshold2);
 }
+
+/****************************************************************************//**
+ * @brief  PWM channel update period
+ *
+ * @param  ch: PWM channel
+ * @param  period: period
+ *
+ * @return None
+ *
+*******************************************************************************/
 void PWM_Channel_Set_Period(uint8_t ch, uint16_t period)
 {
-    uint32_t tmpVal;
     /* Get channel register */
     uint32_t PWMx = PWM_Get_Channel_Reg(ch);
 
@@ -263,9 +300,20 @@ void PWM_Channel_Set_Period(uint8_t ch, uint16_t period)
     CHECK_PARAM(IS_PWM_CH_ID_TYPE(ch));
 
     /* Config pwm period and duty */
-    tmpVal = BL_RD_REG(PWMx, PWM_PERIOD);
-    BL_WR_REG(PWMx, PWM_PERIOD, BL_SET_REG_BITS_VAL(tmpVal, PWM_PERIOD, period));
+    BL_WR_REG(PWMx, PWM_PERIOD, period);
 }
+
+/****************************************************************************//**
+ * @brief  PWM get configuration
+ *
+ * @param  ch: PWM channel
+ * @param  period: period pointer
+ * @param  threshold1: threshold1 pointer
+ * @param  threshold2: threshold2 pointer
+ *
+ * @return None
+ *
+*******************************************************************************/
 void PWM_Channel_Get(uint8_t ch, uint16_t *period, uint16_t *threshold1, uint16_t *threshold2)
 {
     uint32_t tmpVal;

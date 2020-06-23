@@ -68,8 +68,8 @@
 /** @defgroup  XIP_SFLASH_EXT_Public_Functions
  *  @{
  */
-void XIP_SFlash_Opt_Enter(void);
-void XIP_SFlash_Opt_Exit(void);
+void XIP_SFlash_Opt_Enter(uint8_t *aesEnable);
+void XIP_SFlash_Opt_Exit(uint8_t aesEnable);
 
 /*@} end of group XIP_SFLASH_EXT_Public_Functions */
 

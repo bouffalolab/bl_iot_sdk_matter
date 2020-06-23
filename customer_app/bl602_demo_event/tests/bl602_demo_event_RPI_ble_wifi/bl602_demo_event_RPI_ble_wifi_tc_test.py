@@ -4,7 +4,7 @@ from bluepy import btle
 import time
 import re
 import os
-
+import subprocess
 from tiny_test_fw import DUT, App, TinyFW
 from ttfw_bl import BL602App, BL602DUT
 
@@ -30,14 +30,14 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
         time.sleep(0.5)
         bd_addr = dut.expect(re.compile(r"BD_ADDR:(.*)"), timeout=2)
         print(f'bd_addr is {bd_addr[0]}')
-        dut.write('cmd_init')
+        dut.write('ble_init')
         dut.expect("Init successfully", timeout=1)
-        dut.write('cmd_auth')
+        dut.write('ble_auth')
         dut.expect("Register auth callback successfully", timeout=1)
-        dut.write('cmd_start_adv 0 0 0080 0080')
+        dut.write('ble_start_adv 0 0 0080 0080')
         dut.expect("Advertising started", timeout=1)
         
-        dut.write('cmd_read_local_address')
+        dut.write('ble_read_local_address')
         local_addr = dut.expect(re.compile(r"Local addr : (.*) "), timeout=2)
         print(f'local_addr is {local_addr[0]}')
         # scan bluetooth
@@ -79,14 +79,14 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
 
         dut.write('stack_ble')
         time.sleep(0.5)
-        dut.write('cmd_init')
+        dut.write('ble_init')
         dut.expect("Init successfully", timeout=1)
-        dut.write('cmd_auth')
+        dut.write('ble_auth')
         dut.expect("Register auth callback successfully", timeout=1)
-        dut.write('cmd_start_adv 0 0 0080 0080')
+        dut.write('ble_start_adv 0 0 0080 0080')
         dut.expect("Advertising started", timeout=1)
         
-        dut.write('cmd_read_local_address')
+        dut.write('ble_read_local_address')
         local_addr = dut.expect(re.compile(r"Local addr : (.*) "), timeout=2)
         print(f'local_addr is {local_addr[0]}')
         rst = scan_device(local_addr[0])
@@ -104,18 +104,30 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
         raise
 
 def scan_device(mac):
-    
-    result = os.popen('timeout -s INT 10s hcitool lescan').read()
-    device_list = result.split('\n')
+    rst = []
+    result_list = []
+    p = subprocess.Popen('timeout -s INT 10s hcitool lescan', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    line_list = p.stdout.readlines()
+    print(line_list)
+    for line in line_list:
+        if line != b'':
+            try:
+                result_list = line.decode('utf-8').split('\n')
+            except:
+                result_list = line.decode('gbk').split('\n')
+            
+            finally:
+                rst = rst + result_list
+
     device_dict = {}
-    for device in device_list:
+    for device in rst:
         if device.find(':') != -1:
             key = device[0:17].strip()
             value = device[18:].strip()
             device_dict[key] = value
     try:
         device_name = device_dict[mac]
-        print("mac地址：{}, 设备名称：{}".format(mac, device_name))
+        print("mac:{}, name:{}".format(mac, device_name))
         return True
     except KeyError:
         return False
@@ -124,8 +136,8 @@ def connect_device(mac):
     
     conn = btle.Peripheral(mac, "random")
     print("BLE is connected")
-    conn.disconnect()
-    print("BLE is disconnected")
+    #conn.disconnect()
+    #print("BLE is disconnected")
 
 if __name__ == '__main__':
     bl602_demo_event_RPI_ble_wifi_tc()

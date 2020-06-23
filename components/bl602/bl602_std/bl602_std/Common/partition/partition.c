@@ -49,6 +49,7 @@
 /** @defgroup  PARTITION_Private_Macros
  *  @{
  */
+#undef MSG_ERR
 #define MSG_ERR(...)
 
 /*@} end of group PARTITION_Private_Macros */
@@ -99,7 +100,7 @@ static uint8_t PtTable_Valid(PtTable_Stuff_Config *ptStuff)
     PtTable_Entry_Config *ptEntries=ptStuff->ptEntries;
     uint32_t *pCrc32;
     uint32_t entriesLen=sizeof(PtTable_Entry_Config)*ptTable->entryCnt;
-    
+
     if(ptTable->magicCode==BFLB_PT_MAGIC_CODE){
         if (ptTable->entryCnt > PT_ENTRY_MAX) {
             MSG_ERR("PT Entry Count Error\r\n");
@@ -133,7 +134,7 @@ static uint8_t PtTable_Valid(PtTable_Stuff_Config *ptStuff)
 static BL_Err_Type pPtTable_Flash_Read_Fast(uint32_t addr,uint8_t *data, uint32_t len)
 {
     static uint8_t index=4;
-    
+
     if((uint32_t)main>=BL602_FLASH_XIP_BASE && (uint32_t)main<BL602_FLASH_XIP_END){
         XIP_SFlash_Read_Via_Cache_Need_Lock(addr+BL602_FLASH_XIP_BASE+(index%12)*1024*1024,data,len);
     }
@@ -185,13 +186,13 @@ PtTable_ID_Type PtTable_Get_Active_Partition_Need_Lock(PtTable_Stuff_Config ptSt
         return PT_TABLE_ID_INVALID;
     }
     activePtID=PT_TABLE_ID_INVALID;
-    
+
     PtTable_Flash_Read(BFLB_PT_TABLE0_ADDRESS,(uint8_t *)&ptStuff[0],sizeof(PtTable_Stuff_Config));
     ptValid[0]=PtTable_Valid(&ptStuff[0]);
-    
+
     PtTable_Flash_Read(BFLB_PT_TABLE1_ADDRESS,(uint8_t *)&ptStuff[1],sizeof(PtTable_Stuff_Config));
     ptValid[1]=PtTable_Valid(&ptStuff[1]);
-    
+
     if(ptValid[0]==1 && ptValid[1]==1){
         if(ptStuff[0].ptTable.age>=ptStuff[1].ptTable.age){
             activePtID=PT_TABLE_ID_0;
@@ -221,7 +222,7 @@ PtTable_Error_Type PtTable_Get_Active_Entries_By_ID(PtTable_Stuff_Config *ptStuf
                                             PtTable_Entry_Config *ptEntry)
 {
     uint32_t i=0;
-    
+
     if(ptStuff==NULL||ptEntry==NULL){
         return PT_ERROR_PARAMETER;
     }
@@ -250,7 +251,7 @@ PtTable_Error_Type PtTable_Get_Active_Entries_By_Name(PtTable_Stuff_Config *ptSt
 {
     uint32_t i=0;
     uint32_t len=strlen((char *)name);
-    
+
     if(ptStuff==NULL||ptEntry==NULL){
         return PT_ERROR_PARAMETER;
     }
@@ -289,14 +290,14 @@ PtTable_Error_Type PtTable_Update_Entry(PtTable_ID_Type targetTableID,
     if(ptEntry==NULL||ptStuff==NULL){
         return PT_ERROR_PARAMETER;
     }
-    
+
     ptTable=&ptStuff->ptTable;
     ptEntries=ptStuff->ptEntries;
-    
+
     if(targetTableID==PT_TABLE_ID_INVALID){
         return PT_ERROR_TABLE_NOT_VALID;
     }
-    
+
     if(targetTableID==PT_TABLE_ID_0){
         writeAddr=BFLB_PT_TABLE0_ADDRESS;
     }else{
@@ -317,17 +318,17 @@ PtTable_Error_Type PtTable_Update_Entry(PtTable_ID_Type targetTableID,
             return PT_ERROR_ENTRY_UPDATE_FAIL;
         }
     }
-    
+
     /* Prepare write back to flash */
     /* Update age */
     ptTable->age++;
     ptTable->crc32=BFLB_Soft_CRC32((uint8_t*)ptTable,sizeof(PtTable_Config)-4);
-    
+
     /* Update entries CRC */
     entriesLen=ptTable->entryCnt*sizeof(PtTable_Entry_Config);
     pCrc32=(uint32_t *)((uint32_t)ptEntries+entriesLen);
     *pCrc32=BFLB_Soft_CRC32((uint8_t *)&ptEntries[0],entriesLen);
-    
+
     /* Write back to flash */
     /* Erase flash first */
     ret=PtTable_Flash_Erase(writeAddr,writeAddr+sizeof(PtTable_Config)+entriesLen+4-1);
@@ -358,17 +359,17 @@ PtTable_Error_Type PtTable_Create(PtTable_ID_Type ptID)
     uint32_t writeAddr;
     BL_Err_Type ret;
     PtTable_Config ptTable;
-    
+
     if(ptID==PT_TABLE_ID_INVALID){
         return PT_ERROR_TABLE_NOT_VALID;
     }
-    
+
     if(ptID==PT_TABLE_ID_0){
         writeAddr=BFLB_PT_TABLE0_ADDRESS;
     }else{
         writeAddr=BFLB_PT_TABLE1_ADDRESS;
     }
-    
+
     /* Prepare write back to flash */
     ptTable.magicCode=BFLB_PT_MAGIC_CODE;
     ptTable.version=0;

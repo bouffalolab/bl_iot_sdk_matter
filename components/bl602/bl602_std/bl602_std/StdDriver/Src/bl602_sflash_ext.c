@@ -34,6 +34,7 @@
   ******************************************************************************
   */
 
+#include "bl602_l1c.h"
 #include "bl602_sflash_ext.h"
 #include "bl602_sf_ctrl.h"
 #include "l1c_reg.h"
@@ -321,7 +322,7 @@ BL_Err_Type ATTR_TCM_SECTION SFlash_Restore_From_Powerdown(SPI_Flash_Cfg_Type *p
 
     if(flashContRead){
         stat=SFlash_Read(pFlashCfg,ioMode,1,0x00000000,(uint8_t *)tmp, sizeof(tmp));
-        SF_Ctrl_Set_Owner(SF_CTRL_OWNER_IAHB);
+        stat=SFlash_Set_IDbus_Cfg(pFlashCfg,ioMode,1,0,32);
     }else{
         stat=SFlash_Set_IDbus_Cfg(pFlashCfg,ioMode,0,0,32);
     }

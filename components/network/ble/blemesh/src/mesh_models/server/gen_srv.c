@@ -2,7 +2,9 @@
 #include <net/buf.h>
 #include "mesh_model_opcode.h"
 #include "gen_srv.h"
+#include "log.h"
 
+bt_mesh_model_gen_cb gen_cb;
 
 static void send_onoff_status(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx)
 {
@@ -40,7 +42,7 @@ static void gen_onoff_set(struct bt_mesh_model *model,
 			  struct net_buf_simple *buf)
 {
     struct bt_mesh_gen_onoff_srv *srv = model->user_data;
-    u8_t onoff, tid, trans_time, delay;
+    u8_t onoff, tid;// trans_time, delay;
     int64_t recv_time;
 
     if(srv == NULL){
@@ -49,7 +51,7 @@ static void gen_onoff_set(struct bt_mesh_model *model,
     }
 
     onoff = net_buf_simple_pull_u8(buf);
-
+    
     if(onoff > MESH_STATE_ON){
         BT_ERR("%s, Invalid OnOff value 0x%02x", __func__, onoff);
         return;
@@ -63,7 +65,11 @@ static void gen_onoff_set(struct bt_mesh_model *model,
 
     /*Ignore transition delay currently, will do this later*/
     if(onoff != srv->onoff_state.prest_onoff)
+    {
         srv->onoff_state.prest_onoff = onoff;
+        if(gen_cb)
+            (gen_cb)(onoff);
+    }
 
     bt_mesh_srv_update_last_rcvd_msg(&srv->last_msg, tid, ctx->addr,ctx->recv_dst, recv_time);
 }
@@ -81,6 +87,11 @@ static void gen_onoff_set_unack(struct bt_mesh_model *model,
 				struct net_buf_simple *buf)
 {
     gen_onoff_set(model, ctx, buf);
+}
+
+void mesh_gen_srv_callback_register(bt_mesh_model_gen_cb cb)
+{
+    gen_cb = cb;   
 }
 
 const struct bt_mesh_model_op bt_mesh_onoff_srv_op[] = {

@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 #include <string.h>
 
@@ -17,6 +46,8 @@
 #include "bl_irqs.h"
 #include "bl_tx.h"
 
+#include <blog.h>
+#define USER_UNUSED(a) ((void)(a))
 #define RWNX_PRINT_CFM_ERR(req) \
         os_printf("%s: Status Error(%d)\n", #req, (&req##_cfm)->status)
 
@@ -28,6 +59,7 @@ static void bl_set_vers(struct bl_hw *bl_hw)
 {
     u32 vers = bl_hw->version_cfm.version_lmac;
 
+    USER_UNUSED(vers);
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
     os_printf("[version] lmac %u.%u.%u.%u\r\n",
@@ -252,7 +284,7 @@ int bl_main_rate_config(uint8_t sta_idx, uint16_t fixed_rate_cfg)
 
 int bl_main_set_country_code(char *country_code)
 {
-    printf("%s: country code: %s\r\n", __func__, country_code);
+    blog_info("%s: country code: %s\r\n", __func__, country_code);
     bl_msg_update_channel_cfg((const char *)country_code);
     bl_send_me_chan_config_req(&wifi_hw);
 
@@ -346,7 +378,7 @@ int bl_main_apm_sta_cnt_get(uint8_t *sta_cnt)
         cnt++;
     }
     (*sta_cnt) = total_sta_cnt;
-    printf("Max limit sta cnt = %u, valid sta cnt = %u\r\n", total_sta_cnt, cnt);
+    blog_info("Max limit sta cnt = %u, valid sta cnt = %u\r\n", total_sta_cnt, cnt);
     return 0;
 }
 
@@ -388,7 +420,7 @@ int bl_main_apm_sta_delete(uint8_t sta_idx)
 
     bl_send_apm_sta_del_req(bl_hw, &sta_del_cfm, sta_idx, vif_idx);
     if (sta_del_cfm.status != 0) {
-        printf("del sta failure, cfm status = 0x%x\r\n", sta_del_cfm.status);
+        blog_info("del sta failure, cfm status = 0x%x\r\n", sta_del_cfm.status);
         return -1;
     }
 
@@ -406,7 +438,7 @@ int bl_main_apm_remove_all_sta()
     for (i = 0; i < total_sta_cnt; i++) {
         sta = &(bl_hw->sta_table[i]);
         if (1 == sta->is_used) {
-            printf("del sta[%u]\r\n", i);
+            blog_info("del sta[%u]\r\n", i);
             bl_main_apm_sta_delete(i);
         }
     }

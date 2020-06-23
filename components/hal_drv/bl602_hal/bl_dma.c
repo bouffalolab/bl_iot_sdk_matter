@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2020 Bouffalolab.
+ *
+ * This file is part of
+ *     *** Bouffalolab Software Dev Kit ***
+ *      (see www.bouffalolab.com).
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *   3. Neither the name of Bouffalo Lab nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -8,6 +37,8 @@
 
 #include "bl_dma.h"
 #include "bl_irq.h"
+
+#include <blog.h>
 
 #define DMA_CHANNEL_OFFSET              0x100
 #define DMA_Get_Channel(ch)             (DMA_BASE+DMA_CHANNEL_OFFSET+(ch)*0x100)
@@ -83,7 +114,7 @@ void bl_dma_update_memdst(uint8_t ch, uint32_t dst, uint32_t len)
 
 static void inline _dma_copy_trigger(struct bl_dma_item *first)
 {
-    //printf("------ DMA Trigger\r\n");
+    //blog_info("------ DMA Trigger\r\n");
     DMA_LLI_Update(DMA_DEFAULT_CHANNEL_COPY, (uint32_t)&(first->src));
     DMA_Channel_Enable(DMA_DEFAULT_CHANNEL_COPY);
 }
@@ -102,11 +133,11 @@ void bl_dma_IRQHandler(void)
 {
     struct bl_dma_item *first;
 
-    //printf("------ Clear DMA now\r\n");
+    //blog_info("------ Clear DMA now\r\n");
     bl_dma_int_clear(DMA_DEFAULT_CHANNEL_COPY);
     first = (struct bl_dma_item*)utils_list_pop_front(&dma_copy_list);
     if (NULL == first) {
-        printf("[INT] ASSERT here for empty chain\r\n");
+        blog_info("[INT] ASSERT here for empty chain\r\n");
         while (1) {
         }
     }
@@ -147,7 +178,7 @@ static void _cb_cmd(void *arg)
     struct bl_dma_item *first;
 
     first = (struct bl_dma_item*)arg;
-    printf("[DMA] [TEST] Callback is working, arg is %p\r\n", arg);
+    blog_info("[DMA] [TEST] Callback is working, arg is %p\r\n", arg);
     first->arg = NULL;
 }
 
@@ -162,7 +193,7 @@ static void _dma_test_case1(void)
     src = pvPortMalloc(size);
     dst = pvPortMalloc(size);
 
-    printf("[TEST] [DMA] first %p, src %p, dst %p\r\n",
+    blog_info("[TEST] [DMA] first %p, src %p, dst %p\r\n",
             first,
             src,
             dst

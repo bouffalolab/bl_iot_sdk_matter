@@ -234,7 +234,7 @@ void Sec_Eng_SHA256_Init(SEC_Eng_SHA256_Ctx *shaCtx,SEC_ENG_SHA_ID_Type shaNo,SE
  *
 *******************************************************************************/
 void Sec_Eng_SHA_Start(SEC_ENG_SHA_ID_Type shaNo)
-{  
+{
     uint32_t SHAx = SEC_ENG_BASE+SEC_ENG_SHA_OFFSET;
     uint32_t tmpVal;
 
@@ -299,7 +299,7 @@ BL_Err_Type Sec_Eng_SHA256_Update(SEC_Eng_SHA256_Ctx *shaCtx,SEC_ENG_SHA_ID_Type
         BL602_MemCpy_Fast( (void *) ((uint8_t *)shaCtx->shaBuf + left), input, fill );
         /* Set data source address */
         BL_WR_REG(SHAx,SEC_ENG_SE_SHA_MSA,(uint32_t )shaCtx->shaBuf);
-        
+
         /* Set data length */
         tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_SHA_MSG_LEN,1);
         BL_WR_REG(SHAx,SEC_ENG_SE_SHA_CTRL,tmpVal);
@@ -337,7 +337,7 @@ BL_Err_Type Sec_Eng_SHA256_Update(SEC_Eng_SHA256_Ctx *shaCtx,SEC_ENG_SHA_ID_Type
 
         tmpVal=BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_SHA_TRIG_1T);
         BL_WR_REG(SHAx,SEC_ENG_SE_SHA_CTRL,tmpVal);
-        
+
         input+=(fill*64);
         shaCtx->shaFeed=1;
     }
@@ -381,7 +381,7 @@ BL_Err_Type Sec_Eng_SHA256_Update(SEC_Eng_SHA256_Ctx *shaCtx,SEC_ENG_SHA_ID_Type
  *
 *******************************************************************************/
 BL_Err_Type Sec_Eng_SHA256_Finish(SEC_Eng_SHA256_Ctx *shaCtx,SEC_ENG_SHA_ID_Type shaNo,uint8_t *hash)
-{  
+{
     uint32_t last, padn;
     uint32_t high, low;
     uint8_t shaMode;
@@ -467,7 +467,7 @@ BL_Err_Type Sec_Eng_SHA256_Finish(SEC_Eng_SHA256_Ctx *shaCtx,SEC_ENG_SHA_ID_Type
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_SHA_HASH_SEL);
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_SHA_EN);
     BL_WR_REG(SHAx,SEC_ENG_SE_SHA_CTRL,tmpVal);
-    
+
     return SUCCESS;
 }
 
@@ -486,7 +486,7 @@ void Sec_Eng_SHA_Enable_Link(SEC_ENG_SHA_ID_Type shaNo)
 
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_SHA_ID_TYPE(shaNo));
-    
+
     /* Enable sha and enable link mode */
     tmpVal = BL_RD_REG(SHAx,SEC_ENG_SE_SHA_0_CTRL);
     tmpVal = BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_SHA_0_EN);
@@ -509,7 +509,7 @@ void Sec_Eng_SHA_Disable_Link(SEC_ENG_SHA_ID_Type shaNo)
 
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_SHA_ID_TYPE(shaNo));
-    
+
     /* Disable sha and disable link mode */
     tmpVal = BL_RD_REG(SHAx,SEC_ENG_SE_SHA_0_CTRL);
     tmpVal = BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_SHA_0_LINK_MODE);
@@ -593,7 +593,7 @@ BL_Err_Type Sec_Eng_SHA256_Link_Update(SEC_Eng_SHA256_Link_Ctx *shaCtx,SEC_ENG_S
         BL602_MemCpy_Fast( (void *) ((uint8_t *)shaCtx->shaBuf + left), input, fill );
         /* Set data source address */
         *(uint32_t *)(shaCtx->linkAddr+4) = (uint32_t)shaCtx->shaBuf;
-        
+
         /* Set data length */
         *((uint16_t *)shaCtx->linkAddr+1) = 1;
         /* Trigger */
@@ -627,7 +627,7 @@ BL_Err_Type Sec_Eng_SHA256_Link_Update(SEC_Eng_SHA256_Link_Ctx *shaCtx,SEC_ENG_S
         /* Trigger */
         tmpVal = BL_RD_REG(SHAx,SEC_ENG_SE_SHA_0_CTRL);
         BL_WR_REG(SHAx,SEC_ENG_SE_SHA_0_CTRL,BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_SHA_0_TRIG_1T));
-        
+
         input+=(fill*64);
         /* Choose accumulating last hash in the next time */
         *((uint32_t *)shaCtx->linkAddr) |= 0x40;
@@ -747,10 +747,10 @@ BL_Err_Type Sec_Eng_SHA256_Link_Finish(SEC_Eng_SHA256_Link_Ctx *shaCtx,SEC_ENG_S
         default:
             break;
     }
-    
+
     /* Choose new hash in the next time */
     *((uint32_t *)shaCtx->linkAddr) &= ~0x40;
-    
+
     return SUCCESS;
 }
 
@@ -789,7 +789,7 @@ BL_Err_Type Sec_Eng_AES_Init(SEC_Eng_AES_Ctx *aesCtx,SEC_ENG_AES_ID_Type aesNo,S
 
     /* Set AES mode type*/
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_AES_BLOCK_MODE,aesType);
-    
+
     /* Set AES key type */
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_AES_MODE,keyType);
 
@@ -812,7 +812,7 @@ BL_Err_Type Sec_Eng_AES_Init(SEC_Eng_AES_Ctx *aesCtx,SEC_ENG_AES_ID_Type aesNo,S
 
     /* Clear AES context */
     memset(aesCtx,0,sizeof(SEC_Eng_AES_Ctx));
-    
+
     return SUCCESS;
 }
 
@@ -867,7 +867,7 @@ void Sec_Eng_AES_Enable_Link(SEC_ENG_AES_ID_Type aesNo)
 
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_AES_ID_TYPE(aesNo));
-    
+
     /* Enable aes link mode */
     tmpVal = BL_RD_REG(AESx,SEC_ENG_SE_AES_0_CTRL);
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_CTRL,BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_AES_0_LINK_MODE));
@@ -888,7 +888,7 @@ void Sec_Eng_AES_Disable_Link(SEC_ENG_AES_ID_Type aesNo)
 
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_AES_ID_TYPE(aesNo));
-    
+
     /* Disable aes link mode */
     tmpVal = BL_RD_REG(AESx,SEC_ENG_SE_AES_0_CTRL);
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_CTRL,BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_AES_0_LINK_MODE));
@@ -911,15 +911,15 @@ BL_Err_Type Sec_Eng_AES_Link_Work(SEC_ENG_AES_ID_Type aesNo,uint32_t linkAddr,co
     uint32_t AESx = SEC_ENG_BASE;
     uint32_t tmpVal;
     uint32_t timeoutCnt = SEC_ENG_AES_BUSY_TIMEOUT_COUNT;
-    
+
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_AES_ID_TYPE(aesNo));
-    
+
     /* Link address should word align */
     if((linkAddr&0x03) != 0 || len%16 != 0){
         return ERROR;
     }
-    
+
     /* Wait finished */
     do {
         tmpVal=BL_RD_REG(AESx,SEC_ENG_SE_AES_0_CTRL);
@@ -928,21 +928,21 @@ BL_Err_Type Sec_Eng_AES_Link_Work(SEC_ENG_AES_ID_Type aesNo,uint32_t linkAddr,co
             return TIMEOUT;
         }
     }while(BL_IS_REG_BIT_SET(tmpVal,SEC_ENG_SE_AES_0_BUSY));
-    
+
     /* Set link address */
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_LINK,linkAddr);
-    
+
     /* Change source buffer address and destination buffer address */
     *(uint32_t *)(linkAddr+4) = (uint32_t)in;
     *(uint32_t *)(linkAddr+8) = (uint32_t)out;
-    
+
     /* Set data length */
     *((uint16_t *)linkAddr+1) = len/16;
-    
+
     /* Enable aes */
     tmpVal = BL_RD_REG(AESx,SEC_ENG_SE_AES_0_CTRL);
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_CTRL,BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_AES_0_EN));
-    
+
     /* Start aes engine and wait finishing */
     tmpVal = BL_RD_REG(AESx,SEC_ENG_SE_AES_0_CTRL);
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_CTRL,BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_AES_0_TRIG_1T));
@@ -959,7 +959,7 @@ BL_Err_Type Sec_Eng_AES_Link_Work(SEC_ENG_AES_ID_Type aesNo,uint32_t linkAddr,co
 
     /* Disable aes */
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_CTRL,BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_AES_0_EN));
-    
+
     return SUCCESS;
 }
 
@@ -1103,7 +1103,7 @@ void Sec_Eng_AES_Set_Key_IV_BE(SEC_ENG_AES_ID_Type aesNo,SEC_ENG_AES_Key_Src_Typ
         tmpVal=BL_RD_REG(AESx,SEC_ENG_SE_AES_CTRL);
         tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_AES_HW_KEY_EN,SEC_ENG_AES_KEY_HW);
         BL_WR_REG(AESx,SEC_ENG_SE_AES_CTRL,tmpVal);
-        
+
         tmpVal=BL_RD_REG(AESx,SEC_ENG_SE_AES_KEY_SEL_0);
         tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_AES_KEY_SEL_0,*key);
         BL_WR_REG(AESx,SEC_ENG_SE_AES_KEY_SEL_0,tmpVal);
@@ -1111,7 +1111,7 @@ void Sec_Eng_AES_Set_Key_IV_BE(SEC_ENG_AES_ID_Type aesNo,SEC_ENG_AES_Key_Src_Typ
         tmpVal=BL_RD_REG(AESx,SEC_ENG_SE_AES_KEY_SEL_1);
         tmpVal=BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_AES_KEY_SEL_1,*key);
         BL_WR_REG(AESx,SEC_ENG_SE_AES_KEY_SEL_1,tmpVal);
-        
+
         return ;
     }
 
@@ -1161,11 +1161,11 @@ void Sec_Eng_AES_Set_Counter_Byte(SEC_ENG_AES_ID_Type aesNo,SEC_ENG_AES_Counter_
 {
     uint32_t AESx = SEC_ENG_BASE;
     uint32_t tmpVal;
-    
+
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_AES_ID_TYPE(aesNo));
     CHECK_PARAM(IS_SEC_ENG_AES_COUNTER_TYPE(counterType));
-    
+
     /* Set counter type */
     tmpVal = BL_RD_REG(AESx,SEC_ENG_SE_AES_0_ENDIAN);
     BL_WR_REG(AESx,SEC_ENG_SE_AES_0_ENDIAN,BL_SET_REG_BITS_VAL(tmpVal,SEC_ENG_SE_AES_0_CTR_LEN,counterType));
@@ -1239,7 +1239,7 @@ BL_Err_Type Sec_Eng_AES_Crypt(SEC_Eng_AES_Ctx *aesCtx,SEC_ENG_AES_ID_Type aesNo,
 
     aesCtx->aesFeed=1;
 
-    return SUCCESS;  
+    return SUCCESS;
 }
 
 /****************************************************************************//**
@@ -1268,7 +1268,7 @@ BL_Err_Type Sec_Eng_AES_Finish(SEC_ENG_AES_ID_Type aesNo)
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_AES_EN);
 
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_AES_DEC_KEY_SEL);
-    
+
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_AES_IV_SEL);
 
     BL_WR_REG(AESx,SEC_ENG_SE_AES_CTRL,tmpVal);
@@ -1315,7 +1315,7 @@ BL_Err_Type Sec_Eng_Trng_Enable(void)
     /* Clear trng interrupt */
     tmpVal=BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_INT_CLR_1T);
     BL_WR_REG(TRNGx,SEC_ENG_SE_TRNG_CTRL_0,tmpVal);
-    
+
     return SUCCESS;
 }
 
@@ -1420,7 +1420,7 @@ BL_Err_Type Sec_Eng_Trng_Read(uint8_t data[32])
 
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_DOUT_CLR_1T);
     BL_WR_REG(TRNGx,SEC_ENG_SE_TRNG_CTRL_0,tmpVal);
-    
+
     return SUCCESS;
 }
 
@@ -1646,7 +1646,7 @@ static void Sec_Eng_PKA_Write_Pld_Cfg(uint16_t size, uint8_t regIndex, SEC_ENG_P
     cfg.value.BF.d_reg_type = regType;
     cfg.value.BF.op = op;
     cfg.value.BF.last_op = lastOp;
-    
+
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, cfg.value.WORD);
 }
 
@@ -1754,7 +1754,7 @@ static BL_Err_Type Sec_Eng_PKA_Wait_ISR(void)
 {
     uint32_t pka0_ctrl;
     uint32_t timeoutCnt = SEC_ENG_PKA_INT_TIMEOUT_COUNT;
-    
+
     do{
         pka0_ctrl = BL_RD_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_CTRL_0);
         timeoutCnt--;
@@ -1762,7 +1762,7 @@ static BL_Err_Type Sec_Eng_PKA_Wait_ISR(void)
             return TIMEOUT;
         }
     }while(!BL_GET_REG_BITS_VAL(pka0_ctrl, SEC_ENG_SE_PKA_0_INT));
-    
+
     return SUCCESS;
 }
 
@@ -1844,7 +1844,7 @@ __ASM void Sec_Eng_PKA_Write_Block(uint32_t *dest,const uint32_t *src,uint32_t l
 Start1
     CMP  R2,#4
     BLT  Finish1
-    LDMIA  R1!,{R3-R6}    
+    LDMIA  R1!,{R3-R6}
     STR  R3,[R0]
     STR  R4,[R0]
     STR  R5,[R0]
@@ -1899,7 +1899,7 @@ static void Sec_Eng_PKA_Get_Result(uint32_t *result, uint8_t retSize,uint16_t re
 {
     uint32_t ret_data = 0x00;
     int index = 0x00;
-    
+
     /* Wait for the result */
     Sec_Eng_PKA_Wait_ISR();
     Sec_Eng_PKA_Clear_Int();
@@ -1929,9 +1929,9 @@ void Sec_Eng_PKA_Write_Data( SEC_ENG_PKA_REG_SIZE_Type regType,uint8_t regIndex,
 {
     int index = 0x00;
     uint16_t regLen=Sec_Eng_PKA_Get_Reg_Size(regType);
-    
+
     Sec_Eng_PKA_Write_Pld_Cfg(size, regIndex, regType, SEC_ENG_PKA_OP_CTLIR_PLD, lastOp);
-    
+
     if(size>regLen/4){
         size=regLen/4;
     }
@@ -1959,15 +1959,15 @@ void Sec_Eng_PKA_Read_Data(SEC_ENG_PKA_REG_SIZE_Type regType, uint8_t regIdx, ui
 {
     uint16_t regSize;
     uint32_t dummyData = 0;
-    
+
     regSize = Sec_Eng_PKA_Get_Reg_Size(regType);
     if(retSize > regSize/4){
         result = NULL;
         return;
     }
-    
+
     Sec_Eng_PKA_Write_Pld_Cfg(retSize, regIdx, regType, SEC_ENG_PKA_OP_CFLIR_BUFFER,1);
-    
+
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, dummyData);
 
     Sec_Eng_PKA_Get_Result(result, retSize,regSize);
@@ -1987,10 +1987,10 @@ void Sec_Eng_PKA_Read_Data(SEC_ENG_PKA_REG_SIZE_Type regType, uint8_t regIdx, ui
 void Sec_Eng_PKA_CREG(SEC_ENG_PKA_REG_SIZE_Type dRegType, uint8_t dRegIdx, uint8_t size,uint8_t lastOp)
 {
     uint32_t dummyData = 0;
-    
-    Sec_Eng_PKA_Write_Pld_Cfg(size, dRegIdx, dRegType, SEC_ENG_PKA_OP_CLIR, lastOp);   
+
+    Sec_Eng_PKA_Write_Pld_Cfg(size, dRegIdx, dRegType, SEC_ENG_PKA_OP_CLIR, lastOp);
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, dummyData);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2042,10 +2042,10 @@ void Sec_Eng_PKA_Write_Immediate( SEC_ENG_PKA_REG_SIZE_Type regType,uint8_t regI
 void Sec_Eng_PKA_NREG(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,uint8_t lastOp)
 {
     uint32_t dummyData = 0;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_NLIR, lastOp);
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, dummyData);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2067,10 +2067,10 @@ void Sec_Eng_PKA_NREG(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 void Sec_Eng_PKA_Move_Data(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,uint8_t lastOp)
 {
     uint32_t dummyData = 0;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MOVDAT, lastOp);
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, dummyData);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2092,7 +2092,7 @@ void Sec_Eng_PKA_Move_Data(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType,
 void Sec_Eng_PKA_RESIZE(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,uint8_t lastOp)
 {
     uint32_t dummyData = 0;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_RESIZE, lastOp);
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, dummyData);
     if(lastOp){
@@ -2119,10 +2119,10 @@ void Sec_Eng_PKA_RESIZE(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, ui
 *******************************************************************************/
 void Sec_Eng_PKA_MADD(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx, uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MADD, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1_S2(s1RegIdx, s1RegType, s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2147,10 +2147,10 @@ void Sec_Eng_PKA_MADD(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_MSUB(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx, uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MSUB, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1_S2(s1RegIdx, s1RegType, s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2173,14 +2173,14 @@ void Sec_Eng_PKA_MSUB(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_MREM(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MREM, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S2(s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
-    }    
+    }
 }
 
 /****************************************************************************//**
@@ -2201,10 +2201,10 @@ void Sec_Eng_PKA_MREM(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_MMUL(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx, uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MMUL, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1_S2(s1RegIdx, s1RegType, s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2227,14 +2227,14 @@ void Sec_Eng_PKA_MMUL(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_MSQR(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MSQR, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S2(s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
-    }    
+    }
 }
 
 /****************************************************************************//**
@@ -2255,10 +2255,10 @@ void Sec_Eng_PKA_MSQR(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_MEXP(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx, uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MEXP, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1_S2(s1RegIdx, s1RegType, s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2284,7 +2284,7 @@ void Sec_Eng_PKA_MINV(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 {
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MINV, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S2(s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2306,14 +2306,14 @@ void Sec_Eng_PKA_MINV(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 void Sec_Eng_PKA_LCMP(uint8_t *cout, uint8_t s0RegType, uint8_t s0RegIdx, uint8_t s1RegType, uint8_t s1RegIdx)
 {
     uint32_t pka0_ctrl = 0x00;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, 0, 0, SEC_ENG_PKA_OP_LCMP, 1);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1(s1RegIdx, s1RegType);
 
     Sec_Eng_PKA_Wait_ISR();
     Sec_Eng_PKA_Clear_Int();
     pka0_ctrl = BL_RD_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_CTRL_0);
-    
+
     *cout = (pka0_ctrl&SEC_ENG_PKA_STATUS_LAST_OPC_MASK)>>SEC_ENG_PKA_STATUS_LAST_OPC_OFFSET;
 }
 
@@ -2333,10 +2333,10 @@ void Sec_Eng_PKA_LCMP(uint8_t *cout, uint8_t s0RegType, uint8_t s0RegIdx, uint8_
 *******************************************************************************/
 void Sec_Eng_PKA_LADD(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LADD, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1(s1RegIdx, s1RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2359,10 +2359,10 @@ void Sec_Eng_PKA_LADD(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_LSUB(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LSUB, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1(s1RegIdx, s1RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2386,10 +2386,10 @@ void Sec_Eng_PKA_LSUB(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 void Sec_Eng_PKA_LMUL(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s1RegType, uint8_t s1RegIdx,uint8_t lastOp)
 {
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LMUL, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S1(s1RegIdx, s1RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2411,10 +2411,10 @@ void Sec_Eng_PKA_LMUL(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 void Sec_Eng_PKA_LSQR(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,uint8_t lastOp)
 {
     uint32_t dummyData = 0;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LSQR, lastOp);
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, dummyData);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2437,10 +2437,10 @@ void Sec_Eng_PKA_LSQR(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint
 *******************************************************************************/
 void Sec_Eng_PKA_LDIV(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, uint8_t s0RegIdx,
                        uint8_t s2RegType, uint8_t s2RegIdx,uint8_t lastOp)
-{    
+{
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LDIV, lastOp);
     Sec_Eng_PKA_Write_Common_OP_Snd_Cfg_S2(s2RegIdx, s2RegType);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2464,12 +2464,12 @@ void Sec_Eng_PKA_LMUL2N(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, ui
                     uint16_t bit_shift,uint8_t lastOp)
 {
     struct pka0_bit_shift_op_cfg cfg;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LMUL2N, 0);
 
     cfg.value.BF.bit_shift = bit_shift;
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, cfg.value.WORD);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2493,12 +2493,12 @@ void Sec_Eng_PKA_LDIV2N(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, ui
                         uint16_t bit_shift,uint8_t lastOp)
 {
     struct pka0_bit_shift_op_cfg cfg;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_LDIV2N, 0);
 
     cfg.value.BF.bit_shift = bit_shift;
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, cfg.value.WORD);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2522,12 +2522,12 @@ void Sec_Eng_PKA_LMOD2N(uint8_t dRegType, uint8_t dRegIdx, uint8_t s0RegType, ui
                         uint16_t bit_shift,uint8_t lastOp)
 {
     struct pka0_bit_shift_op_cfg cfg;
-    
+
     Sec_Eng_PKA_Write_Common_OP_First_Cfg(s0RegIdx, s0RegType, dRegIdx, dRegType, SEC_ENG_PKA_OP_MOD2N, lastOp);
 
     cfg.value.BF.bit_shift = bit_shift;
     BL_WR_REG(SEC_ENG_BASE, SEC_ENG_SE_PKA_0_RW, cfg.value.WORD);
-    
+
     if(lastOp){
         Sec_Eng_PKA_Wait_ISR();
         Sec_Eng_PKA_Clear_Int();
@@ -2595,7 +2595,7 @@ void Sec_Eng_PKA_Mont2GF(uint8_t dRegType, uint8_t dRegIdx, uint8_t aRegType, ui
 void Sec_Eng_GMAC_Enable_LE(void)
 {
     uint32_t tmpVal;
-    
+
     tmpVal = BL_RD_REG(SEC_ENG_BASE,SEC_ENG_SE_GMAC_0_CTRL_0);
     tmpVal = BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_T_ENDIAN);
     tmpVal = BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_H_ENDIAN);
@@ -2614,7 +2614,7 @@ void Sec_Eng_GMAC_Enable_LE(void)
 void Sec_Eng_GMAC_Enable_BE(void)
 {
     uint32_t tmpVal;
-    
+
     tmpVal = BL_RD_REG(SEC_ENG_BASE,SEC_ENG_SE_GMAC_0_CTRL_0);
     tmpVal = BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_T_ENDIAN);
     tmpVal = BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_H_ENDIAN);
@@ -2633,7 +2633,7 @@ void Sec_Eng_GMAC_Enable_BE(void)
 void Sec_Eng_GMAC_Enable_Link(void)
 {
     uint32_t tmpVal;
-    
+
     /* Enable gmac link mode */
     tmpVal = BL_RD_REG(SEC_ENG_BASE,SEC_ENG_SE_GMAC_0_CTRL_0);
     BL_WR_REG(SEC_ENG_BASE,SEC_ENG_SE_GMAC_0_CTRL_0,BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_EN));
@@ -2650,7 +2650,7 @@ void Sec_Eng_GMAC_Enable_Link(void)
 void Sec_Eng_GMAC_Disable_Link(void)
 {
     uint32_t tmpVal;
-    
+
     /* Disable gmac link mode */
     tmpVal = BL_RD_REG(SEC_ENG_BASE,SEC_ENG_SE_GMAC_0_CTRL_0);
     BL_WR_REG(SEC_ENG_BASE,SEC_ENG_SE_GMAC_0_CTRL_0,BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_EN));
@@ -2672,12 +2672,12 @@ BL_Err_Type Sec_Eng_GMAC_Link_Work(uint32_t linkAddr,const uint8_t *in,uint32_t 
     uint32_t GMACx = SEC_ENG_BASE;
     uint32_t tmpVal;
     uint32_t timeoutCnt = SEC_ENG_GMAC_BUSY_TIMEOUT_COUNT;
-    
+
     /* Link address should word align */
     if((linkAddr&0x03) != 0 || len%16 != 0){
         return ERROR;
     }
-    
+
     /* Wait finished */
     do {
         tmpVal=BL_RD_REG(GMACx,SEC_ENG_SE_GMAC_0_CTRL_0);
@@ -2686,16 +2686,16 @@ BL_Err_Type Sec_Eng_GMAC_Link_Work(uint32_t linkAddr,const uint8_t *in,uint32_t 
             return TIMEOUT;
         }
     }while(BL_IS_REG_BIT_SET(tmpVal,SEC_ENG_SE_GMAC_0_BUSY));
-    
+
     /* Set link address */
     BL_WR_REG(GMACx,SEC_ENG_SE_GMAC_0_LCA,linkAddr);
-    
+
     /* Change source buffer address */
     *(uint32_t *)(linkAddr+4) = (uint32_t)in;
-    
+
     /* Set data length */
     *((uint16_t *)linkAddr+1) = len/16;
-    
+
     /* Start gmac engine and wait finishing */
     tmpVal = BL_RD_REG(GMACx,SEC_ENG_SE_GMAC_0_CTRL_0);
     BL_WR_REG(GMACx,SEC_ENG_SE_GMAC_0_CTRL_0,BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_GMAC_0_TRIG_1T));
@@ -2710,7 +2710,7 @@ BL_Err_Type Sec_Eng_GMAC_Link_Work(uint32_t linkAddr,const uint8_t *in,uint32_t 
 
     /* Get result */
     BL602_MemCpy_Fast(out,(uint8_t *)(linkAddr+0x18),16);
-    
+
     return SUCCESS;
 }
 #ifndef BL602_USE_HAL_DRIVER
@@ -2726,10 +2726,10 @@ BL_Err_Type Sec_Eng_GMAC_Link_Work(uint32_t linkAddr,const uint8_t *in,uint32_t 
 static void SEC_Eng_IntHandler(SEC_ENG_INT_Type intType)
 {
     uint32_t tmpVal;
-    
+
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_INT_TYPE(intType));
-    
+
     switch(intType)
     {
         case SEC_ENG_INT_TRNG:
@@ -2918,10 +2918,10 @@ void SEC_Eng_IntMask(SEC_ENG_INT_Type intType, BL_Mask_Type intMask)
 void SEC_Eng_ClrIntStatus(SEC_ENG_INT_Type intType)
 {
     uint32_t tmpVal;
-    
+
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_INT_TYPE(intType));
-    
+
     switch(intType)
     {
         case SEC_ENG_INT_AES:
@@ -2964,7 +2964,7 @@ void SEC_Eng_Int_Callback_Install(SEC_ENG_INT_Type intType,intCallback_Type* cbF
 {
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_INT_TYPE(intType));
-    
+
     secEngIntCbfArra[intType] = cbFun;
 }
 
@@ -2980,10 +2980,10 @@ BL_Sts_Type SEC_Eng_GetIntStatus(SEC_ENG_INT_Type intType)
 {
     uint32_t tmpVal;
     BL_Sts_Type status = RESET;
-    
+
     /* Check the parameters */
     CHECK_PARAM(IS_SEC_ENG_INT_TYPE(intType));
-    
+
     switch(intType)
     {
         case SEC_ENG_INT_AES:
@@ -3021,7 +3021,7 @@ BL_Sts_Type SEC_Eng_GetIntStatus(SEC_ENG_INT_Type intType)
         default:
             break;
     }
-    
+
     return status;
 }
 #ifndef BL602_USE_HAL_DRIVER
@@ -3113,13 +3113,14 @@ void __IRQ SEC_GMAC_IRQHandler(void)
  * @return None
  *
 *******************************************************************************/
+__WEAK
 void ATTR_TCM_SECTION SEC_Eng_Turn_On_Sec_Ring(void)
 {
     uint32_t tmpVal = 0;
-    
+
     /* Turn-on Sec Ring Oscillation */
     tmpVal=BL_RD_REG(SEC_ENG_BASE,SEC_ENG_SE_TRNG_0_CTRL_3);
-    tmpVal=BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_0_ROSC_EN);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_0_ROSC_DIS);
     BL_WR_REG(SEC_ENG_BASE,SEC_ENG_SE_TRNG_0_CTRL_3,tmpVal);
 }
 
@@ -3131,13 +3132,14 @@ void ATTR_TCM_SECTION SEC_Eng_Turn_On_Sec_Ring(void)
  * @return None
  *
 *******************************************************************************/
+__WEAK
 void ATTR_TCM_SECTION SEC_Eng_Turn_Off_Sec_Ring(void)
 {
     uint32_t tmpVal = 0;
-    
+
     /* Turn-off Sec Ring Oscillation */
     tmpVal=BL_RD_REG(SEC_ENG_BASE,SEC_ENG_SE_TRNG_0_CTRL_3);
-    tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_0_ROSC_EN);
+    tmpVal=BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_0_ROSC_DIS);
     BL_WR_REG(SEC_ENG_BASE,SEC_ENG_SE_TRNG_0_CTRL_3,tmpVal);
 }
 

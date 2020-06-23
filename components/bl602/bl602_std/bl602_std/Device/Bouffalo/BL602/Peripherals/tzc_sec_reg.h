@@ -2,12 +2,12 @@
   ******************************************************************************
   * @file    tzc_sec_reg.h
   * @version V1.2
-  * @date    2019-10-18
+  * @date    2020-04-30
   * @brief   This file is the description of.IP register
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2019 Bouffalo Lab</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2020 Bouffalo Lab</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -37,9 +37,6 @@
 #define  __TZC_SEC_REG_H__
 
 #include "bl602.h"
-
-/* 0x0 : tzc_l1c_m_id */
-#define TZC_SEC_TZC_L1C_M_ID_OFFSET                             (0x0)
 
 /* 0x40 : tzc_rom_ctrl */
 #define TZC_SEC_TZC_ROM_CTRL_OFFSET                             (0x40)

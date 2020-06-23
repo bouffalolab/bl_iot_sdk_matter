@@ -18759,7 +18759,7 @@
 			<peripheral>
 				<name>AON</name>
 				<description>AON.</description>
-				<baseAddress></baseAddress>
+				<baseAddress>0x4000F800</baseAddress>
 				<groupName>AON</groupName>
 				<size>32</size>
 				<access>read-write</access>

@@ -953,9 +953,21 @@ void ADC_Tsen_Init(ADC_TSEN_MOD_Type tsenMod)
     /* enable chip sensor*/
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_CHIP_SEN_PU);
 
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
+
 	/* config 2 */
 	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
-	tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TS_EN);
+    /*tsvbe low=0*/
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TSVBE_LOW);
+    /*dly_sel=2*/
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_DLY_SEL,2);
+    /*test_sel=0*/
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_TEST_SEL,0);
+    /*test_en=0*/
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TEST_EN);
+    /*ts_en*/
+	tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_TS_EN);
+    /*select tsen ext or inner*/
 	tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_TSEXT_SEL,tsenMod);
 	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
 }
@@ -972,7 +984,7 @@ void ADC_SET_TSVBE_LOW(void)
 {
 	uint32_t tmpVal;
     tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
-    tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_TS_EN);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TSVBE_LOW);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
 }
 
@@ -988,7 +1000,7 @@ void ADC_SET_TSVBE_HIGH(void)
 {
 	uint32_t tmpVal;
     tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
-    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TS_EN);
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_TSVBE_LOW);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
 }
 

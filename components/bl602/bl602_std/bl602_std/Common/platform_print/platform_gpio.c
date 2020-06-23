@@ -18,10 +18,11 @@ void bflb_platform_init_uart_debug_gpio()
 	cfg.gpioMode=GPIO_MODE_OUTPUT;
 	cfg.pullType=GPIO_PULL_UP;
 	GLB_GPIO_Init(&cfg);
+	GLB_UART_Sig_Swap_Set(UART_SIG_SWAP_GPIO8_GPIO15);
 	/* select uart gpio function */
 	GLB_UART_Fun_Sel(BFLB_UART_DBG_TX_SIG,BFLB_UART_DBG_TX_SIG_FUN);
 
-#ifndef BL602_EFLASH_LOADER
+#if !((defined BOOTROM) || (defined BL602_EFLASH_LOADER))
 	/*set GPIO as UART RX */
 	cfg.gpioPin=BFLB_UART_DBG_RX_GPIO;
 	cfg.gpioFun=BFLB_UART_DBG_RX_NORMAL_FUN;

@@ -408,9 +408,15 @@ xPortStartFirstTask:
 pxPortInitialiseStack:
 
 	csrr t0, mstatus					/* Obtain current mstatus value. */
+#if 1
+	li   t1, 0x1880
+	or   t0, t0, t1                     /* MPP = 0b11, MPIE = 1 */
+	andi t0, t0, 0xFFFFFFF7             /* !!! MIE = 0 !!! */
+#else
 	addi t1, x0, 0x188					/* Generate the value 0x1880, which are the MPIE and MPP bits to set in mstatus. */
 	slli t1, t1, 4
 	or t0, t0, t1						/* Set MPIE and MPP bits in mstatus value. */
+#endif
 
 	addi a0, a0, -portWORD_SIZE
 	store_x t0, 0(a0)					/* mstatus onto the stack. */
