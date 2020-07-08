@@ -47,7 +47,6 @@
 extern "C" {
 #endif
 #if (CFG_COMPONENT_BLOG_ENABLE == 1)
-#define __blog_printf                bl_printk
 #define ATTR_BLOG_CODE1(name)        __attribute__((used, section(".static_blogcomponent_code." #name)))
 #define ATTR_BLOG_CODE2(name)        __attribute__((used, section(".static_blogfile_code." #name)))
 #define ATTR_BLOG_CODE3(name)        __attribute__((used, section(".static_blogpri_code." #name)))
@@ -141,8 +140,10 @@ DECLARE_F_INFO(__COMPONENT_FILE_NAME_DEQUOTED__, __COMPONENT_FILE_NAMED__);
                                             custom_cflog(BLOG_LEVEL_WARN,"\x1b[33mWARN  \x1b[0m", M, ##__VA_ARGS__);}    // F_YELLOW
 #define blog_error(M, ...)              if (0 == BLOG_HARD_DECLARE_DISABLE) {\
                                             custom_cflog(BLOG_LEVEL_ERROR,"\x1b[31mERROR \x1b[0m", M, ##__VA_ARGS__);}  // F_RED
-#define blog_assert(M, ...)             if (0 == BLOG_HARD_DECLARE_DISABLE) {\
-                                            custom_cflog(BLOG_LEVEL_ASSERT,"\x1b[35mASSERT\x1b[0m", M, ##__VA_ARGS__);}// F_MAGENTA
+#define blog_assert(assertion)          if (0 == (assertion)) {\
+                                                __blog_printf("assert, %s:%d\r\n", __FILENAME__, __LINE__);\
+                                                while(1);\
+                                            }
 
 #define blog_debug_user(name, M, ...)   if (0 == BLOG_HARD_DECLARE_DISABLE) {\
                                             custom_plog(name,BLOG_LEVEL_DEBUG, "DEBUG ", M, ##__VA_ARGS__);}
@@ -165,8 +166,8 @@ DECLARE_F_INFO(__COMPONENT_FILE_NAME_DEQUOTED__, __COMPONENT_FILE_NAMED__);
                                               custom_hexdumplog(name,BLOG_LEVEL_ERROR, "\x1b[31mERROR \x1b[0m", buf, size);}
 #define blog_assert_hexdump(name, buf, size)  if (0 == BLOG_HARD_DECLARE_DISABLE) {\
                                               custom_hexdumplog(name,BLOG_LEVEL_ASSERT, "\x1b[35mASSERT\x1b[0m", buf, size);}
-#define blog_print          printf
-#define blog_buf(...)
+#define blog_print          __blog_printf
+#define blog_buf            log_buf//unsupport
 
 #else
 

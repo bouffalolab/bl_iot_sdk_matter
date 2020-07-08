@@ -8,11 +8,11 @@
 #include <stream_buffer.h>
 #include "transfer.h"
 
-#define BLSYNC_BLE_VERSION "v1.0.0"
+#define BLSYNC_BLE_VERSION "v1.1.0"
 
 #define BLE_PROV_BUF_SIZE 256
 #define BLE_PROV_TASK_STACK_SIZE 512
-#define WIFI_SCAN_ITEMS_MAX 32
+#define WIFI_SCAN_ITEMS_MAX 50
 #define BLE_PROV_QUEUE_NUMS 2
 
 #define BT_UUID_WIFI_PROV   BT_UUID_DECLARE_16(0xffff)
@@ -22,6 +22,7 @@
 
 typedef struct blesync_wifi_item {
     char ssid[32];
+    uint32_t ssid_len;
     uint8_t bssid[6];
     uint8_t channel;
     uint8_t auth;
@@ -30,6 +31,7 @@ typedef struct blesync_wifi_item {
 
 struct wifi_conn {
     uint8_t ssid[32];
+    uint8_t ssid_tail[1];
     uint8_t pask[64];
 };
 
@@ -48,10 +50,13 @@ struct queue_buf {
 };
 
 struct wifi_state {
-    uint8_t state;
     char ip[16];
     char gw[16];
     char mask[16];
+    char ssid[32];
+    char ssid_tail[1];
+    uint8_t bssid[6];
+    uint8_t state;
 };
 
 typedef struct bl_ble_sync {

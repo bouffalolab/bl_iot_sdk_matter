@@ -288,6 +288,6 @@ int bt_get_local_address(bt_addr_le_t *adv_addr);
 int bt_le_set_data_len(struct bt_conn *conn, u16_t tx_octets, u16_t tx_time);
 
 #if defined(CONFIG_SET_TX_PWR)
-int bt_set_tx_pwr(uint8_t power);
+int bt_set_tx_pwr(int8_t power);
 #endif
 #endif

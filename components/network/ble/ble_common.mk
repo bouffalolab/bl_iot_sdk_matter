@@ -1,9 +1,26 @@
+CFLAGS   += -DCFG_FREERTOS
+CFLAGS   += -DARCH_RISCV
+
+ifeq ($(CONFIG_CHIP_NAME),BL602)
+CFLAGS   += -DBL602
+CFLAGS   += -DCONFIG_SET_TX_PWR
+endif
+
+ifeq ($(CONFIG_CHIP_NAME),BL702)
+CFLAGS   += -DBL702
+endif
+
+ifeq ($(CONFIG_DBG_RUN_ON_FPGA), 1)
+CFLAGS   += -DCFG_DBG_RUN_ON_FPGA
+endif
+
+ifeq ($(CONFIG_BUILD_ROM_CODE),1)
+CFLAGS += -DBUILD_ROM_CODE
+endif
+
 CFLAGS   += -DBFLB_BLE
 CFLAGS   += -DCFG_BLE
 CFLAGS   += -DCFG_SLEEP
-
-CFLAGS   += -DCFG_FREERTOS
-CFLAGS   += -DARCH_RISCV
 
 CONFIG_BT_CONN?=2
 CFLAGS += -DCFG_CON=$(CONFIG_BT_CONN)
@@ -34,19 +51,6 @@ endif
 
 CONFIG_DISABLE_BT_SMP ?= 0
 CONFIG_DISABLE_BT_HOST_PRIVACY ?= 0
-
-ifeq ($(CONFIG_CHIP_NAME),BL602)
-CFLAGS   += -DBL602
-CFLAGS   += -DCONFIG_SET_TX_PWR
-endif
-
-ifeq ($(CONFIG_CHIP_NAME),BL702)
-CFLAGS   += -DBL702
-endif
-
-ifeq ($(CONFIG_DBG_RUN_ON_FPGA), 1)
-CFLAGS   += -DCFG_DBG_RUN_ON_FPGA
-endif
 
 ##########################################
 ############## BLE STACK #################
@@ -85,6 +89,9 @@ endif
 
 ifeq ($(CONFIG_BLE_MFG),1)
 CFLAGS += -DCONFIG_BLE_MFG
+ifeq ($(CONFIG_BLE_MFG_HCI_CMD),1)
+CFLAGS   += -DCONFIG_BLE_MFG_HCI_CMD
+endif
 endif
 
 ifeq ($(CONFIG_BT_GEN_RANDOM_BY_SW),1)

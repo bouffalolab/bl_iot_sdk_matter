@@ -1452,6 +1452,13 @@ struct scanu_start_cfm
 
 typedef struct
 {
+    uint8_t  wep;
+    uint8_t  wpa;
+    uint8_t  wpa2;
+} Security_mode_t;
+
+typedef struct
+{
     uint8_t   wep40      : 1;
     uint8_t   wep104     : 1;
     uint8_t   tkip       : 1;
@@ -1485,10 +1492,6 @@ struct scanu_result_ind
     int8_t ppm_abs;
     ///Rel. PPM of the received frame
     int8_t ppm_rel;
-    Cipher_t wpa_mcstCipher;
-    Cipher_t wpa_ucstCipher;
-    Cipher_t rsn_mcstCipher;
-    Cipher_t rsn_ucstCipher;
     /// Date rate of the received frame.
     uint8_t data_rate;
     /// Frame payload.

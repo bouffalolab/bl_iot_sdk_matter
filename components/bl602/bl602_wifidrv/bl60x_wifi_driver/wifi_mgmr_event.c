@@ -67,10 +67,7 @@ static void cb_disconnect_ind(void *env, struct wifi_event_sm_disconnect_ind *in
 
 static void cb_beacon_ind(void *env, struct wifi_event_beacon_ind *ind)
 {
-    wifi_mgmr_api_cipher_t rsn_ucstCipher, rsn_mcstCipher;
-    memcpy(&rsn_ucstCipher, &ind->rsn_ucstCipher, sizeof(wifi_cipher_t));
-    memcpy(&rsn_mcstCipher, &ind->rsn_mcstCipher, sizeof(wifi_cipher_t));
-    wifi_mgmr_api_scan_item_beacon(ind->channel, ind->rssi, ind->auth, ind->bssid, ind->ssid, ind->ssid_len, ind->ppm_abs, ind->ppm_rel, rsn_ucstCipher, rsn_mcstCipher);
+    wifi_mgmr_api_scan_item_beacon(ind->channel, ind->rssi, ind->auth, ind->bssid, ind->ssid, ind->ssid_len, ind->ppm_abs, ind->ppm_rel, ind->cipher);
 }
 
 static void cb_probe_resp_ind(void *env, long long timestamp)

@@ -229,11 +229,10 @@ stats_netstat(void *ctx)
   // RAW
   for (curr_raw = _raw_pcbs; curr_raw != NULL; curr_raw = curr_raw->next) {
     ipaddr_ntoa_r(&curr_raw->local_ip, ip_str, sizeof ip_str);
-    LWIP_PLATFORM_DIAG(("RAW\t%s:%"U32_F"\t", ip_str, curr_raw->local_port));
+    LWIP_PLATFORM_DIAG(("RAW\t%s\t", ip_str));
     
     ipaddr_ntoa_r(&curr_raw->remote_ip, ip_str, sizeof ip_str);
-    LWIP_PLATFORM_DIAG(("%s:%"U32_F"\t%d\r\n", ip_str, curr_raw->remote_port,
-          curr_raw->protocol));
+    LWIP_PLATFORM_DIAG(("%s\t%d\r\n", ip_str, curr_raw->protocol));
   }
 #endif
 }

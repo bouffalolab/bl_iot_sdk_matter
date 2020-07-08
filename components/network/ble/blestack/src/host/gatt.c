@@ -1066,11 +1066,18 @@ static void sc_indicate(u16_t start, u16_t end)
 {
 	BT_DBG("start 0x%04x end 0x%04x", start, end);
 
+    #if defined (BFLB_BLE_PATCH_SET_SCRANGE_CHAGD_ONLY_IN_CONNECTED_STATE)
+    struct bt_conn *conn = bt_conn_lookup_state_le(NULL, BT_CONN_CONNECTED);
+    if(conn){        
+    #endif
 	if (!atomic_test_and_set_bit(gatt_sc.flags, SC_RANGE_CHANGED)) {
 		gatt_sc.start = start;
 		gatt_sc.end = end;
 		goto submit;
 	}
+    #if defined (BFLB_BLE_PATCH_SET_SCRANGE_CHAGD_ONLY_IN_CONNECTED_STATE)
+    }
+    #endif
 
 	if (!update_range(&gatt_sc.start, &gatt_sc.end, start, end)) {
 		return;
@@ -1082,8 +1089,16 @@ submit:
 		return;
 	}
 
+#if defined (BFLB_BLE_PATCH_SET_SCRANGE_CHAGD_ONLY_IN_CONNECTED_STATE)
+    if(conn){
+#endif
 	/* Reschedule since the range has changed */
 	k_delayed_work_submit(&gatt_sc.work, SC_TIMEOUT);
+#if defined (BFLB_BLE_PATCH_SET_SCRANGE_CHAGD_ONLY_IN_CONNECTED_STATE)
+    bt_conn_unref(conn);
+}
+#endif
+
 }
 #endif /* BT_GATT_DYNAMIC_DB || (BT_GATT_CACHING && BT_SETTINGS) */
 
@@ -1202,7 +1217,7 @@ ssize_t bt_gatt_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 	if(event_flag == att_read_by_group_type_ind){
 		data = (u8_t *)buf;
 		for(i=0;i<len;i++){
-			BT_STACK_PTS_DBG("%s:handle = [0x%04x], data[%d] = [0x%x]\r\n",__func__,
+			BT_PTS("%s:handle = [0x%04x], data[%d] = [0x%x]\r\n",__func__,
 															attr->handle, i, data[i]);
 		}
 	}

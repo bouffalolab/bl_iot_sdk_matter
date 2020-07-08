@@ -184,10 +184,7 @@ typedef struct wifi_mgmr_scan_item {
     int8_t ppm_abs;
     int8_t ppm_rel;
     uint8_t auth;
-    wifi_mgmr_cipher_t wpa_mcstCipher;
-    wifi_mgmr_cipher_t wpa_ucstCipher;
-    wifi_mgmr_cipher_t rsn_mcstCipher;
-    wifi_mgmr_cipher_t rsn_ucstCipher;
+    uint8_t cipher;
     uint8_t is_used;
     uint32_t timestamp_lastseen;
 } wifi_mgmr_scan_item_t;
@@ -249,6 +246,10 @@ typedef struct wifi_mgmr {
     char country_code[3];
     uint8_t disable_autoreconnect;
     int channel_nums;
+
+    /*pending task*/
+    uint32_t pending_task;
+#define WIFI_MGMR_PENDING_TASK_SCAN_BIT     (1 << 0)
 } wifi_mgmr_t;
 
 int wifi_mgmr_event_notify(wifi_mgmr_msg_t *msg);
@@ -261,5 +262,5 @@ int wifi_mgmr_ap_sta_delete_internal(uint8_t sta_idx);
 int wifi_mgmr_scan_complete_notify();
 extern wifi_mgmr_t wifiMgmr;
 char *wifi_mgmr_auth_to_str(uint8_t auth);
-char *wifi_mgmr_cipher_to_str(wifi_mgmr_cipher_t rsn_ucstCipher);
+char *wifi_mgmr_cipher_to_str(uint8_t cipher);
 #endif

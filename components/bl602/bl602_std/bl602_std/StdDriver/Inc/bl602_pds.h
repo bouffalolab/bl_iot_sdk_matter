@@ -418,7 +418,7 @@ typedef struct {
  *  @{
  */
 #define PDS_LDO_MIN_PU_CNT                              (25)  /* LDO need 25 cycles to power up */
-#define PDS_WARMUP_CNT                                  (38)  /* LDO max wram up cycles */
+#define PDS_WARMUP_LATENCY_CNT                          (38)  /* LDO hw warmup compensation latency cycles */
 #define PDS_FORCE_PWR_OFF_OFFSET                        (0)
 #define PDS_FORCE_ISO_EN_OFFSET                         (4)
 #define PDS_FORCE_PDS_RST_OFFSET                        (8)

@@ -53,8 +53,6 @@ NOTES
 //RX value handle offset 5
 #define BT_CHAR_BLE_TP_RX_ATTR_VAL_INDEX	(5)
 
-
-int ble_tp_notify();
 void ble_tp_init();
 struct bt_gatt_attr *get_attr(u8_t index);
 

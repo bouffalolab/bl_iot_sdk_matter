@@ -116,7 +116,7 @@
 * CONFIG_BT_HCI_CMD_COUNT: hci cmd buffer count,range 2 to 64
 */
 #ifndef CONFIG_BT_HCI_CMD_COUNT
-#define CONFIG_BT_HCI_CMD_COUNT 4//2
+#define CONFIG_BT_HCI_CMD_COUNT 2
 #endif
 
 /**
@@ -124,7 +124,7 @@
 * events,range 2 to 255
 */
 #ifndef CONFIG_BT_RX_BUF_COUNT
-#define CONFIG_BT_RX_BUF_COUNT 10
+#define CONFIG_BT_RX_BUF_COUNT 5//10
 #endif
 
 /**
@@ -182,7 +182,7 @@
 * range 2 to 255
 */
 #ifndef CONFIG_BT_L2CAP_TX_BUF_COUNT
-#define CONFIG_BT_L2CAP_TX_BUF_COUNT 10
+#define CONFIG_BT_L2CAP_TX_BUF_COUNT CFG_BLE_TX_BUFF_DATA
 #endif
 
 /**
@@ -193,7 +193,7 @@
 #ifdef CONFIG_BT_SMP
 #define CONFIG_BT_L2CAP_TX_MTU 247 //96 //65
 #else
-#define CONFIG_BT_L2CAP_TX_MTU 23
+#define CONFIG_BT_L2CAP_TX_MTU 247 //23
 #endif
 #endif
 
@@ -354,7 +354,7 @@
 #if defined(BL602)
 #define CONFIG_BT_DEVICE_NAME "BL602-BLE-DEV"
 #else
-#define CONFIG_BT_DEVICE_NAME "BL70X-BLE-DEV"
+#define CONFIG_BT_DEVICE_NAME "BL702-BLE-DEV"
 #endif
 #endif
 
@@ -365,7 +365,7 @@
 #if defined(BL602)
 #define CONFIG_BT_CONTROLLER_NAME "BL602-BLE-DEV"
 #else
-#define CONFIG_BT_CONTROLLER_NAME "BL70X-BLE-DEV"
+#define CONFIG_BT_CONTROLLER_NAME "BL702-BLE-DEV"
 #endif
 #endif
 
@@ -543,7 +543,9 @@
 #define BFLB_BLE_PATCH_FREE_ALLOCATED_BUFFER_IN_OS
 #define BFLB_BLE_PATCH_AVOID_SEC_GATT_DISC
 #define BFLB_BLE_PATCH_AVOID_DUPLI_PUBKEY_CB
-#define BFLB_BLE_PATCH_CLEAN_UP_CONNECT_REF   /*The flag @conn_ref is not clean up after disconnect*/ 
+#define BFLB_BLE_PATCH_CLEAN_UP_CONNECT_REF   /*The flag @conn_ref is not clean up after disconnect*/
+/*To avoid sevice changed indication sent at the very beginning, without any new service added.*/
+#define BFLB_BLE_PATCH_SET_SCRANGE_CHAGD_ONLY_IN_CONNECTED_STATE
 #ifdef CONFIG_BT_SETTINGS
 #define BFLB_BLE_PATCH_SETTINGS_LOAD
 #endif

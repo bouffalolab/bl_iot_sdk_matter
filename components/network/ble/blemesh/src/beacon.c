@@ -144,7 +144,7 @@ static int secure_beacon_send(void)
 
 #ifdef CONFIG_BT_MESH_PTS
 		static u32_t pts_cnt = 0;
-		BT_ERR("[PTS] Sending secure network beacon (Flags = 0x%02X, IV Index = 0x%08X) %u", bt_mesh_net_flags(sub), bt_mesh.iv_index, ++pts_cnt);
+		BT_PTS("[PTS] Sending secure network beacon (Flags = 0x%02X, IV Index = 0x%08X) %u", bt_mesh_net_flags(sub), bt_mesh.iv_index, ++pts_cnt);
 #endif
 
 		bt_mesh_adv_send(buf, &send_cb, sub);
@@ -189,7 +189,7 @@ static int unprovisioned_beacon_send(void)
 
 #ifdef CONFIG_BT_MESH_PTS
 	static u32_t pts_cnt = 0;
-	BT_ERR("[PTS] Sending unprovisioned device beacon %u", ++pts_cnt);
+	BT_PTS("[PTS] Sending unprovisioned device beacon %u", ++pts_cnt);
 #endif
 
 	bt_mesh_adv_send(buf, NULL, NULL);
@@ -301,9 +301,9 @@ static void secure_beacon_recv(struct net_buf_simple *buf)
 	auth = buf->data;
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Secure network beacon received");
-	BT_ERR("[PTS] - Flags: [0x%02X]", flags);
-	BT_ERR("[PTS] - IV Index: [0x%08X]", iv_index);
+	BT_PTS("[PTS] Secure network beacon received");
+	BT_PTS("[PTS] - Flags: [0x%02X]", flags);
+	BT_PTS("[PTS] - IV Index: [0x%08X]", iv_index);
 #endif
 
 	BT_DBG("flags 0x%02x id %s iv_index 0x%08x",

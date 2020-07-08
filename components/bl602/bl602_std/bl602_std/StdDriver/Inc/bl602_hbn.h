@@ -211,14 +211,24 @@ typedef enum {
     HBN_LEVEL_0,                            /*!< HBN pd_core */
     HBN_LEVEL_1,                            /*!< HBN pd_aon_hbncore + pd_core */
     HBN_LEVEL_2,                            /*!< HBN pd_aon_hbnrtc + pd_aon_hbncore + pd_core */
-    HBN_LEVEL_3,                            /*!< HBN pd_aon + pd_aon_hbnrtc + pd_aon_hbncore + pd_core */
+    HBN_LEVEL_3,                            /*!< HBN pd_aon_hbnrtc + pd_aon_hbncore + pd_core */
 }HBN_LEVEL_Type;
+
+/**
+ *  @brief HBN BOR configuration type definition
+ */
+typedef struct {
+    uint8_t enableBor;                      /*!< Enable BOR or not */
+    uint8_t enableBorInt;                   /*!< Enable BOR interrupt or not */
+    uint8_t borThreshold;                   /*!< BOR threshold */
+    uint8_t enablePorInBor;                 /*!< Enable POR when BOR occure or not */
+}HBN_BOR_CFG_Type;
 
 /**
  *  @brief HBN APP configuration type definition
  */
 typedef struct {
-    uint8_t useXtal32k;                     /*!< Wheather use xtal 32K as 32K clock source,otherwise use rc32k */
+    uint8_t useXtal32k;                     /*!< Whether use xtal 32K as 32K clock source,otherwise use rc32k */
     uint32_t sleepTime;                     /*!< HBN sleep time */
     uint8_t gpioWakeupSrc;                  /*!< GPIO Wakeup source */
     HBN_GPIO_INT_Trigger_Type gpioTrigType; /*!< GPIO Triger type */
@@ -412,6 +422,10 @@ BL_Err_Type HBN_32K_Sel(HBN_32K_CLK_Type clkType);
 BL_Err_Type HBN_Set_UART_CLK_Sel(HBN_UART_CLK_Type clkSel);
 BL_Err_Type HBN_Set_XCLK_CLK_Sel(HBN_XCLK_CLK_Type xClk);
 BL_Err_Type HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_Type rootClk);
+/*----------*/
+BL_Err_Type HBN_Set_HRAM_slp(void);
+BL_Err_Type HBN_Set_HRAM_Ret(void);
+/*----------*/
 uint32_t HBN_Get_Status_Flag(void);
 BL_Err_Type HBN_Set_Status_Flag(uint32_t flag);
 uint32_t HBN_Get_Wakeup_Addr(void);
@@ -453,6 +467,7 @@ BL_Err_Type HBN_Power_On_RC32K(void);
 BL_Err_Type HBN_Power_Off_RC32K(void);
 BL_Err_Type HBN_Trim_RC32K(void);
 BL_Err_Type HBN_Set_Embedded_Flash_Pullup(uint8_t enable);
+BL_Err_Type HBN_Set_BOR_Cfg(HBN_BOR_CFG_Type *cfg);
 
 /*@} end of group HBN_Public_Functions */
 

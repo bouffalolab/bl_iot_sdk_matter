@@ -42,10 +42,7 @@ static void scan_complete_cb(void *param)
 static void wifi_state_get_cb(void *p_arg)
 {
     struct wifi_state *p_state = (struct wifi_state *)p_arg;
-    gp_index->state.state = p_state->state;
-    strcpy(gp_index->state.ip, p_state->ip);
-    strcpy(gp_index->state.mask, p_state->mask);
-    strcpy(gp_index->state.gw, p_state->gw);
+    gp_index->state = *p_state;
     xSemaphoreGive(gp_index->xSemaphore);
 }
 
@@ -124,6 +121,7 @@ static int __recv_event(void *p_drv, struct pro_event *p_event)
             break;
         case DATA_STA_WIFI_SSID:
             memset(gp_index->conn_info.ssid, 0, sizeof(gp_index->conn_info.ssid));
+            gp_index->conn_info.ssid_tail[0] = 0;
             memcpy(gp_index->conn_info.ssid, p_event->p_buf, p_event->length);
             break;
         case DATA_STA_WIFI_PASSWORD:
@@ -205,11 +203,20 @@ static int __recv_event(void *p_drv, struct pro_event *p_event)
                                      (TickType_t)PRO_CONFIG_TIMEOUT) != pdTRUE) {
                       return PRO_ERROR;
                   }
+                  sprintf(bssid, "%02X:%02X:%02X:%02X:%02X:%02X",
+                          gp_index->state.bssid[0],
+                          gp_index->state.bssid[1],
+                          gp_index->state.bssid[2],
+                          gp_index->state.bssid[3],
+                          gp_index->state.bssid[4],
+                          gp_index->state.bssid[5]);
                   p_root = cJSON_CreateObject();
                   cJSON_AddNumberToObject(p_root, "state", gp_index->state.state);
                   cJSON_AddStringToObject(p_root, "ip", gp_index->state.ip);
                   cJSON_AddStringToObject(p_root, "gw", gp_index->state.gw);
                   cJSON_AddStringToObject(p_root, "mask", gp_index->state.mask);
+                  cJSON_AddStringToObject(p_root, "ssid", gp_index->state.ssid);
+                  cJSON_AddStringToObject(p_root, "bssid", bssid);
                   json_str = cJSON_Print(p_root);
 
                   pro_trans_layer_ack_read(gp_index->pro_handle, json_str, strlen(json_str));

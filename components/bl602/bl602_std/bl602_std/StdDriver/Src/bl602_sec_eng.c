@@ -3113,6 +3113,7 @@ void __IRQ SEC_GMAC_IRQHandler(void)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_TCM_SECTION SEC_Eng_Turn_On_Sec_Ring(void)
 {
@@ -3123,6 +3124,7 @@ void ATTR_TCM_SECTION SEC_Eng_Turn_On_Sec_Ring(void)
     tmpVal=BL_CLR_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_0_ROSC_DIS);
     BL_WR_REG(SEC_ENG_BASE,SEC_ENG_SE_TRNG_0_CTRL_3,tmpVal);
 }
+#endif
 
 /****************************************************************************//**
  * @brief  turn off sec ring
@@ -3132,6 +3134,7 @@ void ATTR_TCM_SECTION SEC_Eng_Turn_On_Sec_Ring(void)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_TCM_SECTION SEC_Eng_Turn_Off_Sec_Ring(void)
 {
@@ -3142,6 +3145,7 @@ void ATTR_TCM_SECTION SEC_Eng_Turn_Off_Sec_Ring(void)
     tmpVal=BL_SET_REG_BIT(tmpVal,SEC_ENG_SE_TRNG_0_ROSC_DIS);
     BL_WR_REG(SEC_ENG_BASE,SEC_ENG_SE_TRNG_0_CTRL_3,tmpVal);
 }
+#endif
 
 /*@} end of group SEC_ENG_Public_Functions */
 

@@ -109,7 +109,7 @@ int jl_app_uart_msg_check_cb_register(jl_app_uart_ctx_t *ctx, jl_app_uart_msg_ch
     return 0;
 }
 
-int jl_app_uart_send(const jl_app_uart_ctx_t *const ctx, const uint8_t *data, const uint16_t data_len)
+int jl_app_uart_send(const jl_app_uart_ctx_t *const ctx, const uint8_t *data, const uint16_t data_len, const uint16_t delay_before_send_ms)
 {
     jl_app_uart_msg_item_t *send_buf;
 
@@ -120,6 +120,7 @@ int jl_app_uart_send(const jl_app_uart_ctx_t *const ctx, const uint8_t *data, co
     send_buf = ctx->send_buf;
     send_buf->type = JL_APP_UART_MSG_APP2CTL;
     send_buf->len = data_len;
+    send_buf->delay_ms = delay_before_send_ms;
     memcpy(send_buf->msg, data, data_len);
 
     xQueueSend(ctx->msg_queue, send_buf, 0);
@@ -261,6 +262,9 @@ static void uart_queue_proc_entry(void *arg)
                 } 
                 break;
             case JL_APP_UART_MSG_APP2CTL:
+                if (ctx->recv_buf->delay_ms) {
+                    vTaskDelay(ctx->recv_buf->delay_ms);
+                }
                 jl_app_write_uart(ctx, ctx->recv_buf->msg, ctx->recv_buf->len);
                 break;
             default:

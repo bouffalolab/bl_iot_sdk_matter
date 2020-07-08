@@ -107,11 +107,12 @@ extern "C" {
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-void co_get_bytearray_from_string(char** params, uint8_t *result, int array_size);
-void co_get_uint16_from_string(char** params, uint16_t *result);
-void co_get_uint32_from_string(char** params, uint32_t *result);
-void co_reverse_bytearray(uint8_t *src, uint8_t *result, int array_size);
-void co_reverse_bytearray(uint8_t *src, uint8_t *result, int array_size);
+void get_bytearray_from_string(char** params, uint8_t *result,int array_size);
+void get_uint8_from_string(char** params, uint8_t *result);
+void get_uint16_from_string(char** params, uint16_t *result);
+void get_uint32_from_string(char** params, uint32_t *result);
+void reverse_bytearray(uint8_t *src, uint8_t *result, int array_size);
+void reverse_bytearray(uint8_t *src, uint8_t *result, int array_size);
 unsigned int find_lsb_set(uint32_t data);
 
 static inline int is_power_of_two(unsigned int x)

@@ -66,6 +66,21 @@ static void printErrMsg( void *stateData, struct event *event )
    os_printf( "ENTERED ERROR STATE!" );
 }
 
+static void _pending_task_set(uint32_t bit)
+{
+    wifiMgmr.pending_task |= bit;
+}
+
+static void _pending_task_clr(uint32_t bit)
+{
+    wifiMgmr.pending_task &= (~bit);
+}
+
+static int _pending_task_is_set(uint32_t bit)
+{
+    return (wifiMgmr.pending_task & bit) ? 1 : 0;
+}
+
 static bool stateGlobalGuard( void *ch, struct event *event )
 {
     wifi_mgmr_msg_t *msg;
@@ -91,7 +106,17 @@ char *wifi_mgmr_auth_to_str(uint8_t auth)
         break;
         case WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK:
         {
-            return "WPA/WPA2-PSK";
+            return "WPA-PSK";
+        }
+        break;
+        case WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK:
+        {
+            return "WPA2-PSK";
+        }
+        break;
+        case WIFI_EVENT_BEACON_IND_AUTH_WPA_WPA2_PSK:
+        {
+            return "WPA2-PSK/WPA-PSK";
         }
         break;
         case WIFI_EVENT_BEACON_IND_AUTH_WPA_ENT:
@@ -111,18 +136,20 @@ char *wifi_mgmr_auth_to_str(uint8_t auth)
     }
 }
 
-char *wifi_mgmr_cipher_to_str(wifi_mgmr_cipher_t cipher)
+char *wifi_mgmr_cipher_to_str(uint8_t cipher)
 {
-    if (cipher.ccmp == 1) {
-        return "ccmp";
-    } else if (cipher.tkip == 1) {
-        return "tkip";
-    } else if (cipher.wep40 == 1) {
-        return "wep40";
-    } else if (cipher.wep104 == 1) {
-        return "wep104";
+    if (cipher == WIFI_EVENT_BEACON_IND_CIPHER_NONE) {
+        return "NONE";
+    } else if (cipher == WIFI_EVENT_BEACON_IND_CIPHER_WEP) {
+        return "WEP";
+    } else if (cipher == WIFI_EVENT_BEACON_IND_CIPHER_AES) {
+        return "AES";
+    } else if (cipher == WIFI_EVENT_BEACON_IND_CIPHER_TKIP) {
+        return "TKIP";
+    } else if (cipher == WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES) {
+        return "TKIP/AES";
     } else{
-        return "open";
+        return "Unknown";
     }
 }
 
@@ -143,7 +170,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
         return false;
     }
 #ifdef DEBUG_SCAN_BEACON
-    os_printf(DEBUG_HEADER "channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, auth %s, pair_key:%s, group_key:%s \t, SSID %s\r\n",
+    os_printf(DEBUG_HEADER "channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, auth %s, cipher:%s \t, SSID %s\r\n",
             scan->channel,
             scan->bssid[0],
             scan->bssid[1],
@@ -155,8 +182,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
             scan->ppm_abs,
             scan->ppm_rel,
             wifi_mgmr_auth_to_str(scan->auth),
-            wifi_mgmr_cipher_to_str(scan->rsn_ucstCipher),
-            wifi_mgmr_cipher_to_str(scan->rsn_mcstCipher),
+            wifi_mgmr_cipher_to_str(scan->cipher),
             scan->ssid
     );
 #endif
@@ -202,8 +228,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
                     wifiMgmr.scan_items[i].ppm_rel = scan->ppm_rel;
                     wifiMgmr.scan_items[i].timestamp_lastseen = counter;
                     wifiMgmr.scan_items[i].auth = scan->auth;
-                    memcpy(&wifiMgmr.scan_items[i].rsn_mcstCipher, &scan->rsn_mcstCipher, sizeof(wifi_mgmr_cipher_t));
-                    memcpy(&wifiMgmr.scan_items[i].rsn_ucstCipher, &scan->rsn_ucstCipher, sizeof(wifi_mgmr_cipher_t));
+                    wifiMgmr.scan_items[i].cipher = scan->cipher;
                 }
                 break;
             }
@@ -223,6 +248,8 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
             wifiMgmr.scan_items[i].channel = scan->channel;
             wifiMgmr.scan_items[i].rssi = scan->rssi;
             wifiMgmr.scan_items[i].timestamp_lastseen = counter;
+            wifiMgmr.scan_items[i].auth = scan->auth;
+            wifiMgmr.scan_items[i].cipher = scan->cipher;
             wifiMgmr.scan_items[i].is_used = 1;
         }
     }
@@ -304,6 +331,22 @@ static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
 {
     wifi_mgmr_msg_t *msg;
 
+    msg = event->data;
+    /*only check wifi scan command*/
+    if (WIFI_MGMR_EVENT_FW_SCAN != msg->ev) {
+        return false;
+    }
+
+    /*pending wifi scan command*/
+    if (&stateConnecting == wifiMgmr.m.currentState ||
+            &stateConnectedIPNo == wifiMgmr.m.currentState ||
+            &stateDisconnect == wifiMgmr.m.currentState) {
+            os_printf("------>>>>>> Scan CMD Pending\r\n");
+            _pending_task_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT);
+            return false;
+    }
+
+    /*Forbidden other cases*/
     if (&stateIdle != wifiMgmr.m.currentState &&
             &stateConnectedIPYes != wifiMgmr.m.currentState &&
             &stateSniffer != wifiMgmr.m.currentState) {
@@ -312,11 +355,9 @@ static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
             return false;
     }
 
-    msg = event->data;
-    if (WIFI_MGMR_EVENT_FW_SCAN == msg->ev) {
-        os_printf("------>>>>>> Scan CMD\r\n");
-        bl_main_scan();
-    }
+    /*normal scan command*/
+    os_printf("------>>>>>> Scan CMD\r\n");
+    bl_main_scan();
 
     return false;
 }
@@ -377,6 +418,11 @@ static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
     wifi_mgmr_msg_t *msg;
     uint8_t *pkt;
     int len;
+
+    if ((&stateIdle) == wifiMgmr.m.currentState || (&stateIfaceDown) == wifiMgmr.m.currentState) {
+        /* NO Raw Send in IDLE mode */
+        return false;
+    }
 
     msg = event->data;
     if (WIFI_MGMR_EVENT_FW_DATA_RAW_SEND == msg->ev) {
@@ -511,8 +557,9 @@ const static struct state stateGlobal = {
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_DISCONNECT, &stateGlobalGuard_fw_disconnect, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_POWERSAVING, &stateGlobalGuard_fw_powersaving, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_SCAN, &stateGlobalGuard_fw_scan, &stateGlobalAction, &stateIdle},
+      {EVENT_TYPE_FW,  (void*)WIFI_MGMR_EVENT_FW_DATA_RAW_SEND, &stateSnifferGuard_raw_send, &stateGlobalAction, &stateIdle},
    },
-   .numTransitions = 9,
+   .numTransitions = 10,
    .data = "group",
    .entryAction = &stateGlobalEnter,
    .exitAction = &stateGlobalExit,
@@ -526,9 +573,8 @@ const static struct state stateSniffer = {
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_IDLE, &stateSnifferGuard, &stateSnifferAction, &stateIdle},
       /*Will NOT transfer state*/
       {EVENT_TYPE_FW,  (void*)WIFI_MGMR_EVENT_FW_CHANNEL_SET, &stateSnifferGuard_ChannelSet, &stateSnifferAction, &stateIdle},
-      {EVENT_TYPE_FW,  (void*)WIFI_MGMR_EVENT_FW_DATA_RAW_SEND, &stateSnifferGuard_raw_send, &stateGlobalAction, &stateIdle},
    },
-   .numTransitions = 3,
+   .numTransitions = 2,
    .data = "sniffer",
    .entryAction = &stateSnifferEnter,
    .exitAction = &stateSnifferExit,
@@ -905,8 +951,13 @@ static void stateConnectedIPYes_action( void *oldStateData, struct event *event,
 
 static void stateConnectedIPYes_enter( void *stateData, struct event *event )
 {
-   os_printf(DEBUG_HEADER "Entering %s state\r\n", (char *)stateData);
-   aos_post_event(EV_WIFI, CODE_WIFI_ON_GOT_IP, 0);
+    os_printf(DEBUG_HEADER "Entering %s state\r\n", (char *)stateData);
+    aos_post_event(EV_WIFI, CODE_WIFI_ON_GOT_IP, 0);
+    if (_pending_task_is_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT)) {
+        os_printf(DEBUG_HEADER "Pending Scan Sent\r\n");
+        bl_main_scan();
+        _pending_task_clr(WIFI_MGMR_PENDING_TASK_SCAN_BIT);
+    }
 }
 
 static void stateConnectedIPYes_exit( void *stateData, struct event *event )
@@ -1040,6 +1091,12 @@ static void stateDisconnect_enter(void *stateData, struct event *event)
         os_printf(DEBUG_HEADER "Will NOT retry connect\r\n");
     }
     aos_post_event(EV_WIFI, CODE_WIFI_ON_DISCONNECT, wifiMgmr.wifi_mgmr_stat_info.status_code);
+
+    if (_pending_task_is_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT)) {
+        os_printf(DEBUG_HEADER "Pending Scan Sent\r\n");
+        bl_main_scan();
+        _pending_task_clr(WIFI_MGMR_PENDING_TASK_SCAN_BIT);
+    }
 }
 
 static void stateDisconnect_exit(void *stateData, struct event *event)

@@ -151,7 +151,7 @@ extern void xPortStartFirstTask( void );
 	}
 	#endif /* configASSERT_DEFINED */
 
-#if 0
+#if 1
 	/* If there is a CLINT then it is ok to use the default implementation
 	in this file, otherwise vPortSetupTimerInterrupt() must be implemented to
 	configure whichever clock is to be used to generate the tick interrupt. */

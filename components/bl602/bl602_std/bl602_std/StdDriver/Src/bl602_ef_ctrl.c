@@ -97,6 +97,7 @@
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_TCM_SECTION EF_Ctrl_Sw_AHB_Clk_0(void)
 {
@@ -122,6 +123,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Sw_AHB_Clk_0(void)
 
     BL_WR_REG(EF_CTRL_BASE,EF_CTRL_EF_IF_CTRL_0,tmpVal);
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Program efuse region 0
@@ -131,6 +133,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Sw_AHB_Clk_0(void)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_TCM_SECTION EF_Ctrl_Program_Efuse_0(void)
 {
@@ -175,6 +178,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Program_Efuse_0(void)
              (1<<EF_CTRL_EF_IF_0_TRIG_POS);
     BL_WR_REG(EF_CTRL_BASE,EF_CTRL_EF_IF_CTRL_0,tmpVal);
 }
+#endif
 
 /*@} end of group SEC_EF_CTRL_Private_Functions */
 
@@ -190,6 +194,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Program_Efuse_0(void)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_TCM_SECTION EF_Ctrl_Load_Efuse_R0(void)
 {
@@ -245,6 +250,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Load_Efuse_R0(void)
              (0<<EF_CTRL_EF_IF_0_TRIG_POS);
     BL_WR_REG(EF_CTRL_BASE,EF_CTRL_EF_IF_CTRL_0,tmpVal);
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Check efuse busy status
@@ -254,6 +260,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Load_Efuse_R0(void)
  * @return SET or RESET
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Sts_Type ATTR_TCM_SECTION EF_Ctrl_Busy(void)
 {
@@ -266,6 +273,7 @@ BL_Sts_Type ATTR_TCM_SECTION EF_Ctrl_Busy(void)
     
     return RESET;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Check efuse whether finish loading
@@ -275,6 +283,7 @@ BL_Sts_Type ATTR_TCM_SECTION EF_Ctrl_Busy(void)
  * @return SET or RESET
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Sts_Type ATTR_TCM_SECTION EF_Ctrl_AutoLoad_Done(void)
 {
@@ -288,6 +297,7 @@ BL_Sts_Type ATTR_TCM_SECTION EF_Ctrl_AutoLoad_Done(void)
         return RESET;
     }
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Efuse write debug password
@@ -517,6 +527,7 @@ uint8_t EF_Ctrl_Get_Trim_Enable(void)
  * @return Parity bit value
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 uint8_t ATTR_CLOCK_SECTION EF_Ctrl_Get_Trim_Parity(uint32_t val,uint8_t len)
 {
@@ -531,6 +542,7 @@ uint8_t ATTR_CLOCK_SECTION EF_Ctrl_Get_Trim_Parity(uint32_t val,uint8_t len)
 
     return cnt&0x01;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Efuse write analog trim
@@ -585,6 +597,7 @@ void EF_Ctrl_Read_Ana_Trim( uint32_t index, uint32_t *trim)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_CLOCK_SECTION EF_Ctrl_Read_RC32M_Trim( Efuse_Ana_RC32M_Trim_Type *trim)
 {
@@ -599,6 +612,7 @@ void ATTR_CLOCK_SECTION EF_Ctrl_Read_RC32M_Trim( Efuse_Ana_RC32M_Trim_Type *trim
     trim->trimRc32mCodeFrExtParity=(tmpVal>>18)&0x01;
     trim->trimRc32mExtCodeEn=(tmpVal>>19)&0x01;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Efuse read RC32K trim
@@ -608,6 +622,7 @@ void ATTR_CLOCK_SECTION EF_Ctrl_Read_RC32M_Trim( Efuse_Ana_RC32M_Trim_Type *trim
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_CLOCK_SECTION EF_Ctrl_Read_RC32K_Trim( Efuse_Ana_RC32K_Trim_Type *trim)
 {
@@ -622,6 +637,7 @@ void ATTR_CLOCK_SECTION EF_Ctrl_Read_RC32K_Trim( Efuse_Ana_RC32K_Trim_Type *trim
     trim->trimRc32kCodeFrExtParity=(tmpVal>>30)&0x01;
     trim->trimRc32kExtCodeEn=(tmpVal>>31)&0x01;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Efuse write software usage
@@ -1555,6 +1571,7 @@ void EF_Ctrl_Read_Direct_R0(uint32_t index, uint32_t *data, uint32_t len)
  * @return None
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 void ATTR_TCM_SECTION EF_Ctrl_Clear(uint32_t index, uint32_t len)
 {
@@ -1569,6 +1586,7 @@ void ATTR_TCM_SECTION EF_Ctrl_Clear(uint32_t index, uint32_t len)
         pEfuseStart0[index+i]=0;
     }      
 }
+#endif
 
 /****************************************************************************//**
  * @brief  efuse ctrl crc enable

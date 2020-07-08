@@ -430,7 +430,6 @@ int ATTR_TCM_SECTION BL602_MemCmp(const void *s1, const void *s2, uint32_t n)
 
 * @return None
 *******************************************************************************/
-__WEAK
 void check_failed(uint8_t *file, uint32_t line)
 {
     /* Infinite loop */

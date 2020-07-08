@@ -580,6 +580,24 @@ BL_Err_Type IR_SWMSendCommand(uint16_t* data,uint8_t length)
 }
 
 /****************************************************************************//**
+ * @brief  IR send in NEC protocol
+ *
+ * @param  address: Address
+ * @param  command: Command
+ *
+ * @return SUCCESS
+ *
+*******************************************************************************/
+BL_Err_Type IR_SendNEC(uint8_t address,uint8_t command)
+{
+    uint32_t tmpVal = ((~command&0xff)<<24)+(command<<16)+((~address&0xff)<<8)+address;
+    
+    IR_SendCommand(0,tmpVal);
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
  * @brief  IR interrupt mask or unmask function
  *
  * @param  intType: IR interrupt type
@@ -765,6 +783,29 @@ uint8_t IR_SWMReceiveData(uint16_t* data,uint8_t length)
         data[rxLen++] = BL_RD_REG(IR_BASE,IRRX_SWM_FIFO_RDATA)&0xffff;
     }
     return rxLen;
+}
+
+/****************************************************************************//**
+ * @brief  IR receive in NEC protocol
+ *
+ * @param  address: Address
+ * @param  command: Command
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type IR_ReceiveNEC(uint8_t* address,uint8_t* command)
+{
+    uint32_t tmpVal = IR_ReceiveData(IR_WORD_0);
+    
+    *address = tmpVal&0xff;
+    *command = (tmpVal>>16)&0xff;
+    
+    if((~(*address)&0xff) != ((tmpVal>>8)&0xff) || (~(*command)&0xff) != ((tmpVal>>24)&0xff)){
+        return ERROR;
+    }
+    
+    return SUCCESS;
 }
 
 /****************************************************************************//**

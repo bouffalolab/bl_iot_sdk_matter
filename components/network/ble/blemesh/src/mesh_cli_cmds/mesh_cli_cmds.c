@@ -218,10 +218,6 @@ const struct cli_command btMeshCmdSet[] = {
      
     {"blemesh_input_str", "\r\nblemesh_input_str:[input Alphanumeric in provisionging procedure]\r\n\
      [Max Size:16 Characters, e.g.123ABC]\r\n", blemesh_input_str},
-
-    #if defined(BL70X)
-    {NULL, NULL, "No handler / Invalid command", NULL}
-    #endif
 };
 
 #if defined(CONFIG_BT_MESH_LOW_POWER)
@@ -232,7 +228,7 @@ static void blemesh_lpn_set(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
     int err;
 
 
-    co_get_bytearray_from_string(&argv[1], &enable, 1);
+    get_uint8_from_string(&argv[1], &enable);
     
     if(enable){
         if(lpn_enabled){
@@ -358,8 +354,8 @@ static void blemesh_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
         return;
     }
     
-    co_get_bytearray_from_string(&argv[1], &bearer, 1);
-    co_get_bytearray_from_string(&argv[2], &enable, 1);
+    get_uint8_from_string(&argv[1], &bearer);
+    get_uint8_from_string(&argv[2], &enable);
     
 	if (enable) {
 		err = bt_mesh_prov_enable(bearer);
@@ -428,7 +424,7 @@ static void blemesh_set_dev_uuid(char *pcWriteBuffer, int xWriteBufferLen, int a
     }
 
     vOutputString("device uuid is %s\r\n", argv[1]);
-    co_get_bytearray_from_string(&argv[1], dev_uuid, 16);
+    get_bytearray_from_string(&argv[1], dev_uuid,16);
 }
 
 static void blemesh_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -533,10 +529,10 @@ static void blemesh_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         return;
     }
     
-    co_get_bytearray_from_string(&argv[1], &ttl, 1);
-    co_get_bytearray_from_string(&argv[2], &ctl, 1);
-    co_get_uint16_from_string(&argv[3], &src);
-    co_get_uint16_from_string(&argv[4], &dst);
+    get_uint8_from_string(&argv[1], &ttl);
+    get_uint8_from_string(&argv[2], &ctl);
+    get_uint16_from_string(&argv[3], &src);
+    get_uint16_from_string(&argv[4], &dst);
     
     struct bt_mesh_msg_ctx ctx = {
         .net_idx = net.net_idx,
@@ -600,8 +596,8 @@ static void blemesh_seg_send(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         return;
     }
     
-    co_get_uint16_from_string(&argv[1], &src);
-    co_get_uint16_from_string(&argv[2], &dst);
+    get_uint16_from_string(&argv[1], &src);
+    get_uint16_from_string(&argv[2], &dst);
     
     struct bt_mesh_msg_ctx ctx = {
         .net_idx = net.net_idx,
@@ -650,7 +646,7 @@ static void blemesh_ivu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         return;
     }
     
-    co_get_bytearray_from_string(&argv[1], &enable, 1);
+    get_uint8_from_string(&argv[1], &enable);
     
 #if defined(CONFIG_BT_MESH_IV_UPDATE_TEST)
     bt_mesh_iv_update_test(enable);
@@ -677,7 +673,7 @@ static void blemesh_iv_update(char *pcWriteBuffer, int xWriteBufferLen, int argc
         return;
     }
     
-    co_get_bytearray_from_string(&argv[1], &enable, 1);
+    get_uint8_from_string(&argv[1], &enable);
     
     if (enable) {
         vOutputString("IV Update procedure started\r\n");
@@ -708,14 +704,14 @@ static void blemesh_fault_set(char *pcWriteBuffer, int xWriteBufferLen, int argc
         return;
     }
     
-    co_get_bytearray_from_string(&argv[1], &type, 1);
+    get_uint8_from_string(&argv[1], &type);
     
     if (type == 0) {
         if(strlen(argv[2])/2 >= sizeof(cur_faults)) {
-            co_get_bytearray_from_string(&argv[2], cur_faults, sizeof(cur_faults));
+            get_bytearray_from_string(&argv[2], cur_faults,sizeof(cur_faults));
         } else {
             memset(cur_faults, 0x00, sizeof(cur_faults));
-            co_get_bytearray_from_string(&argv[2], cur_faults, strlen(argv[2])/2);
+            get_bytearray_from_string(&argv[2], cur_faults,strlen(argv[2])/2);
         }
         
         vOutputString("Current Fault: ");
@@ -725,10 +721,10 @@ static void blemesh_fault_set(char *pcWriteBuffer, int xWriteBufferLen, int argc
         vOutputString("\r\n");
     } else {
         if(strlen(argv[2])/2 >= sizeof(reg_faults)) {
-            co_get_bytearray_from_string(&argv[2], reg_faults, sizeof(reg_faults));
+            get_bytearray_from_string(&argv[2], reg_faults,sizeof(reg_faults));
         } else {
             memset(reg_faults, 0x00, sizeof(reg_faults));
-            co_get_bytearray_from_string(&argv[2], reg_faults, strlen(argv[2])/2);
+            get_bytearray_from_string(&argv[2], reg_faults,strlen(argv[2])/2);
         }
         
         vOutputString("Registered Fault: ");
@@ -857,15 +853,9 @@ static void __attribute__((unused)) blemesh_ident(char *pcWriteBuffer, int xWrit
 
 int blemesh_cli_register(void)
 {
-    #if defined(BL602)
+    // static command(s) do NOT need to call aos_cli_register_command(s) to register.
+    // However, calling aos_cli_register_command(s) here is OK but is of no effect as cmds_user are included in cmds list.
+    // XXX NOTE: Calling this *empty* function is necessary to make cmds_user in this file to be kept in the final link.
     //aos_cli_register_commands(btStackCmdSet, sizeof(btMeshCmdSet)/sizeof(btMeshCmdSet[0]));
-    #elif defined(BL70X)
-    struct cli_command *cmdSet = btMeshCmdSet;
-    while(cmdSet->pcCommand){
-        FreeRTOS_CLIRegisterCommand(cmdSet);
-        cmdSet++;
-    }
-    #endif
-
     return 0;
 }

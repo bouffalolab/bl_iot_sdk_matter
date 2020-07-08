@@ -77,7 +77,7 @@ static const u8_t service_data[]= {0x00,0x01};
 static const u8_t data_manu[4]= {0x71,0x01,0x04,0x13};
 static const u8_t tx_power[1]= {0x50};
 static const u8_t data_appearance[2]= {0x80, 0x01};
-static const u8_t name[] = "BL70X-BLE-DEV";		
+static const u8_t name[] = "BL702-BLE-DEV";		
 extern volatile u8_t event_flag;
 extern struct bt_conn *default_conn;
 extern struct bt_data ad_discov[2];
@@ -244,10 +244,6 @@ const struct cli_command PtsCmdSet[] = {
     [Value length, 2 Octets]\r\n\
     [Value data]\r\n", pts_ble_prepare_write},
 #endif /*CONFIG_BT_GATT_CLIENT*/
-#if defined(BL70X)
-    {NULL, "No handler/Invalid command", NULL},
-#endif
-
 };
 
 #if defined(CONFIG_BT_PERIPHERAL)
@@ -730,8 +726,8 @@ static void pts_ble_notify(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		return;
 	}
 	
-	co_get_uint16_from_string(&argv[1], &len);
-	co_get_bytearray_from_string(&argv[2], (u8_t *)&data, len);
+	get_uint16_from_string(&argv[1], &len);
+	get_bytearray_from_string(&argv[2], (u8_t *)&data,len);
 
 	memset(&params, 0, sizeof(params));
 
@@ -774,13 +770,13 @@ static void pts_ble_indicate(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		return;
 	}
 	
-	co_get_uint16_from_string(&argv[1], &len);
+	get_uint16_from_string(&argv[1], &len);
 	
 	if(len > 16){ 
 		len = 16;
 	}
 	
-	co_get_bytearray_from_string(&argv[2], data, len);
+	get_bytearray_from_string(&argv[2], data,len);
 
 	memset(&params, 0, sizeof(params));
 
@@ -886,13 +882,11 @@ static void pts_ble_start_scan(char *pcWriteBuffer, int xWriteBufferLen, int arg
         return;
     }
 
-    co_get_bytearray_from_string(&argv[1], &scan_param.type, 1);
+    get_uint8_from_string(&argv[1], &scan_param.type);  
+    get_uint8_from_string(&argv[2], &scan_param.filter_dup);
     
-    co_get_bytearray_from_string(&argv[2], &scan_param.filter_dup, 1);
-    
-    co_get_uint16_from_string(&argv[3], &scan_param.interval);
-    
-    co_get_uint16_from_string(&argv[4], &scan_param.window);
+    get_uint16_from_string(&argv[3], &scan_param.interval);
+    get_uint16_from_string(&argv[4], &scan_param.window);
 
     err = bt_le_scan_start(&scan_param, pts_device_found);
     
@@ -938,11 +932,11 @@ static void pts_ble_start_scan_rpa(char *pcWriteBuffer, int xWriteBufferLen, int
         return;
     }
 
-    co_get_bytearray_from_string(&argv[1], &scan_param.type, 1);
-    co_get_bytearray_from_string(&argv[2], &scan_param.filter_dup, 1);
-    co_get_uint16_from_string(&argv[3], &scan_param.interval);
-    co_get_uint16_from_string(&argv[4], &scan_param.window);
-    co_get_bytearray_from_string(&argv[5], (uint8_t *)&is_rpa, 1);
+    get_uint8_from_string(&argv[1], &scan_param.type);
+    get_uint8_from_string(&argv[2], &scan_param.filter_dup);
+    get_uint16_from_string(&argv[3], &scan_param.interval);
+    get_uint16_from_string(&argv[4], &scan_param.window);
+    get_uint8_from_string(&argv[5], (uint8_t *)&is_rpa);
 
     err = bt_le_pts_scan_start(&scan_param, pts_device_found, is_rpa);
     if(err){
@@ -961,8 +955,8 @@ static void pts_ble_add_dev_to_resolve_list(char *pcWriteBuffer, int xWriteBuffe
 
 	memset(&key,0,sizeof(struct bt_keys));
 	
-	co_get_bytearray_from_string(&argv[1], &type, 1);	
-	co_get_bytearray_from_string(&argv[2], (uint8_t *)addr.a.val, 6);
+	get_uint8_from_string(&argv[1], &type);	
+	get_bytearray_from_string(&argv[2], (uint8_t *)addr.a.val,6);
 
 	if(type == 0)
 		addr.type = BT_ADDR_LE_PUBLIC;
@@ -1025,8 +1019,8 @@ static void pts_set_enc_key_size(char *pcWriteBuffer, int xWriteBufferLen, int a
 	u8_t index;
 	int err;
 	
-	co_get_bytearray_from_string(&argv[1], &key_size, 1);
-	co_get_bytearray_from_string(&argv[2], &index, 1);
+	get_uint8_from_string(&argv[1], &key_size);
+	get_uint8_from_string(&argv[2], &index);
 	
 	if(key_size < 0x07 || key_size > 0x0f)
 		vOutputString("Invalid key size(%d)\r\n",key_size);
@@ -1051,9 +1045,9 @@ static void pts_ble_wl_connect(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		.timeout = 400,
 	};
 	/*Auto connect whitelist device, enable : 0x01, disable : 0x02*/
-	co_get_bytearray_from_string(&argv[1], &enable, 1);
+	get_uint8_from_string(&argv[1], &enable);
 	/*Address type, 0:ADDR_PUBLIC, 1:ADDR_RAND, 2:ADDR_RPA_OR_PUBLIC, 3:ADDR_RPA_OR_RAND*/
-	co_get_bytearray_from_string(&argv[2], &param.own_address_type, 1);
+	get_uint8_from_string(&argv[2], &param.own_address_type);
 
 	if(enable == 0x01){		
 		err = bt_conn_create_auto_le(&param);
@@ -1086,10 +1080,10 @@ static void pts_ble_bt_le_whitelist_add(char *pcWriteBuffer, int xWriteBufferLen
 		vOutputString("Clear white list device failed (err = [%d])\r\n",err);
 	}
 
-	co_get_bytearray_from_string(&argv[1], &waddr.type, 1);
-	co_get_bytearray_from_string(&argv[2], val, 6);
+	get_uint8_from_string(&argv[1], &waddr.type);
+	get_bytearray_from_string(&argv[2], val,6);
 	
-	co_reverse_bytearray(val, waddr.a.val, 6);
+	reverse_bytearray(val, waddr.a.val, 6);
 
 	err = bt_le_whitelist_add(&waddr);
 	if(err){
@@ -1105,12 +1099,12 @@ static void pts_ble_start_scan_timeout(char *pcWriteBuffer, int xWriteBufferLen,
     int err;
 	u8_t addre_type;
 	
-    co_get_bytearray_from_string(&argv[1], &scan_param.type, 1);
-    co_get_bytearray_from_string(&argv[2], &scan_param.filter_dup, 1);
-    co_get_uint16_from_string(&argv[3], &scan_param.interval);
-    co_get_uint16_from_string(&argv[4], &scan_param.window);
-    co_get_bytearray_from_string(&argv[5], (uint8_t *)&addre_type, 1);
-	co_get_uint16_from_string(&argv[6], (uint16_t *)&time);
+    get_uint8_from_string(&argv[1], &scan_param.type);
+    get_uint8_from_string(&argv[2], &scan_param.filter_dup);
+    get_uint16_from_string(&argv[3], &scan_param.interval);
+    get_uint16_from_string(&argv[4], &scan_param.window);
+    get_uint8_from_string(&argv[5], (uint8_t *)&addre_type);
+	get_uint16_from_string(&argv[6], (uint16_t *)&time);
 	
     err = bt_le_pts_scan_start(&scan_param, pts_device_found, addre_type);
     if(err){
@@ -1130,8 +1124,8 @@ static void pts_ble_address_register(char *pcWriteBuffer, int xWriteBufferLen, i
 	u8_t type;
 	char le_addr[BT_ADDR_LE_STR_LEN];
 	
-	co_get_bytearray_from_string(&argv[1], &type, 1);
-	co_get_bytearray_from_string(&argv[2], addr.a.val, 6);
+	get_uint8_from_string(&argv[1], &type);
+	get_bytearray_from_string(&argv[2], addr.a.val,6);
 
 	if(type == 0){
 		addr.type = BT_ADDR_LE_PUBLIC;
@@ -1149,7 +1143,7 @@ static void pts_ble_address_register(char *pcWriteBuffer, int xWriteBufferLen, i
 static void pts_ble_set_flag(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	u8_t flag;
-	co_get_bytearray_from_string(&argv[1],&flag,1);
+	get_uint8_from_string(&argv[1],&flag);
 	event_flag	= flag;
 	
 	vOutputString("Event flag = [0x%x] \r\n",event_flag);
@@ -1159,7 +1153,7 @@ static void pts_ble_set_smp_flag(char *pcWriteBuffer, int xWriteBufferLen, int a
 {
 	u8_t flag;
 	
-	co_get_bytearray_from_string(&argv[1],&flag,1);
+	get_uint8_from_string(&argv[1],&flag);
 	bt_set_smpflag((smp_test_id)flag);
 
 	vOutputString("Smp flag = [0x%x] \r\n",flag);
@@ -1169,7 +1163,7 @@ static void pts_ble_clear_smp_flag(char *pcWriteBuffer, int xWriteBufferLen, int
 {
 	u8_t flag;
 	
-	co_get_bytearray_from_string(&argv[1],&flag,1);
+	get_uint8_from_string(&argv[1],&flag);
 	bt_clear_smpflag((smp_test_id)flag);
 
 	vOutputString("Clear smp flag \r\n");
@@ -1179,7 +1173,7 @@ static void pts_ble_bondable(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 {
 	u8_t bondable;
 
-	co_get_bytearray_from_string(&argv[1], &bondable, 1);
+	get_uint8_from_string(&argv[1], &bondable);
 
 	if(bondable == 0x01)
 		bt_set_bondable(true);
@@ -1272,7 +1266,7 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
     param.interval_max = BT_GAP_ADV_FAST_INT_MAX_2;
 
     /*Get adv type, 0:adv_ind,  1:adv_scan_ind, 2:adv_nonconn_ind 3: adv_direct_ind*/
-    co_get_bytearray_from_string(&argv[1], &adv_type, 1);
+    get_uint8_from_string(&argv[1], &adv_type);
     
     if(adv_type == 0){
         param.options = (BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_ONE_TIME);
@@ -1288,7 +1282,7 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
     }
 
     /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
-    co_get_bytearray_from_string(&argv[2], &tmp, 1);
+    get_uint8_from_string(&argv[2], &tmp);
 
     if(tmp == 0 || tmp == 1 || tmp == 2){
         if(tmp == 1)
@@ -1309,8 +1303,8 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
     }
 
     /*upper address type, 0:non-resolvable private address,1:resolvable private address,2:public address*/
-    //co_get_bytearray_from_string(&argv[3], (u8_t *)&param.addr_type, 1);
-    co_get_bytearray_from_string(&argv[3], (u8_t *)&adder_type, 1);
+    //get_bytearray_from_string(&argv[3], (u8_t *)&param.addr_type, 1);
+    get_uint8_from_string(&argv[3], (u8_t *)&adder_type);
 
 	if(adder_type == 0)
 		param.addr_type = BT_ADDR_TYPE_NON_RPA;
@@ -1322,8 +1316,8 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
 		vOutputString("Invaild address type\r\n");
 	
     if(argc == 6){
-        co_get_uint16_from_string(&argv[4], &param.interval_min);
-        co_get_uint16_from_string(&argv[5], &param.interval_max);
+        get_uint16_from_string(&argv[4], &param.interval_min);
+        get_uint16_from_string(&argv[5], &param.interval_max);
     }  
 
 	if(adv_type == 3){	
@@ -1388,7 +1382,7 @@ static void pts_ble_connect_le(char *pcWriteBuffer, int xWriteBufferLen, int arg
         return;
     }
        
-    co_get_bytearray_from_string(&argv[1], (u8_t *)&type, 1);
+    get_uint8_from_string(&argv[1], (u8_t *)&type);
 
 	/*Get addr type,0:ADDR_RAND, 1:ADDR_RPA_OR_PUBLIC,2:ADDR_PUBLIC, 3:ADDR_RPA_OR_RAND*/
 	if(type == 0)
@@ -1402,9 +1396,9 @@ static void pts_ble_connect_le(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	else 
 		vOutputString("adderss type is unknow [0x%x]\r\n",type);
 
-    co_get_bytearray_from_string(&argv[2], addr_val, 6);
+    get_bytearray_from_string(&argv[2], addr_val,6);
 
-    co_reverse_bytearray(addr_val, addr.a.val, 6);
+    reverse_bytearray(addr_val, addr.a.val, 6);
     
     conn = bt_conn_create_le(&addr, /*BT_LE_CONN_PARAM_DEFAULT*/&param);
 
@@ -1428,9 +1422,9 @@ static void pts_ble_disconnect(char *pcWriteBuffer, int xWriteBufferLen, int arg
         vOutputString("Number of Parameters is not correct\r\n");
         return;
     }
-    co_get_bytearray_from_string(&argv[1], (u8_t *)&type, 1);
-    co_get_bytearray_from_string(&argv[2], addr_val, 6);
-    co_reverse_bytearray(addr_val, addr.a.val, 6);
+    get_uint8_from_string(&argv[1], (u8_t *)&type);
+    get_bytearray_from_string(&argv[2], addr_val,6);
+    reverse_bytearray(addr_val, addr.a.val, 6);
 
 	/*Get addr type,0:ADDR_RAND, 1:ADDR_RPA_OR_PUBLIC,2:ADDR_PUBLIC, 3:ADDR_RPA_OR_RAND*/
 	if(type == 0)
@@ -1468,10 +1462,10 @@ static void pts_ble_conn_update(char *pcWriteBuffer, int xWriteBufferLen, int ar
         vOutputString("Number of Parameters is not correct\r\n");
         return;
     }
-    co_get_uint16_from_string(&argv[1], &param.interval_min);
-    co_get_uint16_from_string(&argv[2], &param.interval_max);
-    co_get_uint16_from_string(&argv[3], &param.latency);
-    co_get_uint16_from_string(&argv[4], &param.timeout);	
+    get_uint16_from_string(&argv[1], &param.interval_min);
+    get_uint16_from_string(&argv[2], &param.interval_max);
+    get_uint16_from_string(&argv[3], &param.latency);
+    get_uint16_from_string(&argv[4], &param.timeout);	
 
 	if(event_flag == dir_connect_req)
 		err = bt_conn_le_param_update(default_conn, &param);
@@ -1491,7 +1485,7 @@ static void pts_ble_set_mitm(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 {
 	u8_t enable = 0;
 
-	co_get_bytearray_from_string(&argv[1],&enable,1);
+	get_uint8_from_string(&argv[1],&enable);
 
 	if(enable == 0x01)
 		bt_set_mitm(true);
@@ -1526,7 +1520,7 @@ static void pts_ble_discover_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, 
 	discover_params.start_handle = 0x0001;
 	discover_params.end_handle = 0xffff;
 
-    co_get_bytearray_from_string(&argv[1], &disc_type, 1);
+    get_uint8_from_string(&argv[1], &disc_type);
     if(disc_type == 0){
         discover_params.type = BT_GATT_DISCOVER_PRIMARY;
     }else if(disc_type == 1){
@@ -1541,9 +1535,9 @@ static void pts_ble_discover_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, 
         vOutputString("Invalid discovery type\r\n");
         return;
     }
-	co_get_bytearray_from_string(&argv[2], val, 16);
+	get_bytearray_from_string(&argv[2], val,16);
 
-	co_reverse_bytearray(val, uuid_128.val, 16);
+	reverse_bytearray(val, uuid_128.val,16);
 		
 	/*Set array value to 0 */
 	(void)memset(val, 0x0, 16);
@@ -1553,8 +1547,8 @@ static void pts_ble_discover_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, 
 	else
     	discover_params.uuid = &uuid_128.uuid;
        
-    co_get_uint16_from_string(&argv[3], &discover_params.start_handle);
-    co_get_uint16_from_string(&argv[4], &discover_params.end_handle);
+    get_uint16_from_string(&argv[3], &discover_params.start_handle);
+    get_uint16_from_string(&argv[4], &discover_params.end_handle);
 
 	err = bt_gatt_discover(default_conn, &discover_params);
 	if (err) {
@@ -1616,8 +1610,8 @@ static void pts_ble_read_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, int 
 	read_params.by_uuid.start_handle = 0x0001;
 	read_params.by_uuid.end_handle = 0xffff;
 	
-	co_get_bytearray_from_string(&argv[1], val, 16);
-	co_reverse_bytearray(val, uuid.val, 16);
+	get_bytearray_from_string(&argv[1], val,16);
+	reverse_bytearray(val, uuid.val, 16);
 	//(void)memcpy(uuid.val, val, 16)
 
 	(void)memset(val, 0, 16);
@@ -1627,8 +1621,8 @@ static void pts_ble_read_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, int 
 	else
 		read_params.by_uuid.uuid = &uuid.uuid;
 	
-	co_get_uint16_from_string(&argv[2], &read_params.by_uuid.start_handle);
-	co_get_uint16_from_string(&argv[3], &read_params.by_uuid.end_handle);
+	get_uint16_from_string(&argv[2], &read_params.by_uuid.start_handle);
+	get_uint16_from_string(&argv[3], &read_params.by_uuid.end_handle);
 	
 	err = bt_gatt_read(default_conn, &read_params);
 	if (err) {
@@ -1659,12 +1653,12 @@ static void pts_ble_read_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	read_params.by_uuid.start_handle = 0x0001;
 	read_params.by_uuid.end_handle = 0xffff;
 	
-	co_get_uint16_from_string(&argv[1], &uuid.val);
+	get_uint16_from_string(&argv[1], &uuid.val);
 	if(uuid.val)
 		read_params.by_uuid.uuid = &uuid.uuid;
 	
-	co_get_uint16_from_string(&argv[2], &read_params.by_uuid.start_handle);
-	co_get_uint16_from_string(&argv[3], &read_params.by_uuid.end_handle);
+	get_uint16_from_string(&argv[2], &read_params.by_uuid.start_handle);
+	get_uint16_from_string(&argv[3], &read_params.by_uuid.end_handle);
 	
 	err = bt_gatt_read(default_conn, &read_params);
 	if (err) {
@@ -1691,7 +1685,7 @@ static void pts_ble_mread(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	}
 
 	for (i = 0; i < argc - 1; i++) {
-		co_get_uint16_from_string(&argv[i + 1],&h[i]);
+		get_uint16_from_string(&argv[i + 1],&h[i]);
 	}	
 
 	read_params.func = read_func;
@@ -1740,11 +1734,11 @@ static void pts_ble_prepare_write(char *pcWriteBuffer, int xWriteBufferLen, int 
 		return;
 	}
 
-    co_get_uint16_from_string(&argv[1], &write_params.handle);
-    co_get_uint16_from_string(&argv[2], &write_params.offset);
-    co_get_uint16_from_string(&argv[3], &write_params.length);
+    get_uint16_from_string(&argv[1], &write_params.handle);
+    get_uint16_from_string(&argv[2], &write_params.offset);
+    get_uint16_from_string(&argv[3], &write_params.length);
     data_len = write_params.length > sizeof(gatt_write_buf)? (sizeof(gatt_write_buf)):(write_params.length);
-    co_get_bytearray_from_string(&argv[4], gatt_write_buf, data_len);
+    get_bytearray_from_string(&argv[4], gatt_write_buf,data_len);
     
 	write_params.data = gatt_write_buf;
 	write_params.length = data_len;
@@ -1768,16 +1762,11 @@ static void pts_ble_prepare_write(char *pcWriteBuffer, int xWriteBufferLen, int 
 int pts_cli_register(void)
 {
     //memcpy(&pts_addr.a, BT_ADDR_NONE, sizeof(pts_addr.a));
-	#if defined(BL602)
-    //aos_cli_register_commands(btStackCmdSet, sizeof(btStackCmdSet)/sizeof(btStackCmdSet[0]));
-    #elif defined(BL70X)
-    const struct cli_command *cmdSet = PtsCmdSet;
-    while(cmdSet->pcCommand){        
-        FreeRTOS_CLIRegisterCommand(cmdSet);
-        cmdSet++;
-    }
-    #endif
 
+    // static command(s) do NOT need to call aos_cli_register_command(s) to register.
+    // However, calling aos_cli_register_command(s) here is OK but is of no effect as cmds_user are included in cmds list.
+    // XXX NOTE: Calling this *empty* function is necessary to make cmds_user in this file to be kept in the final link.
+    //aos_cli_register_commands(btStackCmdSet, sizeof(btStackCmdSet)/sizeof(btStackCmdSet[0]));
     return 0;
 }
 

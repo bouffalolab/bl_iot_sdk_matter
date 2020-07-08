@@ -29,6 +29,7 @@
  */
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits.h>
@@ -842,17 +843,21 @@ int vsprintf(char *buffer, const char *format, va_list ap)
 	return vsnprintf(buffer, sizeof(string) - 32, format, ap);
 }
 
+extern volatile bool sys_log_all_enable;
+
 void vprint(const char *fmt, va_list argp)
 {
     char *str;
     int ch;
 
-    str = string;
-    if (0 < vsprintf(string, fmt, argp)) {
-        while ('\0' != (ch = *(str++))) {
+    if (sys_log_all_enable) {
+        str = string;
+        if (0 < vsprintf(string, fmt, argp)) {
+            while ('\0' != (ch = *(str++))) {
 #if !defined(DISABLE_PRINT)
-            bl_uart_data_send(0, ch);
+                bl_uart_data_send(0, ch);
 #endif
+            }
         }
     }
 }
@@ -870,11 +875,13 @@ int puts(const char *s)
     int counter = 0;
     char c;
 
-    while ('\0' != (c = *(s++))) {
+    if (sys_log_all_enable) {
+        while ('\0' != (c = *(s++))) {
 #if !defined(DISABLE_PRINT)
-        bl_uart_data_send(0, c);
+            bl_uart_data_send(0, c);
 #endif
-        counter++;
+            counter++;
+        }
     }
     return counter;
 }
@@ -882,9 +889,12 @@ int puts(const char *s)
 int printf(const char *fmt, ...)
 {
     va_list argp;
-    va_start(argp, fmt);
-    vprint(fmt, argp);
-    va_end(argp);
+
+    if (sys_log_all_enable) {
+        va_start(argp, fmt);
+        vprint(fmt, argp);
+        va_end(argp);
+    }
 
     return 0;
 }

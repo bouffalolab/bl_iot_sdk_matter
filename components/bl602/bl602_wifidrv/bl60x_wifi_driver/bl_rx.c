@@ -481,71 +481,158 @@ static int find_ie_ds(uint8_t *buffer, int len, uint8_t *result)
     return -1;
 }
 
-/*we only return if we found the proper RSN element*/
-static int find_ie_rsn_is_ok(uint8_t *buffer, int len)
+extern uint32_t mac_vsie_find(uint32_t addr, uint16_t buflen, uint8_t const *oui, uint8_t ouilen);
+extern uint32_t mac_ie_find(uint32_t addr, uint16_t buflen, uint8_t ie_id);
+extern unsigned char process_rsn_ie(uint8_t *rsn_ie, Cipher_t *mcstCipher,
+			      Cipher_t *ucstCipher, bool *is_pmf_required);
+extern unsigned char process_wpa_ie(uint8_t *wpa_ie, Cipher_t *mcstCipher,
+			      Cipher_t *ucstCipher);
+static uint8_t co_read8p(uint32_t addr)
 {
-    int i = 0;
-
-    while (i < len) {
-#define IE_ID_RSN_INFORMATION 0x30
-        if (IE_ID_RSN_INFORMATION == buffer[0]) {
-            return 1;
-        } else {
-            /*move to next ie*/
-            //FIXME buffer overlow warning
-            i += buffer[1] + 2;//FIXME 2 is for id and len
-            buffer = buffer + buffer[1] + 2;
-        }
-    }
-
-    return 0;
+    return (*(uint8_t *)addr);
 }
+#define MAC_INFOELT_LEN_OFT               (1)
+#define MAC_INFOELT_INFO_OFT              (2)
 
+#define MAX_RSN_WPA_IE_LEN                (32)
 static int bl_rx_scanu_result_ind(struct bl_hw *bl_hw,
        struct bl_cmd *cmd, struct ipc_e2a_msg *msg)
 {
     struct scanu_result_ind *ind = (struct scanu_result_ind *)msg->param;
     struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)ind->payload;
     struct wifi_event_beacon_ind ind_new;
+    uint32_t elmt_addr, var_part_addr, var_part_len;
+    uint8_t ctype = 0;
+    uint8_t rsn_wpa_ie[MAX_RSN_WPA_IE_LEN];
+    uint8_t rsn_wpa_ie_len = 0;
+    uint8_t is_pmf_required = 0;
+
+    memset(rsn_wpa_ie, 0, MAX_RSN_WPA_IE_LEN);
 
     if (ieee80211_is_beacon(mgmt->frame_control)) {
         if (cb_beacon_ind) {
             memset(&ind_new, 0, sizeof(ind_new));
+
+            var_part_addr = (uint32_t)(mgmt->u.beacon.variable);
+            var_part_len = ind->length - (uint32_t)&(((struct ieee80211_mgmt*)NULL)->u.beacon.variable);
+
             find_ie_ssid(mgmt->u.beacon.variable, ind->length, ind_new.ssid, &ind_new.ssid_len);
             find_ie_ds(mgmt->u.beacon.variable, ind->length, &ind_new.channel);
             if (WLAN_CAPABILITY_PRIVACY & (le16_to_cpu(mgmt->u.beacon.capab_info))) {
-                if(find_ie_rsn_is_ok(mgmt->u.beacon.variable, ind->length)) {
-                    /*TODO add WPA ENTERPRISE*/
+                // retrieve RSN field
+                #define MAC_ELTID_RSN_IEEE               48
+                elmt_addr = mac_ie_find(var_part_addr, var_part_len, MAC_ELTID_RSN_IEEE);
+                if (elmt_addr != 0) {
+                    ind_new.sec_mode.wpa2 = 1;
+
+                    rsn_wpa_ie_len = co_read8p(elmt_addr + MAC_INFOELT_LEN_OFT) + MAC_INFOELT_INFO_OFT;
+                    memcpy(rsn_wpa_ie, (uint8_t*)elmt_addr, rsn_wpa_ie_len);
+                    rsn_wpa_ie_len = process_rsn_ie(
+                        rsn_wpa_ie, (Cipher_t *)&ind_new.rsn_mcstCipher,
+                        (Cipher_t *)&ind_new.rsn_ucstCipher, (bool *)&is_pmf_required);
+                }
+
+                elmt_addr = mac_vsie_find(var_part_addr, var_part_len, (uint8_t const *)"\x00\x50\xF2\x01", 4);
+                if (elmt_addr != 0) {
+                    ind_new.sec_mode.wpa = 1;
+
+                    if(!rsn_wpa_ie_len)
+                    {
+                        rsn_wpa_ie_len = co_read8p(elmt_addr + MAC_INFOELT_LEN_OFT) + MAC_INFOELT_INFO_OFT;
+                        memcpy(rsn_wpa_ie, (uint8_t*)elmt_addr, rsn_wpa_ie_len);
+                        rsn_wpa_ie_len = process_wpa_ie(
+                                rsn_wpa_ie, (Cipher_t *)&ind_new.wpa_mcstCipher, (Cipher_t *)&ind_new.wpa_ucstCipher);
+                    }
+                }
+                if (ind_new.sec_mode.wpa == 1 && ind_new.sec_mode.wpa2 == 1) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_WPA2_PSK;
+                    if (ind_new.rsn_ucstCipher.ccmp == 1 || ind_new.wpa_ucstCipher.ccmp == 1){
+                        ctype++;
+                    }
+
+                    if (ind_new.rsn_ucstCipher.tkip == 1 || ind_new.wpa_ucstCipher.tkip == 1){
+                        ctype++;
+                        if (ctype == 2) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
+                        } else if(ctype == 1) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
+                        }
+                        goto next;
+                    }
+                    if (ctype == 1) {
+                        if (ind_new.rsn_mcstCipher.ccmp == 1 || ind_new.wpa_mcstCipher.ccmp == 1){
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+                        } else if(ind_new.rsn_mcstCipher.tkip == 1 || ind_new.wpa_mcstCipher.tkip == 1) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
+                        } else {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+                        }
+                    }
+                } else if (ind_new.sec_mode.wpa == 1) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK;
+                    if (ind_new.wpa_ucstCipher.ccmp == 1){
+                        ctype++;
+                    }
+                    if (ind_new.wpa_ucstCipher.tkip == 1){
+                        ctype++;
+                        if (ctype == 2) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
+                        } else if(ctype == 1) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
+                        }
+                        goto next;
+                    }
+                    if (ctype == 1) {
+                        if (ind_new.wpa_mcstCipher.ccmp == 1){
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+                        } else if(ind_new.wpa_mcstCipher.tkip == 1) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
+                        } else {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+                        }
+                    }
+                } else if (ind_new.sec_mode.wpa2 == 1) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK;
+                    if (ind_new.rsn_ucstCipher.ccmp == 1){
+                        ctype++;
+                    }
+                    if (ind_new.rsn_ucstCipher.tkip == 1){
+                        ctype++;
+                        if (ctype == 2) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
+                        } else if(ctype == 1) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
+                        }
+                        goto next;
+                    }
+                    if (ctype == 1) {
+                        if (ind_new.rsn_mcstCipher.ccmp == 1){
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+                        } else if(ind_new.rsn_mcstCipher.tkip == 1) {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
+                        } else {
+                            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+                        }
+                    }
+                } else {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WEP;
+                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_WEP;
+                }
+next:
+                if (ind_new.sec_mode.wpa2 && ind_new.sec_mode.wpa) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_WPA2_PSK;
+                } else if (ind_new.sec_mode.wpa2) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK;
+                } else if (ind_new.sec_mode.wpa) {
                     ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK;
                 } else {
                     ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WEP;
                 }
-
-                memcpy(&ind_new.rsn_ucstCipher, &ind->rsn_ucstCipher, sizeof(Cipher_t));
-                memcpy(&ind_new.rsn_mcstCipher, &ind->rsn_mcstCipher, sizeof(Cipher_t));
-                /*
-                blog_info("bl_rx:rsn wpa2 pairwise ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
-                    ind->rsn_ucstCipher.ccmp,ind->rsn_ucstCipher.tkip,
-                    ind->rsn_ucstCipher.wep104,ind->rsn_ucstCipher.wep40);
-                blog_info("bl_rx:rsn wpa2 group ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
-                    ind->rsn_mcstCipher.ccmp,ind->rsn_mcstCipher.tkip,
-                    ind->rsn_mcstCipher.wep104,ind->rsn_mcstCipher.wep40);
-                */
-
-                memcpy(&ind_new.wpa_ucstCipher, &ind->wpa_ucstCipher, sizeof(Cipher_t));
-                memcpy(&ind_new.wpa_mcstCipher, &ind->wpa_mcstCipher, sizeof(Cipher_t));
-                /*
-                blog_info("bl_rx:wpa pairwise ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
-                    ind->wpa_ucstCipher.ccmp,ind->wpa_ucstCipher.tkip,
-                    ind->wpa_ucstCipher.wep104,ind->wpa_ucstCipher.wep40);
-                blog_info("bl_rx:wpa group ccmp:%d,tkip:%d,wep104:%d,wep:40:%d\r\n",
-                    ind->wpa_mcstCipher.ccmp,ind->wpa_mcstCipher.tkip,
-                    ind->wpa_mcstCipher.wep104,ind->wpa_mcstCipher.wep40);
-                */
             } else {
                 /*This is an open BSS*/
                 ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_OPEN;
             }
+
             ind_new.rssi = ind->rssi;
             ind_new.ppm_abs = ind->ppm_abs;
             ind_new.ppm_rel = ind->ppm_rel;

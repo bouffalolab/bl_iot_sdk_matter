@@ -700,6 +700,16 @@ static void cmd_hbn_enter(char *buf, int len, int argc, char **argv)
     hal_hbn_enter();
 }
 
+static void cmd_logen(char *buf, int len, int argc, char **argv)
+{
+    bl_sys_logall_enable();
+}
+
+static void cmd_logdis(char *buf, int len, int argc, char **argv)
+{
+    bl_sys_logall_disable();
+}
+
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
@@ -719,6 +729,8 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         {"http", "http client download test based on socket", http_test_cmd},
         {"httpc", "http client download test based on RAW TCP", cmd_httpc_test},
         {"hbnenter", "hbnenter", cmd_hbn_enter},
+        {"logen", "logen", cmd_logen},
+        {"logdis", "logdis", cmd_logdis},
 };
 
 static void _cli_init()

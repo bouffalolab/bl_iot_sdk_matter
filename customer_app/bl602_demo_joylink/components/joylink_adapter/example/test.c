@@ -85,6 +85,7 @@ static void uart_recv_cb(const uint8_t *data, const uint16_t data_len, void *cb_
         // ACK_STATUS
         log_debug("Update ACKED_STATUS\r\n");
         memcpy(user_dev.acked_status, data, 36);
+        patch_ack_status(user_dev.acked_status);
     }
 }
 
@@ -181,12 +182,12 @@ loop:
             if (build_dev_status_uart_msg(jl_device_status, tx_buf) == 0) {
                 log_debug("[UART TX] Send\r\n");
                 my_log_buf(tx_buf, 36);
-                jl_app_uart_send(jl_uart_ctx, tx_buf, 36);
+                jl_app_uart_send(jl_uart_ctx, tx_buf, 36, 0);
             }
         }
     }
     if (jl_device_status == S_CLOUD_CTRL && dev_status_sent_cnt[3] == DEVICE_STATUS_REPORT_CNT) {
-        jl_app_uart_send(jl_uart_ctx, (uint8_t *)GET_STATUS_CMD, 36);
+        jl_app_uart_send(jl_uart_ctx, (uint8_t *)GET_STATUS_CMD, 36, 0);
         vTaskDelay(100); // delay to receive ACK_STATUS
         joylink_server_upload_req();
     }

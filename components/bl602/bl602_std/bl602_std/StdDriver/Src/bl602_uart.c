@@ -867,6 +867,43 @@ BL_Err_Type UART_SendData(UART_ID_Type uartId, uint8_t* data,uint32_t len)
 }
 
 /****************************************************************************//**
+ * @brief  UART send data to tx fifo in block mode
+ *
+ * @param  uartId: UART ID type
+ * @param  data: The data to be send
+ * @param  len: The length of the send buffer
+ *
+ * @return SUCCESS
+ *
+*******************************************************************************/
+BL_Err_Type UART_SendDataBlock(UART_ID_Type uartId, uint8_t* data,uint32_t len)
+{
+    uint32_t txLen = 0;
+    uint32_t UARTx = uartAddr[uartId];
+    uint32_t timeoutCnt = UART_TX_TIMEOUT_COUNT;
+
+    /* Check the parameter */
+    CHECK_PARAM(IS_UART_ID_TYPE(uartId));
+
+    /* Send data */
+    while(txLen<len){
+        if(UART_GetTxFifoCount(uartId)>0){
+            BL_WR_BYTE(UARTx+UART_FIFO_WDATA_OFFSET,data[txLen++]);
+            timeoutCnt = UART_TX_TIMEOUT_COUNT;
+        }else{
+            timeoutCnt--;
+            if(timeoutCnt == 0){
+                return TIMEOUT;
+            }
+        }
+    }
+    
+    while(UART_GetTxBusBusyStatus(uartId) == SET){}
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
  * @brief  UART receive data from rx fifo
  *
  * @param  uartId: UART ID type

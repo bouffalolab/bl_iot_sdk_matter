@@ -96,6 +96,7 @@ static intCallback_Type * l1cBmxToIntCbfArra[L1C_BMX_TO_INT_ALL]={NULL};
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION L1C_Set_Wrap(BL_Fun_Type wrap)
 {
@@ -124,6 +125,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_Set_Wrap(BL_Fun_Type wrap)
 
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  cache way disable set
@@ -133,6 +135,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_Set_Wrap(BL_Fun_Type wrap)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION L1C_Set_Way_Disable(uint8_t disableVal)
 {
@@ -157,6 +160,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_Set_Way_Disable(uint8_t disableVal)
 
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Set for ROM 2T access if CPU freq >120MHz
@@ -166,6 +170,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_Set_Way_Disable(uint8_t disableVal)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION L1C_IROM_2T_Access_Set(uint8_t enable)
 {
@@ -181,6 +186,7 @@ BL_Err_Type ATTR_TCM_SECTION L1C_IROM_2T_Access_Set(uint8_t enable)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  L1C BMX init

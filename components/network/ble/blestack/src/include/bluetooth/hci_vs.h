@@ -165,7 +165,7 @@ struct bt_hci_cp_vs_set_scan_req_reports {
 #if defined(CONFIG_SET_TX_PWR)
 #define BT_HCI_OP_VS_SET_TX_PWR             BT_OP(BT_OGF_VS, 0x0061)
 struct bt_hci_cp_vs_set_tx_pwr {
-    u8_t power;
+    int8_t power;
 }__packed;
 #endif
 

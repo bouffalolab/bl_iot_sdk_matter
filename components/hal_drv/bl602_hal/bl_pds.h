@@ -27,57 +27,20 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef __BLSP_COMMON_H__
-#define __BLSP_COMMON_H__
+#ifndef __BL_PDS_H__
+#define __BL_PDS_H__
 
-#include "stdint.h"
 
-/** @addtogroup  BL606_BLSP_Boot2
- *  @{
- */
+#include "bl602_glb.h"
+#include "bl602_sec_eng.h"
+#include "bl602_sf_cfg_ext.h"
+#include "bl602_sflash_ext.h"
+#include "bl602_romdriver.h"
 
-/** @addtogroup  BLSP_COMMON
- *  @{
- */
 
-/** @defgroup  BLSP_COMMON_Public_Types
- *  @{
- */
+void bl_pds_init(void);
+void bl_pds_fastboot_cfg(uint32_t addr);
+void bl_pds_enter(uint32_t pdsLevel, uint32_t pdsSleepCycles);
 
-/*@} end of group BLSP_COMMON_Public_Types */
 
-/** @defgroup  BLSP_COMMON_Public_Constants
- *  @{
- */
-
-/*@} end of group BLSP_COMMON_Public_Constants */
-
-/** @defgroup  BLSP_COMMON_Public_Macros
- *  @{
- */
-#define BLSP_BOOT2_CP_FLAG          0x02
-#define BLSP_BOOT2_MP_FLAG          0x01
-#define BLSP_BOOT2_SP_FLAG          0x00
-/*@} end of group BLSP_COMMON_Public_Macros */
-
-/** @defgroup  BLSP_COMMON_Public_Functions
- *  @{
- */
-void BLSP_Dump_Data(void *datain,int len);
-void BLSP_Fix_Invalid_MSP_PC(void);
-void BLSP_Boot2_Jump_Entry(void);
-int32_t BLSP_MediaBoot_Pre_Jump(void);
-uint8_t BLSP_Boot2_Get_Feature_Flag(void);
-uint8_t BLSP_Boot2_Get_Log_Disable_Flag(void);
-uint8_t BLSP_Boot2_8M_Support_Flag(void);
-uint8_t BLSP_Boot2_Dump_Critical_Flag(void);
-uint32_t BLSP_Boot2_Get_Baudrate(void);
-uint8_t  BLSP_Boot2_Get_TX_GPIO(void);
-
-/*@} end of group BLSP_COMMON_Public_Functions */
-
-/*@} end of group BLSP_COMMON */
-
-/*@} end of group BL606_BLSP_Boot2 */
-
-#endif /* __BLSP_COMMON_H__ */
+#endif

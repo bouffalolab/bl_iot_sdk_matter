@@ -33,6 +33,7 @@
 #include <task.h>
 #include <cli.h>
 
+#include <blog.h>
 #include <bl_wifi.h>
 #include <hal_sys.h>
 #include <bl60x_fw_api.h>
@@ -270,7 +271,7 @@ int wifi_mgmr_cli_scanlist(void)
     printf("****************************************************************************************************\r\n");
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
         if (wifiMgmr.scan_items[i].is_used) {
-            printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, auth %15s, pair_key:%s, grp_key:%s, SSID %s\r\n",
+            printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, auth %20s, cipher:%12s, SSID %s\r\n",
                     i,
                     wifiMgmr.scan_items[i].channel,
                     wifiMgmr.scan_items[i].bssid[0],
@@ -283,8 +284,7 @@ int wifi_mgmr_cli_scanlist(void)
                     wifiMgmr.scan_items[i].ppm_abs,
                     wifiMgmr.scan_items[i].ppm_rel,
                     wifi_mgmr_auth_to_str(wifiMgmr.scan_items[i].auth),
-                    wifi_mgmr_cipher_to_str(wifiMgmr.scan_items[i].rsn_ucstCipher),
-                    wifi_mgmr_cipher_to_str(wifiMgmr.scan_items[i].rsn_mcstCipher),
+                    wifi_mgmr_cipher_to_str(wifiMgmr.scan_items[i].cipher),
                     wifiMgmr.scan_items[i].ssid
             );
         } else {
@@ -336,11 +336,6 @@ static void wifi_ip_info(char *buf, int len, int argc, char **argv)
     printf("IP  :%s \r\n", ip4addr_ntoa(&ip) );
     printf("GW  :%s \r\n", ip4addr_ntoa(&gw));
     printf("MASK:%s \r\n", ip4addr_ntoa(&mask));
-}
-
-static void wifi_mon_cmd(char *buf, int len, int argc, char **argv)
-{
-    wifi_mgmr_sniffer_enable();
 }
 
 static uint8_t packet_raw[] = {
@@ -506,13 +501,27 @@ static void sniffer_cb(void *env, uint8_t *pkt, int len)
     static unsigned int sniffer_counter, sniffer_last;
     static unsigned int last_tick;
 
+    (void)sniffer_last;
+    (void)sniffer_counter;
+
     sniffer_counter++;
     if ((int)xTaskGetTickCount() - (int)last_tick > 10 * 1000) {
-        printf("[SNIFFER] PKT Number is %d\r\n",
-                (int)sniffer_last - (int)sniffer_counter
+        blog_info("[SNIFFER] PKT Number is %d\r\n",
+                (int)sniffer_counter - (int)sniffer_last
         );
         last_tick = xTaskGetTickCount();
         sniffer_last = sniffer_counter;
+    }
+}
+
+static void wifi_mon_cmd(char *buf, int len, int argc, char **argv)
+{
+    if (argc > 1) {
+        blog_debug("Enable Sniffer Mode\r\n");
+        wifi_mgmr_sniffer_enable();
+    } else {
+        blog_debug("Register Sniffer cb\r\n");
+        wifi_mgmr_sniffer_register(NULL, sniffer_cb);
     }
 }
 

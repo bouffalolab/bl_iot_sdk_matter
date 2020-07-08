@@ -19,6 +19,7 @@ typedef int (*jl_app_uart_msg_check_cb_t)(const uint8_t *data, const uint16_t da
 typedef struct {
     jl_app_uart_msg_type_t type;
     uint16_t len;
+    uint16_t delay_ms;
     uint8_t msg[];
 } jl_app_uart_msg_item_t;
 
@@ -64,7 +65,7 @@ int jl_app_uart_init(jl_app_uart_ctx_t *ctx, const char *uart_dev, const int bau
         const uint8_t *frame_header, const uint16_t frame_header_length);
 int jl_app_uart_recv_cb_register(jl_app_uart_ctx_t *ctx, jl_app_uart_recv_cb_t cb, void *cb_arg);
 int jl_app_uart_msg_check_cb_register(jl_app_uart_ctx_t *ctx, jl_app_uart_msg_check_cb_t cb, void *cb_arg);
-int jl_app_uart_send(const jl_app_uart_ctx_t *const ctx, const uint8_t *data, const uint16_t data_len);
+int jl_app_uart_send(const jl_app_uart_ctx_t *const ctx, const uint8_t *data, const uint16_t data_len, const uint16_t delay_before_send_ms);
 void jl_app_write_uart(jl_app_uart_ctx_t *ctx, const uint8_t *buf, uint16_t len);
 int jl_app_uart_start_txrx(jl_app_uart_ctx_t *ctx);
 

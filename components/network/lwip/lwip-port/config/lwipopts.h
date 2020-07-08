@@ -110,6 +110,11 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_WND_UPDATE_THRESHOLD   LWIP_MIN((TCP_WND / 2), (TCP_MSS * 6))
 
 /**
+ * By default, TCP socket/netconn close waits 20 seconds max to send the FIN
+ */
+#define LWIP_TCP_CLOSE_TIMEOUT_MS_DEFAULT 5000
+
+/**
  * LWIP_SO_SNDTIMEO==1: Enable send timeout for sockets/netconns and
  * SO_SNDTIMEO processing.
  */

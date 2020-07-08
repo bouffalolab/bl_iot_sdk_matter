@@ -542,7 +542,7 @@ bool bt_mesh_kr_update(struct bt_mesh_subnet *sub, u8_t new_kr, bool new_key)
 	if (sub->kr_flag) {
 		if (sub->kr_phase == BT_MESH_KR_PHASE_1) {
 #ifdef CONFIG_BT_MESH_PTS
-			BT_ERR("[PTS] Key Refresh: Phase 1 -> Phase 2");
+			BT_PTS("[PTS] Key Refresh: Phase 1 -> Phase 2");
 #endif
 
 			BT_DBG("Phase 1 -> Phase 2");
@@ -566,7 +566,7 @@ bool bt_mesh_kr_update(struct bt_mesh_subnet *sub, u8_t new_kr, bool new_key)
 		 */
 		case BT_MESH_KR_PHASE_2:
 #ifdef CONFIG_BT_MESH_PTS
-			BT_ERR("[PTS] Key Refresh: Phase %d -> Normal", sub->kr_phase);
+			BT_PTS("[PTS] Key Refresh: Phase %d -> Normal", sub->kr_phase);
 #endif
 
 			BT_DBG("KR Phase 0x%02x -> Normal", sub->kr_phase);
@@ -717,9 +717,9 @@ do_update:
 
 #ifdef CONFIG_BT_MESH_PTS
 	if (iv_update) {
-		BT_ERR("[PTS] IV Update: transitioning to IV Update in Progress state");
+		BT_PTS("[PTS] IV Update: transitioning to IV Update in Progress state");
 	} else {
-		BT_ERR("[PTS] IV Update: transitioning to Normal Operation state");
+		BT_PTS("[PTS] IV Update: transitioning to Normal Operation state");
 	}
 #endif
 
@@ -1036,7 +1036,7 @@ static int net_decrypt(struct bt_mesh_subnet *sub, const u8_t *enc,
 
 	if (rx->net_if == BT_MESH_NET_IF_ADV && msg_cache_match(rx, buf)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Message found in network message cache");
+		BT_PTS("[PTS] Message found in network message cache");
 #endif
 
 		BT_WARN("Duplicate found in Network Message Cache");
@@ -1046,7 +1046,7 @@ static int net_decrypt(struct bt_mesh_subnet *sub, const u8_t *enc,
 	rx->ctx.addr = SRC(buf->data);
 	if (!BT_MESH_ADDR_IS_UNICAST(rx->ctx.addr)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Invalid address (SRC = 0x%04X)", rx->ctx.addr);
+		BT_PTS("[PTS] Invalid address (SRC = 0x%04X)", rx->ctx.addr);
 #endif
 
 		BT_WARN("Ignoring non-unicast src addr 0x%04x", rx->ctx.addr);
@@ -1235,7 +1235,7 @@ static void bt_mesh_net_relay(struct net_buf_simple *sbuf,
 
 #ifdef CONFIG_BT_MESH_PTS
 	if (rx->net_if != BT_MESH_NET_IF_LOCAL) {
-		BT_ERR("[PTS] Relaying packet (TTL = 0x%02X)", TTL(buf->data));
+		BT_PTS("[PTS] Relaying packet (TTL = 0x%02X)", TTL(buf->data));
 	}
 #endif
 
@@ -1302,7 +1302,7 @@ int bt_mesh_net_decode(struct net_buf_simple *data, enum bt_mesh_net_if net_if,
 
 	if (!net_find_and_decrypt(data->data, data->len, rx, buf)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Fail to decrypt packet");
+		BT_PTS("[PTS] Fail to decrypt packet");
 #endif
 
 		BT_DBG("Unable to find matching net for packet");
@@ -1330,7 +1330,7 @@ int bt_mesh_net_decode(struct net_buf_simple *data, enum bt_mesh_net_if net_if,
 	if (net_if != BT_MESH_NET_IF_PROXY_CFG &&
 	    rx->ctx.recv_dst == BT_MESH_ADDR_UNASSIGNED) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Invalid address (DST = 0x%04X)", rx->ctx.recv_dst);
+		BT_PTS("[PTS] Invalid address (DST = 0x%04X)", rx->ctx.recv_dst);
 #endif
 
 		BT_ERR("Destination address is unassigned; dropping packet");
@@ -1339,7 +1339,7 @@ int bt_mesh_net_decode(struct net_buf_simple *data, enum bt_mesh_net_if net_if,
 
 	if (BT_MESH_ADDR_IS_RFU(rx->ctx.recv_dst)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] RFU address (DST = 0x%04X)", rx->ctx.recv_dst);
+		BT_PTS("[PTS] RFU address (DST = 0x%04X)", rx->ctx.recv_dst);
 #endif
 
 		BT_ERR("Destination address is RFU; dropping packet");
@@ -1348,7 +1348,7 @@ int bt_mesh_net_decode(struct net_buf_simple *data, enum bt_mesh_net_if net_if,
 
 	if (net_if != BT_MESH_NET_IF_LOCAL && bt_mesh_elem_find(rx->ctx.addr)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Invalid address (SRC = 0x%04X)", rx->ctx.addr);
+		BT_PTS("[PTS] Invalid address (SRC = 0x%04X)", rx->ctx.addr);
 #endif
 
 		BT_DBG("Dropping locally originated packet");
@@ -1361,12 +1361,12 @@ int bt_mesh_net_decode(struct net_buf_simple *data, enum bt_mesh_net_if net_if,
 
 #ifdef CONFIG_BT_MESH_PTS
 	if (net_if != BT_MESH_NET_IF_LOCAL) {
-		BT_ERR("[PTS] Network packet received");
-		BT_ERR("[PTS] - TTL: [0x%02X]", rx->ctx.recv_ttl);
-		BT_ERR("[PTS] - CTL: [0x%02X]", rx->ctl);
-		BT_ERR("[PTS] - SRC: [0x%04X]", rx->ctx.addr);
-		BT_ERR("[PTS] - DST: [0x%04X]", rx->ctx.recv_dst);
-		BT_ERR("[PTS] - TransportPDU: [%s]", bt_hex(buf->data + BT_MESH_NET_HDR_LEN, buf->len - BT_MESH_NET_HDR_LEN));
+		BT_PTS("[PTS] Network packet received");
+		BT_PTS("[PTS] - TTL: [0x%02X]", rx->ctx.recv_ttl);
+		BT_PTS("[PTS] - CTL: [0x%02X]", rx->ctl);
+		BT_PTS("[PTS] - SRC: [0x%04X]", rx->ctx.addr);
+		BT_PTS("[PTS] - DST: [0x%04X]", rx->ctx.recv_dst);
+		BT_PTS("[PTS] - TransportPDU: [%s]", bt_hex(buf->data + BT_MESH_NET_HDR_LEN, buf->len - BT_MESH_NET_HDR_LEN));
 	}
 #endif
 

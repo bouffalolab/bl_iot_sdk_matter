@@ -512,7 +512,7 @@ static int set_random_address(const bt_addr_t *addr)
 	int err;
 
     #if defined(CONFIG_BT_STACK_PTS)
-    BT_STACK_PTS_DBG("set random address %s", bt_addr_str(addr));
+    BT_PTS("set random address %s", bt_addr_str(addr));
     #else
 	BT_DBG("%s", bt_addr_str(addr));
     #endif
@@ -5378,8 +5378,8 @@ static int bt_init(void)
 		return err;
 	}
 #if defined(CONFIG_BT_STACK_PTS)
-    co_reverse_bytearray(bt_dev.irk[0], dbg_irk, sizeof(dbg_irk));
-    BT_STACK_PTS_DBG("Local IRK %s public identity bdaddr %s", 
+    reverse_bytearray(bt_dev.irk[0], dbg_irk, sizeof(dbg_irk));
+    BT_PTS("Local IRK %s public identity bdaddr %s", 
                bt_hex(dbg_irk, 16), bt_addr_str(&(bt_dev.id_addr[0].a)));
 #endif
 
@@ -6835,7 +6835,7 @@ int bt_le_set_chan_map(u8_t chan_map[5])
 				    buf, NULL);
 }
 #if defined(CONFIG_SET_TX_PWR)
-int bt_set_tx_pwr(uint8_t power)
+int bt_set_tx_pwr(int8_t power)
 {
     struct bt_hci_cp_vs_set_tx_pwr set_param;
 	struct net_buf *buf;

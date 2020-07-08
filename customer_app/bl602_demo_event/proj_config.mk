@@ -37,4 +37,7 @@ CONFIG_BT_MESH_MODEL_GEN_SRV?=1
 CONFIG_BLE_TP_SERVER?=1
 
 #blog enable components format :=blog_testc cli vfs helper
-LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop
+LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop blestack
+
+CONFIG_BL602_USE_ROM_DRIVER:=1
+

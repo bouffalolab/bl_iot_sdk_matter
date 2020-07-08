@@ -226,7 +226,7 @@ int wifi_mgmr_api_sniffer_enable(void)
     return 0;
 }
 
-int wifi_mgmr_api_scan_item_beacon(uint8_t channel, int8_t rssi, uint8_t auth, uint8_t mac[], uint8_t ssid[], int len, int8_t ppm_abs, int8_t ppm_rel, wifi_mgmr_api_cipher_t pair, wifi_mgmr_api_cipher_t group)
+int wifi_mgmr_api_scan_item_beacon(uint8_t channel, int8_t rssi, uint8_t auth, uint8_t mac[], uint8_t ssid[], int len, int8_t ppm_abs, int8_t ppm_rel, uint8_t cipher)
 {
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_scan_item_t *scan;
@@ -246,10 +246,9 @@ int wifi_mgmr_api_scan_item_beacon(uint8_t channel, int8_t rssi, uint8_t auth, u
     scan->channel = channel;
     scan->rssi = rssi;
     scan->auth = auth;
+    scan->cipher = cipher;
     scan->ppm_abs = ppm_abs;
     scan->ppm_rel = ppm_rel;
-    memcpy(&scan->rsn_ucstCipher, &pair, sizeof(wifi_mgmr_cipher_t));
-    memcpy(&scan->rsn_mcstCipher, &group, sizeof(wifi_mgmr_cipher_t));
 
     wifi_mgmr_event_notify(msg);
 

@@ -47,7 +47,14 @@ typedef struct _user_dev_status_t {
 
 #ifdef JOYLINK_SDK_EXAMPLE_MWO
 #include <uart_txrx.h>
+#define MWO_PATCH_CAP 36
+#define MWO_PATCH_STATUS_DISABLED 0
+#define MWO_PATCH_STATUS_ENABLED 1
 typedef struct _user_dev_status_t {
+    struct {
+        uint8_t status;
+        uint8_t value;
+    } patches[36];
     uint8_t acked_status[36];
 } user_dev_status_t;
 
@@ -64,7 +71,9 @@ extern jl_app_uart_ctx_t *jl_uart_ctx;
 extern user_dev_status_t user_dev;
 
 void my_log_buf(const uint8_t *buf, const int len);
-void patch_uart_cmd(uint8_t *buf);
+int patch_uart_cmd(uint8_t *buf, const int len, int *is_start_cmd);
+int patch_ack_status(uint8_t *buf);
+int patch_start_cmd_to_standby(uint8_t *buf);
 void calc_uart_cksum(uint8_t *buf);
 #endif
 

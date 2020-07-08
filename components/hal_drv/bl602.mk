@@ -40,6 +40,9 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/bl_dac_audio.c \
                   bl602_hal/hal_button.c \
                   bl602_hal/hal_hbnram.c \
+                  bl602_hal/bl_pds.c \
+                  bl602_hal/hal_pds.c \
+                  bl602_hal/bl_rtc.c \
 
 COMPONENT_SRCDIRS := bl602_hal
 
@@ -50,4 +53,8 @@ COMPONENT_OBJS := $(patsubst %.cpp,%.o, $(COMPONENT_OBJS))
 CPPFLAGS += -DARCH_RISCV
 ifndef CONFIG_USE_STD_DRIVER
 CPPFLAGS += -DBL602_USE_HAL_DRIVER
+endif
+
+ifeq ($(CONFIG_USE_XTAL32K),1)
+CFLAGS += -DCFG_USE_XTAL32K
 endif

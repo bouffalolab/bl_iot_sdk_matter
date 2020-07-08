@@ -96,7 +96,7 @@
 //Maybe Compile flags is passed by command line
 #define configUSE_TICKLESS_IDLE			1
 #endif
-#define configCPU_CLOCK_HZ				( 32768 ) /*QEMU*/
+#define configCPU_CLOCK_HZ				( 10 * 1000 * 1000 ) /*QEMU*/
 #define configTICK_RATE_HZ				( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES			( 32 )
 #define configMINIMAL_STACK_SIZE		( ( unsigned short ) 70 )

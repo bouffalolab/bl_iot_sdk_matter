@@ -1164,7 +1164,7 @@ static void prov_retransmit(struct k_work *work)
 
 	if (k_uptime_get() - link.tx.start > TRANSACTION_TIMEOUT) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Link (Link ID = 0x%08X) timeout", link.id);
+		BT_PTS("[PTS] Link (Link ID = 0x%08X) timeout", link.id);
 #endif
 
 		BT_WARN("Giving up transaction");
@@ -1217,7 +1217,7 @@ static void link_open(struct prov_rx *rx, struct net_buf_simple *buf)
 
 	if (memcmp(buf->data, prov->uuid, 16)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Link Open (UUID = %s) received and ignored", bt_hex(buf->data, 16));
+		BT_PTS("[PTS] Link Open (UUID = %s) received and ignored", bt_hex(buf->data, 16));
 #endif
 
 		BT_DBG("Bearer open message not for us");
@@ -1225,7 +1225,7 @@ static void link_open(struct prov_rx *rx, struct net_buf_simple *buf)
 	}
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Link Open (Link ID = 0x%08X) received", rx->link_id);
+	BT_PTS("[PTS] Link Open (Link ID = 0x%08X) received", rx->link_id);
 #endif
 
 	if (prov->link_open) {
@@ -1251,7 +1251,7 @@ static void link_close(struct prov_rx *rx, struct net_buf_simple *buf)
 	BT_DBG("len %u", buf->len);
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Link Close (Link ID = 0x%08X) received", rx->link_id);
+	BT_PTS("[PTS] Link Close (Link ID = 0x%08X) received", rx->link_id);
 #endif
 
 	reset_adv_link();
@@ -1281,7 +1281,7 @@ static void gen_prov_ctl(struct prov_rx *rx, struct net_buf_simple *buf)
 		break;
 	default:
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] RFU bearer opcode: 0x%02X", BEARER_CTL(rx->gpc));
+		BT_PTS("[PTS] RFU bearer opcode: 0x%02X", BEARER_CTL(rx->gpc));
 #endif
 
 		BT_ERR("Unknown bearer opcode: 0x%02x", BEARER_CTL(rx->gpc));
@@ -1608,7 +1608,7 @@ static void protocol_timeout(struct k_work *work)
 	bearer_ctl_send(LINK_CLOSE, &reason, sizeof(reason));
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Link Close (Link ID = 0x%08X) sent due to timeout", link.id);
+	BT_PTS("[PTS] Link Close (Link ID = 0x%08X) sent due to timeout", link.id);
 	if (prov->link_close) {
 		prov->link_close(BT_MESH_PROV_ADV);
 	}

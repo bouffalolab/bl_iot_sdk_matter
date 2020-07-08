@@ -97,6 +97,19 @@ struct wifi_event_sm_disconnect_ind
 
 typedef struct
 {
+    uint8_t  noRsn      : 1;
+    uint8_t  wepStatic  : 1;
+    uint8_t  wepDynamic : 1;
+    uint8_t  wpa        : 1;
+    uint8_t  wpaNone    : 1;
+    uint8_t  wpa2       : 1;
+    uint8_t  cckm       : 1;
+    uint8_t  wapi       : 1;
+    uint8_t  rsvd       : 8;
+} wifi_secmode_t;
+
+typedef struct
+{
     uint8_t   wep40      : 1;
     uint8_t   wep104     : 1;
     uint8_t   tkip       : 1;
@@ -104,11 +117,20 @@ typedef struct
     uint8_t   rsvd       : 4;
 } wifi_cipher_t;
 
-#define WIFI_EVENT_BEACON_IND_AUTH_OPEN         0
-#define WIFI_EVENT_BEACON_IND_AUTH_WEP          1
-#define WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK      2
-#define WIFI_EVENT_BEACON_IND_AUTH_WPA_ENT      3
+#define WIFI_EVENT_BEACON_IND_AUTH_OPEN            0
+#define WIFI_EVENT_BEACON_IND_AUTH_WEP             1
+#define WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK         2
+#define WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK        3
+#define WIFI_EVENT_BEACON_IND_AUTH_WPA_WPA2_PSK    4
+#define WIFI_EVENT_BEACON_IND_AUTH_WPA_ENT         5
 #define WIFI_EVENT_BEACON_IND_AUTH_UNKNOWN      0xff
+
+#define WIFI_EVENT_BEACON_IND_CIPHER_NONE           0
+#define WIFI_EVENT_BEACON_IND_CIPHER_WEP            1
+#define WIFI_EVENT_BEACON_IND_CIPHER_AES            2
+#define WIFI_EVENT_BEACON_IND_CIPHER_TKIP           3
+#define WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES       4
+
 struct wifi_event_beacon_ind
 {
     uint8_t bssid[6];
@@ -118,10 +140,12 @@ struct wifi_event_beacon_ind
     int8_t ppm_rel;
     uint8_t channel;
     uint8_t auth;//0: open; 1:wep; 2:WPA/WPA2 - PSK; 3: WPA/WPA2 - Enterprise; 0xFF: unknown
+    uint8_t cipher;
     wifi_cipher_t wpa_mcstCipher;
     wifi_cipher_t wpa_ucstCipher;
     wifi_cipher_t rsn_mcstCipher;
     wifi_cipher_t rsn_ucstCipher;
+    wifi_secmode_t sec_mode;
     int ssid_len;
 };
 

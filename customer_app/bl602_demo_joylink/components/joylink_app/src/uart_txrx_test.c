@@ -36,7 +36,7 @@ static void uart_txrx_test_entry(void *parm)
         for (i = 0; i < BUF_LEN - len; ++i) {
             buf[len + i] = 'F';
         }
-        jl_app_uart_send(ctx, buf, BUF_LEN);
+        jl_app_uart_send(ctx, buf, BUF_LEN, 0);
     }
 }
 

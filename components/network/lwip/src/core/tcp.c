@@ -1377,6 +1377,14 @@ tcp_slowtmr_start:
       }
     }
 
+    /* Check if this PCB has stayed too lang in FIN_WAIT_1 or CLOSING */
+    if (pcb->state == FIN_WAIT_1 || pcb->state == CLOSING) {
+      if ((u32_t)(tcp_ticks - pcb->tmr) > LWIP_TCP_CLOSE_TIMEOUT_MS_DEFAULT / TCP_SLOW_INTERVAL) {
+        ++pcb_remove;
+        LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: removing pcb stuck in FIN_WAIT_1/CLOSING"));
+      }
+    }
+
     /* If the PCB should be removed, do it. */
     if (pcb_remove) {
       struct tcp_pcb *pcb2;

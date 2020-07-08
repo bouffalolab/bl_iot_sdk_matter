@@ -45,29 +45,123 @@ jl_app_uart_ctx_t *jl_uart_ctx;
 
 void my_log_buf(const uint8_t *buf, const int len)
 {
+    const char *str = "";
     for (int i = 0; i < len; ++i) {
         printf("%02X ", buf[i]);
     }
     printf("\r\n");
+    if (len == 36) {
+        if (buf[6] == 1) {
+            printf("CMD: GET_STATUS\r\n");
+        } else if (buf[6] == 2) {
+            printf("CMD: SET_STATUS\r\n");
+        } else if (buf[6] == 3) {
+            printf("CMD: ACK_STATUS\r\n");
+        }
+        if (buf[14] == 0) {
+            str = "STAND BY";
+        } else if (buf[14] == 1) {
+            str = "START";
+        } else if (buf[14] == 3) {
+            str = "CANCEL";
+        } else if (buf[14] == 2) {
+            str = "PAUSE";
+        } else if (buf[14] == 4) {
+            str = "APPOINT";
+        } else {
+            str = "UNKNOWN";
+        }
+        printf("POWER: %s\r\n", str);
+        printf("TIME_MIN: %u\r\n", buf[27]);
+        printf("TIME_SEC: %u\r\n", buf[28]);
+    }
 }
 
 /*
  * Patch UART CMD
- * Fill current time(hour and minute) and calculate checksum
+ * Fill current time(hour and minute)
+ * Patch not committed status
+ * Calculate checksum
+ * return 1 if need to commit(i.e. send command to MWO), otherwise 0
  */
-void patch_uart_cmd(uint8_t *buf)
+int patch_uart_cmd(uint8_t *buf, const int len, int *is_start_cmd)
 {
     jl_time_t time;
     jl_time_get_time(&time);
+    int i;
+    int patches;
+    int offset, value;
+    int commit = 0;
 
     //XXX: timezone issue
     buf[30] = (time.hour + 8) % 24;
     buf[31] = time.minute;
     buf[32] = 0; // 24h format
 
+    if (len > 36 && (len % 2) == 0) {
+        patches = (len - 36) / 2;
+        printf("[PATCH_UART_CMD] patches cnt %d\r\n", patches);
+
+        for (i = 0; i < patches; ++i) {
+            offset = buf[36 + i] - 1;
+            value = buf[36 + i + 1];
+            if (offset < 36) {
+                printf("[PATCH_UART_CMD] patches offset %u, value %u\r\n", offset, value);
+                user_dev.patches[offset].value = value;
+                user_dev.patches[offset].status = MWO_PATCH_STATUS_ENABLED;
+            } else {
+                printf("[PATCH_UART_CMD] offset %d >= 36\r\n", offset);
+            }
+        }
+        if (user_dev.patches[14].status == MWO_PATCH_STATUS_ENABLED) {
+            if (user_dev.patches[14].value == 1) {
+                *is_start_cmd = 1;
+            } else {
+                *is_start_cmd = 0;
+            }
+            for (i = 0; i < MWO_PATCH_CAP; ++i) {
+                if (user_dev.patches[i].status == MWO_PATCH_STATUS_ENABLED) {
+                    buf[i] = user_dev.patches[i].value;
+                }
+                user_dev.patches[i].value = 0;
+                user_dev.patches[i].status = MWO_PATCH_STATUS_DISABLED;
+            }
+            printf("[PATCH_UART_CMD] commit and clean patches\r\n");
+            commit = 1;
+        }
+    }
     calc_uart_cksum(buf);
+
+    return commit;
 }
 
+/*
+ * Patch not committed status to acked_status
+ */
+int patch_ack_status(uint8_t *buf)
+{
+    int i;
+
+    for (i = 0; i < MWO_PATCH_CAP; ++i) {
+        if (user_dev.patches[i].status == MWO_PATCH_STATUS_ENABLED) {
+            buf[i] = user_dev.patches[i].value;
+        }
+    }
+    return 0;
+}
+
+int patch_start_cmd_to_standby(uint8_t *buf)
+{
+    buf[14] = 0;
+    buf[15] = 0;
+
+    calc_uart_cksum(buf);
+    return 0;
+}
+
+/*
+ * Calculate checksum according to document.
+ */
 void calc_uart_cksum(uint8_t *buf)
 {
     int sum = 0xbeaf;

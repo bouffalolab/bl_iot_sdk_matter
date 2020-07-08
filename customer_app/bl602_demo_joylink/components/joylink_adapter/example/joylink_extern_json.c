@@ -74,7 +74,10 @@ joylink_dev_parse_ctrl(const char *pMsg, user_dev_status_t *userDev)
 {
     int ret = -1;
 #ifdef JOYLINK_SDK_EXAMPLE_MWO
-    uint8_t cmd_bin[36];
+    uint8_t cmd_bin[100];
+    uint8_t cmd_bin2[100];
+    int sl;
+    int is_start_cmd = 0;
 #endif
     if(NULL == pMsg || NULL == userDev){
         goto RET;
@@ -82,12 +85,24 @@ joylink_dev_parse_ctrl(const char *pMsg, user_dev_status_t *userDev)
 #ifdef JOYLINK_SDK_EXAMPLE_MWO
 
     log_debug("CMD: %s", pMsg);
-    if (strlen(pMsg) == 36 * 2) {
-        if (cvt_hex_to_bin((uint8_t *)pMsg, cmd_bin, 36 * 2) == 0) {
-            patch_uart_cmd(cmd_bin);
-            log_debug("[UART TX]: ");
-            my_log_buf(cmd_bin, 36);
-            jl_app_uart_send(jl_uart_ctx, cmd_bin, 36);
+    sl = strlen(pMsg);
+    if (sl >= 36 * 2) {
+        if (cvt_hex_to_bin((uint8_t *)pMsg, cmd_bin, sl) == 0) {
+            if (patch_uart_cmd(cmd_bin, sl / 2, &is_start_cmd)) {
+                if (is_start_cmd) {
+                    memcpy(cmd_bin2, cmd_bin, 36);
+                    patch_start_cmd_to_standby(cmd_bin);
+                }
+                log_debug("[UART TX]: ");
+                my_log_buf(cmd_bin, 36);
+                jl_app_uart_send(jl_uart_ctx, cmd_bin, 36, 0);
+
+                if (is_start_cmd) {
+                    log_debug("[UART TX]: ");
+                    my_log_buf(cmd_bin2, 36);
+                    jl_app_uart_send(jl_uart_ctx, cmd_bin2, 36, 100);
+                }
+            }
         }
     }
 #endif

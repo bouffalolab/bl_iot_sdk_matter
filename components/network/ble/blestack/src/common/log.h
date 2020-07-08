@@ -45,9 +45,6 @@
 #include <bluetooth.h>
 #include <hci_host.h>
 
-#if defined(BL70X)
-#include "bl_print.h"
-#endif
 #include "FreeRTOS.h"
 #include "task.h"
 #include "FreeRTOSConfig.h"
@@ -69,50 +66,21 @@ extern "C" {
 //LOG_MODULE_REGISTER(LOG_MODULE_NAME, LOG_LEVEL);
 
 #if defined(BFLB_BLE)
-//#if defined(CFG_BLE_STACK_DBG_PRINT)
+
 #define BT_DBG(fmt, ...)
-#if defined(BL70X)
-#define BT_ERR(fmt, ...)   bl_print(SYSTEM_UART_ID, PRINT_MODULE_BLE_STACK, fmt"\r\n", ##__VA_ARGS__)
-#elif defined(BL602) || defined(BL702)
 #define BT_ERR(fmt, ...)   printf(fmt"\r\n", ##__VA_ARGS__)
 #if defined(CONFIG_BT_STACK_PTS)
-#define BT_STACK_PTS_DBG(fmt, ...)  printf(fmt"\r\n", ##__VA_ARGS__)
+#define BT_PTS(fmt, ...)   printf(fmt"\r\n", ##__VA_ARGS__)
 #endif
-//#endif
 #define BT_WARN(fmt, ...) 
 #define BT_INFO(fmt, ...)
-#else
-#define BT_DBG(fmt, ...)
-#define BT_ERR(fmt, ...)
-#define BT_WARN(fmt, ...)
-#define BT_INFO(fmt, ...)
 
+#else /*BFLB_BLE*/
 
-#endif /*CFG_BLE_STACK_DBG_PRINT*/
-
-#if defined(CONFIG_BT_STACK_PTS)
-#define BT_STACK_PTS_SDBG(str, len, reversal) \
-{	\
-	BT_STACK_PTS_DBG("uuid = [");	\
-	u8_t i = 0; \
-	for(i=0;i<len;i++){	\
-		if(reversal)	\
-			BT_STACK_PTS_DBG("%02x", str[len-1-i]); \
-		else	\
-			BT_STACK_PTS_DBG("%02x", str[i]);	\
-	}	\
-	BT_STACK_PTS_DBG("]\r\n");\
-}
-
-#endif 
-
-#else
 #define BT_DBG(fmt, ...) LOG_DBG(fmt, ##__VA_ARGS__)
 #define BT_ERR(fmt, ...) LOG_ERR(fmt, ##__VA_ARGS__)
 #define BT_WARN(fmt, ...) LOG_WRN(fmt, ##__VA_ARGS__)
 #define BT_INFO(fmt, ...) LOG_INF(fmt, ##__VA_ARGS__)
-
-
 
 #if defined(CONFIG_BT_ASSERT_VERBOSE)
 #define BT_ASSERT_PRINT(fmt, ...) printk(fmt, ##__VA_ARGS__)
@@ -125,6 +93,7 @@ extern "C" {
 #else
 #define BT_ASSERT_DIE k_oops
 #endif /* CONFIG_BT_ASSERT_PANIC */
+
 #endif /*BFLB_BLE*/
 
 #if defined(CONFIG_BT_ASSERT)

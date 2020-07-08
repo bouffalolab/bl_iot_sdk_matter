@@ -27,51 +27,16 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef __BLSP_BOOT_PARSER_H__
-#define __BLSP_BOOT_PARSER_H__
+#ifndef __BL_RTC_H__
+#define __BL_RTC_H__
 
-#include "stdint.h"
 
-/** @addtogroup  BL606_BLSP_Boot2
- *  @{
- */
+#include "bl602_hbn.h"
 
-/** @addtogroup  BLSP_BOOT_PARSER
- *  @{
- */
 
-/** @defgroup  BLSP_BOOT_PARSER_Public_Types
- *  @{
- */
+void bl_rtc_init(void);
+uint64_t bl_rtc_get_counter(void);
+uint64_t bl_rtc_get_timestamp_ms(void);
 
-/*@} end of group BLSP_BOOT_PARSER_Public_Types */
 
-/** @defgroup  BLSP_BOOT_PARSER_Public_Constants
- *  @{
- */
-
-/*@} end of group BLSP_BOOT_PARSER_Public_Constants */
-
-/** @defgroup  BLSP_BOOT_PARSER_Public_Macros
- *  @{
- */
-
-/*@} end of group BLSP_BOOT_PARSER_Public_Macros */
-
-/** @defgroup  BLSP_BOOT_PARSER_Public_Functions
- *  @{
- */
-int32_t BLSP_Boot_Parse_BootHeader(Boot_Image_Config *bootImgCfg,uint8_t *data);
-int32_t BLSP_Boot_Parse_PKey(Boot_Image_Config *bootImgCfg,uint8_t *data,uint8_t own);
-int32_t BLSP_Boot_Parse_Signature(Boot_Image_Config *bootImgCfg,uint8_t *data,uint8_t own);
-int32_t BLSP_Boot_Parse_AesIv(Boot_Image_Config *bootImgCfg,uint8_t *data);
-int32_t BLSP_Boot_Parser_Check_Signature(Boot_Image_Config *bootImgCfg);
-int32_t BLSP_Boot_Parser_Check_Hash(Boot_Image_Config *bootImgCfg);
-
-/*@} end of group BLSP_BOOT_PARSER_Public_Functions */
-
-/*@} end of group BLSP_BOOT_PARSER */
-
-/*@} end of group BL606_BLSP_Boot2 */
-
-#endif /* __BLSP_BOOT_PARSER_H__ */
+#endif

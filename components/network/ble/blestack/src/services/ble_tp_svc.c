@@ -40,20 +40,22 @@ NOTES
 #include <stdbool.h>
 #include <FreeRTOS.h>
 #include <task.h>
+#include <blog.h>
 
 #include "bluetooth.h"
 #include "conn.h"
 #include "gatt.h"
+#include "hci_core.h"
 #include "uuid.h"
 #include "ble_tp_svc.h"
-
 
 static void ble_tp_connected(struct bt_conn *conn, u8_t err);
 static void ble_tp_disconnected(struct bt_conn *conn, u8_t reason);
 
-
 struct bt_conn *ble_tp_conn;
+struct bt_gatt_exchange_params exchg_mtu;
 TaskHandle_t ble_tp_task_h;
+int tx_mtu_size = 20;
 
 static struct bt_conn_cb ble_tp_conn_callbacks = {
 	.connected	=   ble_tp_connected,
@@ -61,14 +63,55 @@ static struct bt_conn_cb ble_tp_conn_callbacks = {
 };
 
 /*************************************************************************
-NAME    
+NAME
+    ble_tp_tx_mtu_size
+*/
+static void ble_tp_tx_mtu_size(struct bt_conn *conn, u8_t err,
+			  struct bt_gatt_exchange_params *params)
+{
+       if(!err)
+       {
+                tx_mtu_size = bt_gatt_get_mtu(ble_tp_conn);
+                printf("ble tp echange mtu size success, mtu size: %d\n", tx_mtu_size);
+       }
+       else
+       {
+                printf("ble tp echange mtu size failure, err: %d\n", err);
+       }
+}
+
+/*************************************************************************
+NAME
     ble_tp_connected
 */
 static void ble_tp_connected(struct bt_conn *conn, u8_t err)
-{   
-	printf("%s\n",__func__);
+{
+	int tx_octets = 0x00fb;
+	int tx_time = 0x0848;
+	int ret = -1;
 
+	printf("%s\n",__func__);
 	ble_tp_conn = conn;
+
+	//set data length after connected.
+	ret = bt_le_set_data_len(ble_tp_conn, tx_octets, tx_time);
+	if(!ret)
+	{
+		printf("ble tp set data length success.\n");
+	}
+	else
+	{
+		printf("ble tp set data length failure, err: %d\n", ret);
+	}
+
+	//exchange mtu size after connected.
+	exchg_mtu.func = ble_tp_tx_mtu_size;
+	ret = bt_gatt_exchange_mtu(ble_tp_conn, &exchg_mtu);
+	if (!ret) {
+		printf("ble tp exchange mtu size pending.\n");
+	} else {
+		printf("ble tp exchange mtu size failure, err: %d\n", ret);
+	}
 }
 
 /*************************************************************************
@@ -90,14 +133,12 @@ NAME
 static void ble_tp_notify_task(void *pvParameters)
 {
     int err = -1;
-    u16_t slen = 244;
-
     char data[244] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09};
 
     while(1)
     {
-        err = bt_gatt_notify(ble_tp_conn, get_attr(BT_CHAR_BLE_TP_TX_ATTR_VAL_INDEX), data, slen);
-        printf("bletp tx : %d\n", err);
+        err = bt_gatt_notify(ble_tp_conn, get_attr(BT_CHAR_BLE_TP_TX_ATTR_VAL_INDEX), data, (tx_mtu_size - 3));
+        blog_debug("bletp tx : %d\n", err);
     }
 }
 
@@ -131,7 +172,7 @@ static int ble_tp_recv(struct bt_conn *conn,
 			  const struct bt_gatt_attr *attr, const void *buf,
 			  u16_t len, u16_t offset, u8_t flags)
 {
-	printf("bletp rx\n");
+	blog_debug("bletp rx\n");
 	return 0;
 }
 

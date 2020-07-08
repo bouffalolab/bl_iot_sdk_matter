@@ -31,7 +31,22 @@
 #include <bl602_glb.h>
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "bl_sys.h"
+
+volatile bool sys_log_all_enable = true;
+
+int bl_sys_logall_enable(void)
+{
+    sys_log_all_enable = true;
+    return 0;
+}
+
+int bl_sys_logall_disable(void)
+{
+    sys_log_all_enable = false;
+    return 0;
+}
 
 int bl_sys_reset_por(void)
 {
@@ -89,6 +104,10 @@ int bl_sys_early_init(void)
 {
     extern BL_Err_Type HBN_Aon_Pad_IeSmt_Cfg(uint8_t padCfg);
     HBN_Aon_Pad_IeSmt_Cfg(1);
+
+    extern void freertos_risc_v_trap_handler(void); //freertos_riscv_ram/portable/GCC/RISC-V/portASM.S
+    write_csr(mtvec, &freertos_risc_v_trap_handler);
+
     /*debuger may NOT ready don't print anything*/
     return 0;
 }

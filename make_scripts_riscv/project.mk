@@ -501,10 +501,10 @@ app-clean: $(addprefix component-,$(addsuffix -clean,$(notdir $(COMPONENT_PATHS)
 	rm -f $(APP_ELF) $(APP_BIN) $(APP_MAP)
 
 flash: all
-	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 download bl602/conf/simple_flasher_cfg.toml
+	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 bl602/conf/iot.toml
 
 flash_only:
-	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 download bl602/conf/simple_flasher_cfg.toml
+	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 bl602/conf/iot.toml
 
 clean: app-clean
 

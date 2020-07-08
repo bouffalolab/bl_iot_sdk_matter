@@ -27,49 +27,19 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef __BLSP_BOOT_DECOMPRESS_H__
-#define __BLSP_BOOT_DECOMPRESS_H__
+#ifndef __HAL_PDS_H__
+#define __HAL_PDS_H__
 
-#include "stdint.h"
 
-/** @addtogroup  BL606_BLSP_Boot2
- *  @{
- */
+#include "bl_pds.h"
+#include <FreeRTOS.h>
+#include <task.h>
 
-/** @addtogroup  BLSP_BOOT_DECOMPRESS
- *  @{
- */
 
-/** @defgroup  BLSP_BOOT_DECOMPRESS_Public_Types
- *  @{
- */
+void hal_pds_init(void);
+void hal_pds_fastboot_cfg(uint32_t addr);
+void hal_pds_enter_without_time_compensation(uint32_t pdsLevel, uint32_t pdsSleepCycles);
+void hal_pds_enter_with_time_compensation(uint32_t pdsLevel, uint32_t pdsSleepCycles);
 
-/*@} end of group BLSP_BOOT_DECOMPRESS_Public_Types */
 
-/** @defgroup  BLSP_BOOT_DECOMPRESS_Public_Constants
- *  @{
- */
-
-/*@} end of group BLSP_BOOT_DECOMPRESS_Public_Constants */
-
-/** @defgroup  BLSP_BOOT_DECOMPRESS_Public_Macros
- *  @{
- */
-
-/*@} end of group BLSP_BOOT_DECOMPRESS_Public_Macros */
-
-/** @defgroup  BLSP_BOOT_DECOMPRESS_Public_Functions
- *  @{
- */
-int32_t BLSP_Boot2_Update_Fw(PtTable_ID_Type activeID,
-                             PtTable_Stuff_Config *ptStuff,
-                             PtTable_Entry_Config *ptEntry);
-int BLSP_Boot2_Verify_XZ_Header(uint8_t *buffer);
-
-/*@} end of group BLSP_BOOT_DECOMPRESS_Public_Functions */
-
-/*@} end of group BLSP_BOOT_DECOMPRESS */
-
-/*@} end of group BL606_BLSP_Boot2 */
-
-#endif /* __BLSP_BOOT_DECOMPRESS_H__ */
+#endif

@@ -27,54 +27,11 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef __BLSP_MEDIA_BOOT_H__
-#define __BLSP_MEDIA_BOOT_H__
+#ifndef __DEMO_H__
+#define __DEMO_H__
 
-#include "stdint.h"
-#include "stdio.h"
-#include "string.h"
+int test_hbnram2(void);
+int test_hbnram1(void);
 
-/** @addtogroup  BL606_BLSP_Boot2
- *  @{
- */
+#endif
 
-/** @addtogroup  BLSP_MEDIA_BOOT
- *  @{
- */
-
-/** @defgroup  BLSP_MEDIA_BOOT_Public_Types
- *  @{
- */
-
-/*@} end of group BLSP_MEDIA_BOOT_Public_Types */
-
-/** @defgroup  BLSP_MEDIA_BOOT_Public_Constants
- *  @{
- */
-
-/*@} end of group BLSP_MEDIA_BOOT_Public_Constants */
-
-/** @defgroup  BLSP_MEDIA_BOOT_Public_Macros
- *  @{
- */
-
-/*@} end of group BLSP_MEDIA_BOOT_Public_Macros */
-
-/** @defgroup  BLSP_MEDIA_BOOT_Public_Functions
- *  @{
- */
-int32_t BLSP_MediaBoot_Read(uint32_t addr,uint8_t *data, uint32_t len);
-uint32_t BLSP_MediaBoot_Get_Flash_Cfg(uint32_t bootheaderAddr);
-int32_t BLSP_MediaBoot_Cache_Enable(uint8_t contRead);
-int32_t BLSP_MediaBoot_Main(uint32_t cpuBootheaderAddr[BFLB_BOOT2_CPU_MAX],uint8_t cpuRollBack[BFLB_BOOT2_CPU_MAX],
-                            uint8_t foreGo);
-void BLSP_Boot2_Show_Timer(void);
-int32_t ATTR_TCM_SECTION BLSP_MediaBoot_Set_Encrypt(uint8_t index,Boot_Image_Config *bootImgCfg);
-
-/*@} end of group BLSP_MEDIA_BOOT_Public_Functions */
-
-/*@} end of group BLSP_MEDIA_BOOT */
-
-/*@} end of group BL606_BLSP_Boot2 */
-
-#endif /* __BLSP_MEDIA_BOOT_H__ */

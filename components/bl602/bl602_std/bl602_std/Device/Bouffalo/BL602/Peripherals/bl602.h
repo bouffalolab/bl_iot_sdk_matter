@@ -38,6 +38,7 @@
 #define ATTR_CLOCK_CONST_SECTION                    __attribute__((section(".sclock_rlt_const")))
 #define ATTR_TCM_SECTION                            __attribute__((section(".tcm_code")))
 #define ATTR_TCM_CONST_SECTION                      __attribute__((section(".tcm_const")))
+#define ATTR_DTCM_SECTION                           __attribute__((section(".tcm_data")))
 #define ATTR_HSRAM_SECTION                          __attribute__((section(".hsram_code")))
 #define SystemCoreClockSet(val)                     BL_WR_WORD(0x4000F108,val)
 #define SystemCoreClockGet(val)                     BL_RD_WORD(0x4000F108)

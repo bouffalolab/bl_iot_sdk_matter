@@ -34,7 +34,7 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
         dut.expect("Init successfully", timeout=1)
         dut.write('ble_auth')
         dut.expect("Register auth callback successfully", timeout=1)
-        dut.write('ble_start_adv 0 0 0080 0080')
+        dut.write('ble_start_adv 0 0 0x80 0x80')
         dut.expect("Advertising started", timeout=1)
         
         dut.write('ble_read_local_address')
@@ -83,7 +83,7 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
         dut.expect("Init successfully", timeout=1)
         dut.write('ble_auth')
         dut.expect("Register auth callback successfully", timeout=1)
-        dut.write('ble_start_adv 0 0 0080 0080')
+        dut.write('ble_start_adv 0 0 0x80 0x80')
         dut.expect("Advertising started", timeout=1)
         
         dut.write('ble_read_local_address')

@@ -253,6 +253,7 @@ BL_Err_Type ATTR_CLOCK_SECTION Update_SystemCoreClockWith_XTAL(GLB_PLL_XTAL_Type
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB_SYS_CLK_Type clkFreq)
 {
@@ -345,6 +346,7 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB
 
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  This is demo for user that use RC32M as default bootup clock instead of PLL,when APP is
@@ -355,6 +357,7 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_System_CLK(GLB_PLL_XTAL_Type xtalType,GLB
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_CLOCK_SECTION System_Core_Clock_Update_From_RC32M(void)
 {
@@ -378,6 +381,7 @@ BL_Err_Type ATTR_CLOCK_SECTION System_Core_Clock_Update_From_RC32M(void)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  set BLE clock
@@ -683,6 +687,7 @@ BL_Err_Type GLB_Set_SPI_CLK(uint8_t enable,uint8_t div)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_PKA_CLK_Sel(GLB_PKA_CLK_Type clkSel)
 {
@@ -696,6 +701,7 @@ BL_Err_Type ATTR_CLOCK_SECTION GLB_Set_PKA_CLK_Sel(GLB_PKA_CLK_Type clkSel)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Software system reset
@@ -866,9 +872,11 @@ BL_Err_Type GLB_AHB_Slave1_Reset(BL_AHB_Slave1_Type slave1)
     tmpVal &=(~(1<<slave1));
     BL_WR_REG(GLB_BASE,GLB_SWRST_CFG1,tmpVal);
     BL_DRV_DUMMY;
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_SWRST_CFG1);
     tmpVal |=(1<<slave1);
     BL_WR_REG(GLB_BASE,GLB_SWRST_CFG1,tmpVal);
     BL_DRV_DUMMY;
+    tmpVal=BL_RD_REG(GLB_BASE,GLB_SWRST_CFG1);
     tmpVal &=(~(1<<slave1));
     BL_WR_REG(GLB_BASE,GLB_SWRST_CFG1,tmpVal);
 
@@ -1122,34 +1130,6 @@ void __IRQ BMX_TO_IRQHandler(void)
     }
 }
 #endif
-
-/****************************************************************************//**
- * @brief  set OCRAM IDLE
- *
- * @param  None
- *
- * @return SUCCESS or ERROR
- *
-*******************************************************************************/
-BL_Err_Type GLB_Set_OCRAM_Idle(void)
-{
-    uint32_t tmpVal = 0;
-
-    tmpVal=BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
-    tmpVal=BL_SET_REG_BIT(tmpVal,GLB_OCRAM_MBIST_MODE);
-    BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
-
-
-    tmpVal=BL_RD_REG(PDS_BASE,PDS_RAM1);
-    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,PDS_CR_NP_SRAM_PWR,0);
-    BL_WR_REG(PDS_BASE,PDS_RAM1,tmpVal);
-
-    tmpVal=BL_RD_REG(GLB_BASE,GLB_MBIST_CTL);
-    tmpVal=BL_CLR_REG_BIT(tmpVal,GLB_OCRAM_MBIST_MODE);
-    BL_WR_REG(GLB_BASE,GLB_MBIST_CTL,tmpVal);
-
-    return SUCCESS;
-}
 
 /****************************************************************************//**
  * @brief  set sram_ret value
@@ -1487,11 +1467,7 @@ BL_Err_Type GLB_Set_ADC_CLK(uint8_t enable,GLB_ADC_CLK_Type clkSel,uint8_t div)
     
     tmpVal=BL_RD_REG(GLB_BASE,GLB_GPADC_32M_SRC_CTRL);
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_GPADC_32M_CLK_DIV,div);
-    if(clkSel==GLB_ADC_CLK_96M){
-        tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_GPADC_32M_CLK_SEL,0);
-    }else{
-        tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_GPADC_32M_CLK_SEL,1);
-    }
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,GLB_GPADC_32M_CLK_SEL,clkSel);
     BL_WR_REG(GLB_BASE,GLB_GPADC_32M_SRC_CTRL,tmpVal);
     
     tmpVal=BL_RD_REG(GLB_BASE,GLB_GPADC_32M_SRC_CTRL);
@@ -1504,7 +1480,6 @@ BL_Err_Type GLB_Set_ADC_CLK(uint8_t enable,GLB_ADC_CLK_Type clkSel,uint8_t div)
     
     return SUCCESS;
 }
-
 
 /****************************************************************************//**
  * @brief  set DAC clock
@@ -1546,7 +1521,6 @@ BL_Err_Type GLB_Set_DAC_CLK(uint8_t enable,GLB_DAC_CLK_Type clkSel,uint8_t div)
      
     return SUCCESS;
 }
-
 
 /****************************************************************************//**
  * @brief  platform wakeup will becomes one of  pds_wakeup source
@@ -1961,6 +1935,7 @@ BL_Err_Type GLB_GPIO_Func_Init(GLB_GPIO_FUNC_Type gpioFun,GLB_GPIO_Type *pinList
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Enable(GLB_GPIO_Type gpioPin)
 {
@@ -1980,6 +1955,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Enable(GLB_GPIO_Type gpioPin)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  GPIO set input function disable
@@ -1989,6 +1965,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Enable(GLB_GPIO_Type gpioPin)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Disable(GLB_GPIO_Type gpioPin)
 {
@@ -2008,6 +1985,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Disable(GLB_GPIO_Type gpioPin)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  GPIO set output function enable
@@ -2017,6 +1995,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_INPUT_Disable(GLB_GPIO_Type gpioPin)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Enable(GLB_GPIO_Type gpioPin)
 {
@@ -2028,6 +2007,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Enable(GLB_GPIO_Type gpioPin)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  GPIO set output function disable
@@ -2037,6 +2017,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Enable(GLB_GPIO_Type gpioPin)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Disable(GLB_GPIO_Type gpioPin)
 {
@@ -2048,6 +2029,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Disable(GLB_GPIO_Type gpioPin)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  GPIO set High-Z
@@ -2057,6 +2039,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_OUTPUT_Disable(GLB_GPIO_Type gpioPin)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
+#ifndef BL602_USE_ROM_DRIVER
 __WEAK
 BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_Set_HZ(GLB_GPIO_Type gpioPin)
 {
@@ -2091,6 +2074,7 @@ BL_Err_Type ATTR_TCM_SECTION GLB_GPIO_Set_HZ(GLB_GPIO_Type gpioPin)
     
     return SUCCESS;
 }
+#endif
 
 /****************************************************************************//**
  * @brief  Get GPIO function

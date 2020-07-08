@@ -1,3 +1,3 @@
-release_bl_iot_sdk_1.1.8-1-gb080b1ba-dirty
-71cde1b
-351c0eb
+release_bl_iot_sdk_1.5.4-dirty
+a0_final-6-g2b9913b
+5988bdc

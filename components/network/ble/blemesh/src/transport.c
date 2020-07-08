@@ -296,7 +296,7 @@ static void seg_tx_send_unacked(struct seg_tx *tx)
 		}
 
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Resending segment %u/%u (SeqZero = 0x%04X)", i, tx->seg_n, (u16_t)(tx->seq_auth & 0x1FFF));
+		BT_PTS("[PTS] Resending segment %u/%u (SeqZero = 0x%04X)", i, tx->seg_n, (u16_t)(tx->seq_auth & 0x1FFF));
 #endif
 
 		BT_DBG("resending %u/%u", i, tx->seg_n);
@@ -441,7 +441,7 @@ static int send_seg(struct bt_mesh_net_tx *net_tx, struct net_buf_simple *sdu,
 		tx->seg[seg_o] = net_buf_ref(seg);
 
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Sending segment %u/%u (SeqZero = 0x%04X)", seg_o, tx->seg_n, seq_zero);
+		BT_PTS("[PTS] Sending segment %u/%u (SeqZero = 0x%04X)", seg_o, tx->seg_n, seq_zero);
 #endif
 
 		BT_DBG("Sending %u/%u", seg_o, tx->seg_n);
@@ -668,7 +668,7 @@ static int sdu_recv(struct bt_mesh_net_rx *rx, u32_t seq, u8_t hdr,
 					  BT_MESH_NET_IVI_RX(rx));
 		if (err) {
 #ifdef CONFIG_BT_MESH_PTS
-			BT_ERR("[PTS] Unknown device key");
+			BT_PTS("[PTS] Unknown device key");
 #endif
 
 			BT_ERR("Unable to decrypt with DevKey");
@@ -719,7 +719,7 @@ static int sdu_recv(struct bt_mesh_net_rx *rx, u32_t seq, u8_t hdr,
 	}
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Unknown application key");
+	BT_PTS("[PTS] Unknown application key");
 #endif
 
 	BT_WARN("No matching AppKey");
@@ -788,8 +788,8 @@ static int trans_ack(struct bt_mesh_net_rx *rx, u8_t hdr,
 	ack = net_buf_simple_pull_be32(buf);
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS]   - SeqZero: 0x%04X", seq_zero);
-	BT_ERR("[PTS]   - BlockAck: 0x%08X", ack);
+	BT_PTS("[PTS]   - SeqZero: 0x%04X", seq_zero);
+	BT_PTS("[PTS]   - BlockAck: 0x%08X", ack);
 #endif
 
 	BT_DBG("OBO %u seq_zero 0x%04x ack 0x%08x", obo, seq_zero, ack);
@@ -804,7 +804,7 @@ static int trans_ack(struct bt_mesh_net_rx *rx, u8_t hdr,
 
 	if (!ack) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Transmission cancelled");
+		BT_PTS("[PTS] Transmission cancelled");
 #endif
 
 		BT_WARN("SDU canceled");
@@ -834,7 +834,7 @@ static int trans_ack(struct bt_mesh_net_rx *rx, u8_t hdr,
 		seg_tx_send_unacked(tx);
 	} else {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] All segments sent and acknowledged");
+		BT_PTS("[PTS] All segments sent and acknowledged");
 #endif
 
 		BT_DBG("SDU TX complete");
@@ -953,7 +953,7 @@ static int trans_unseg(struct net_buf_simple *buf, struct bt_mesh_net_rx *rx,
 
 	if (is_replay(rx, NULL)) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Replayed message (SEQ = 0x%06X) ignored", rx->seq);
+		BT_PTS("[PTS] Replayed message (SEQ = 0x%06X) ignored", rx->seq);
 #endif
 
 		BT_WARN("Replay: src 0x%04x dst 0x%04x seq 0x%06x",
@@ -1071,7 +1071,7 @@ static int send_ack(struct bt_mesh_subnet *sub, u16_t src, u16_t dst,
 	}
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Sending BlockAck 0x%08X (SeqZero = 0x%04X)", block, seq_zero);
+	BT_PTS("[PTS] Sending BlockAck 0x%08X (SeqZero = 0x%04X)", block, seq_zero);
 #endif
 
 	sys_put_be16(((seq_zero << 2) & 0x7ffc) | (obo << 15), buf);
@@ -1119,7 +1119,7 @@ static void seg_ack(struct k_work *work)
 		BT_WARN("Incomplete timer expired");
 #else
 	if (k_uptime_get_32() - rx->last > K_SECONDS(10)) {
-		BT_ERR("[PTS] Incomplete timer expired");
+		BT_PTS("[PTS] Incomplete timer expired");
 #endif
 		seg_rx_reset(rx, false);
 
@@ -1278,8 +1278,8 @@ static int trans_seg(struct net_buf_simple *buf, struct bt_mesh_net_rx *net_rx,
 	seg_n &= 0x1f;
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS]   - SeqZero: 0x%04X", seq_zero);
-	BT_ERR("[PTS]   - Segment: %u/%u", seg_o, seg_n);
+	BT_PTS("[PTS]   - SeqZero: 0x%04X", seq_zero);
+	BT_PTS("[PTS]   - Segment: %u/%u", seg_o, seg_n);
 #endif
 
 	BT_DBG("SeqZero 0x%04x SegO %u SegN %u", seq_zero, seg_o, seg_n);
@@ -1440,7 +1440,7 @@ found_rx:
 	}
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] All segments received");
+	BT_PTS("[PTS] All segments received");
 #endif
 
 	BT_DBG("Complete SDU");

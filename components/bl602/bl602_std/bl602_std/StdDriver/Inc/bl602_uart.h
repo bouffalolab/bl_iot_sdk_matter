@@ -294,6 +294,7 @@ BL_Err_Type UART_IntMask(UART_ID_Type uartId,UART_INT_Type intType,BL_Mask_Type 
 BL_Err_Type UART_IntClear(UART_ID_Type uartId,UART_INT_Type intType);
 BL_Err_Type UART_Int_Callback_Install(UART_ID_Type uartId,UART_INT_Type intType,intCallback_Type* cbFun);
 BL_Err_Type UART_SendData(UART_ID_Type uartId,uint8_t* data,uint32_t len);
+BL_Err_Type UART_SendDataBlock(UART_ID_Type uartId,uint8_t* data,uint32_t len);
 uint32_t UART_ReceiveData(UART_ID_Type uartId,uint8_t* data,uint32_t maxLen);
 uint16_t UART_GetAutoBaudCount(UART_ID_Type uartId,UART_AutoBaudDetection_Type autoBaudDet);
 uint8_t UART_GetTxFifoCount(UART_ID_Type uartId);

@@ -709,7 +709,7 @@ static u8_t att_find_type_rsp(struct bt_att *att, u16_t start_handle,
 		#if defined(CONFIG_BT_STACK_PTS)
 		/*PTS sends a request to the iut discover all primary services it contains */
 		if(event_flag == att_find_by_type_value_ind){
-			BT_STACK_PTS_DBG("rsp err : [%d] start_handle = [0x%04x]\r\n",data.err,start_handle);
+			BT_PTS("rsp err : [%d] start_handle = [0x%04x]\r\n",data.err,start_handle);
 		}
 		#endif
 		return 0;
@@ -726,9 +726,13 @@ static u8_t att_find_type_rsp(struct bt_att *att, u16_t start_handle,
 		
 		(void)memcpy(src, req_val, data.value_len);
 
-		BT_STACK_PTS_SDBG(src, value_len, 1);
+        BT_PTS("uuid = [");
+        for(i=0;i<value_len;i++){
+                BT_PTS("%02x", src[value_len-1-i]);
+        }
+        BT_PTS("]\r\n");\
 	
-		BT_STACK_PTS_DBG("start_handle = [0x%04x] end_handle = [0x%04x]\r\n", data.buf->data[1] | data.buf->data[2] << 8,
+		BT_PTS("start_handle = [0x%04x] end_handle = [0x%04x]\r\n", data.buf->data[1] | data.buf->data[2] << 8,
 																			  data.buf->data[3] | data.buf->data[4] << 8);
 		
 	}
@@ -898,7 +902,7 @@ static u8_t att_read_type_rsp(struct bt_att *att, struct bt_uuid *uuid,
 
 	#if defined(CONFIG_BT_STACK_PTS)
 	if(event_flag == att_read_by_type_ind)
-		BT_STACK_PTS_DBG("handle : [0x%04x]\r\n",data.rsp->data->handle);	
+		BT_PTS("handle : [0x%04x]\r\n",data.rsp->data->handle);	
 	#endif
 
 	(void)bt_l2cap_send_cb(conn, BT_L2CAP_CID_ATT, data.buf, att_rsp_sent,

@@ -2229,7 +2229,7 @@ static void net_key_update(struct bt_mesh_model *model,
 	}
 
 #ifdef CONFIG_BT_MESH_PTS
-	BT_ERR("[PTS] Key Refresh: Normal -> Phase 1");
+	BT_PTS("[PTS] Key Refresh: Normal -> Phase 1");
 #endif
 
 	sub->kr_phase = BT_MESH_KR_PHASE_1;
@@ -2853,7 +2853,7 @@ static void krp_set(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 	if (sub->kr_phase == BT_MESH_KR_PHASE_1 &&
 	    phase == BT_MESH_KR_PHASE_2) {
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Key Refresh: Phase 1 -> Phase 2");
+		BT_PTS("[PTS] Key Refresh: Phase 1 -> Phase 2");
 #endif
 
 		sub->kr_phase = BT_MESH_KR_PHASE_2;
@@ -2868,7 +2868,7 @@ static void krp_set(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 			friend_cred_refresh(ctx->net_idx);
 		}
 #ifdef CONFIG_BT_MESH_PTS
-		BT_ERR("[PTS] Key Refresh: Phase %d -> Normal", sub->kr_phase);
+		BT_PTS("[PTS] Key Refresh: Phase %d -> Normal", sub->kr_phase);
 #endif
 
 		sub->kr_phase = BT_MESH_KR_NORMAL;

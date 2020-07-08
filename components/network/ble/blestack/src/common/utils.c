@@ -32,17 +32,51 @@
 #include <stdlib.h>
 #include <string.h>
 
-void co_skip_delimits(const char **ptr, char delimits)
-{
-    while(**ptr == delimits)(*ptr)++;
+static int params_filter(char** params,uint32_t *r)
+{	
+	char *p ;
+	uint32_t result=0;
+	uint8_t base=0;
+	
+	p = *params;
+	
+    if((*p == '0') && ((*(p+1) == 'x') || (*(p+1) == 'X')) ){
+		p = p + 2;
+		base = 16;
+		
+	}else{
+		base = 10;
+	}
+	
+	while(*p){
+		result *= base;
+	    if(*p >= '0' && *p<='9')
+			result += *p-'0';
+		else if(base==10)
+			return -1;
+			
+		if(base==16){
+			if(*p >= 'a' && *p<='f')
+				result += *p-'a' + 10;
+			else if(*p >= 'A' && *p<='F')
+				result += *p-'A' + 10;
+		
+		}
+		p++;
+	}
+		
+	*r = result;
+	return 0;
+	
 }
 
-void co_get_bytearray_from_string(char** params, uint8_t *result, int array_size)
+
+void get_bytearray_from_string(char** params, uint8_t *result,int array_size)
 {
+    
     int i = 0;
     char rand[3];
 
-    co_skip_delimits((const char **)params, ' ');
     for(i=0; i < array_size; i++){
         strncpy(rand, (const char*)*params, 2);
         rand[2]='\0';
@@ -51,21 +85,43 @@ void co_get_bytearray_from_string(char** params, uint8_t *result, int array_size
     }
 }
 
-void co_get_uint16_from_string(char** params, uint16_t *result)
+void get_uint8_from_string(char** params, uint8_t *result)
 {
-    uint8_t ret_array[2];
-    co_get_bytearray_from_string(params, ret_array, 2);
-    *result = (ret_array[0]<<8)|ret_array[1];
+	uint32_t p = 0;
+	int state=0;
+	
+	state = params_filter(params,&p);
+	if(!state){
+		*result = p & 0xff;
+	}else
+		*result = 0;
 }
 
-void co_get_uint32_from_string(char** params, uint32_t *result)
+void get_uint16_from_string(char** params, uint16_t *result)
 {
-    uint8_t ret_array[4];
-    co_get_bytearray_from_string(params, ret_array, 4);
-    *result = (ret_array[0]<<24)|(ret_array[1]<<16)|(ret_array[2]<<8)|ret_array[3];
+	uint32_t p = 0;
+	int state=0;
+	
+	state = params_filter(params,&p);
+	if(!state){
+		*result = p & 0xffff;
+	}else
+		*result = 0;
 }
 
-void co_reverse_bytearray(uint8_t *src, uint8_t *result, int array_size)
+void get_uint32_from_string(char** params, uint32_t *result)
+{
+    uint32_t p = 0;
+	int state=0;
+	
+	state = params_filter(params,&p);
+	if(!state){
+		*result = p;
+	}else
+		*result = 0;
+}
+
+void reverse_bytearray(uint8_t *src, uint8_t *result, int array_size)
 {
     for(int i=0; i < array_size;i++){
         result[array_size - i -1] = src[i];

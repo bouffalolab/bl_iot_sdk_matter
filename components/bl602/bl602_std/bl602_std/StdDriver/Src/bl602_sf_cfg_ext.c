@@ -194,37 +194,6 @@ static const ATTR_TCM_CONST_SECTION Flash_Info_t flashInfos[]={
  */
 
 /****************************************************************************//**
- * @brief  Init internal flash GPIO according to flash GPIO config
- *
- * @param  None
- *
- * @return None
- *
-*******************************************************************************/
-void ATTR_TCM_SECTION SF_Cfg_Init_Internal_Flash_Gpio(void)
-{
-    GLB_GPIO_Cfg_Type gpioCfg = {
-        .gpioPin = GLB_GPIO_PIN_0,
-        .gpioFun = GPIO_FUN_SWGPIO,
-        .gpioMode = GPIO_MODE_INPUT,
-        .pullType = GPIO_PULL_NONE,
-        .drive = 0,
-        .smtCtrl = 1,
-    };
-
-    /* Turn on Flash pad, GPIO23 - GPIO28 */
-    for(uint32_t pin=23;pin<29;pin++){
-        gpioCfg.gpioPin = pin;
-        if(pin==24){
-            gpioCfg.pullType = GPIO_PULL_DOWN;
-        }else{
-            gpioCfg.pullType = GPIO_PULL_NONE;
-        }
-        GLB_GPIO_Init(&gpioCfg);
-    }
-}
-
-/****************************************************************************//**
  * @brief  Get flash config according to flash ID
  *
  * @param  flashID: Flash ID
@@ -233,7 +202,7 @@ void ATTR_TCM_SECTION SF_Cfg_Init_Internal_Flash_Gpio(void)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type ATTR_TCM_SECTION SF_Cfg_Get_Flash_Cfg_Need_Lock(uint32_t flashID,SPI_Flash_Cfg_Type * pFlashCfg)
+BL_Err_Type ATTR_TCM_SECTION SF_Cfg_Get_Flash_Cfg_Need_Lock_Ext(uint32_t flashID,SPI_Flash_Cfg_Type * pFlashCfg)
 {
     uint32_t i;
     uint8_t buf[sizeof(SPI_Flash_Cfg_Type)+8];
@@ -250,7 +219,7 @@ BL_Err_Type ATTR_TCM_SECTION SF_Cfg_Get_Flash_Cfg_Need_Lock(uint32_t flashID,SPI
             }
         }
     }else{
-        if(RomDriver_SF_Cfg_Get_Flash_Cfg_Need_Lock(flashID, pFlashCfg)){
+        if(SF_Cfg_Get_Flash_Cfg_Need_Lock(flashID, pFlashCfg)){
             return SUCCESS;
         }
         for(i=0;i<sizeof(flashInfos)/sizeof(flashInfos[0]);i++){
@@ -265,46 +234,6 @@ BL_Err_Type ATTR_TCM_SECTION SF_Cfg_Get_Flash_Cfg_Need_Lock(uint32_t flashID,SPI
 }
 
 /****************************************************************************//**
- * @brief  Init flash GPIO according to flash Pin config
- *
- * @param  flashPinCfg: Specify flash Pin config
- * @param  restoreDefault: Wether to restore default setting
- *
- * @return None
- *
-*******************************************************************************/
-void ATTR_TCM_SECTION SF_Cfg_Init_Flash_Gpio(uint8_t flashPinCfg,uint8_t restoreDefault)
-{
-    extern void SF_Cfg_Init_Internal_Flash_Gpio(void);
-
-    if(restoreDefault){
-        /* Set Default first */
-        SF_Ctrl_Select_Pad(SF_CTRL_EMBEDDED_SEL);
-        GLB_Select_Internal_Flash();
-        GLB_Swap_Flash_Pin();
-        //SF_Cfg_Deinit_Ext_Flash_Gpio(0);
-        SF_Cfg_Deinit_Ext_Flash_Gpio(1);
-        SF_Cfg_Init_Internal_Flash_Gpio();
-    }
-
-    if(flashPinCfg>0){
-        /*01: deswap flash PIN
-          10: use ext flash 1(GPIO17-22)
-          11: use ext flash 0(GPIO0-2, 20-22)
-        */
-        if(flashPinCfg==BFLB_FLASH_CFG_DESWAP){
-            SF_Ctrl_Select_Pad(SF_CTRL_EMBEDDED_SEL);
-            /*DONOT Swap flash PIN*/
-            GLB_Deswap_Flash_Pin();
-        }else{
-            SF_Ctrl_Select_Pad(flashPinCfg-1);
-            GLB_Select_External_Flash();
-            SF_Cfg_Init_Ext_Flash_Gpio(flashPinCfg-BFLB_FLASH_CFG_EXT0_17_22);
-        }
-    }
-}
-
-/****************************************************************************//**
  * @brief  Identify one flash
  *
  * @param  callFromFlash: code run at flash or ram
@@ -316,14 +245,14 @@ void ATTR_TCM_SECTION SF_Cfg_Init_Flash_Gpio(uint8_t flashPinCfg,uint8_t restore
  * @return Flash ID
  *
 *******************************************************************************/
-uint32_t ATTR_TCM_SECTION SF_Cfg_Flash_Identify(uint8_t callFromFlash,
+uint32_t ATTR_TCM_SECTION SF_Cfg_Flash_Identify_Ext(uint8_t callFromFlash,
     uint32_t autoScan,uint32_t flashPinCfg,uint8_t restoreDefault,SPI_Flash_Cfg_Type * pFlashCfg)
 {
     uint32_t jdecId=0;
     uint32_t i=0;
     uint32_t ret=0;
 
-    ret=RomDriver_SF_Cfg_Flash_Identify(callFromFlash,autoScan,flashPinCfg,restoreDefault,pFlashCfg);
+    ret=SF_Cfg_Flash_Identify(callFromFlash,autoScan,flashPinCfg,restoreDefault,pFlashCfg);
     if((ret&BFLB_FLASH_ID_VALID_FLAG)!=0){
         return ret;
     }
