@@ -332,7 +332,7 @@ static int app_key_set(void)
        bt_mesh_app_id(app->keys[0].val, &app->keys[0].id);
        bt_mesh_app_id(app->keys[1].val, &app->keys[1].id);
        
-       BT_DBG("AppKeyIndex 0x%03x recovered from storage", mesh_app_key[i].app_idx);
+       BT_DBG("AppKeyIndex 0x%03x recovered from storage", app->app_idx);
     } 
 
 	return 0;
@@ -1394,10 +1394,12 @@ void bt_mesh_store_seq(void)
 
 
 #if defined(BFLB_BLE)
+#if defined(CONFIG_BT_SETTINGS)
 static void store_rpl(struct bt_mesh_rpl *entry)
 {
 	bt_settings_set_bin(NV_MESH_RPL, (const u8_t *)bt_mesh.rpl, sizeof(bt_mesh.rpl));
 }
+#endif
 
 static void clear_rpl(void)
 {
@@ -1469,11 +1471,9 @@ static void clear_rpl(void)
 
 static void store_pending_rpl(void)
 {
-	int i;
-
 	BT_DBG("");
 #ifdef CONFIG_BT_SETTINGS
-	for (i = 0; i < ARRAY_SIZE(bt_mesh.rpl); i++) {
+	for (int i = 0; i < ARRAY_SIZE(bt_mesh.rpl); i++) {
 		struct bt_mesh_rpl *rpl = &bt_mesh.rpl[i];
 
 		if (rpl->store) {

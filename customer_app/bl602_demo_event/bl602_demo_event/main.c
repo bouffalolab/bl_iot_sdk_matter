@@ -58,6 +58,7 @@
 #include <bl_sec.h>
 #include <bl_cks.h>
 #include <bl_irq.h>
+#include <bl_timer.h>
 #include <bl_dma.h>
 #include <bl_gpio_cli.h>
 #include <bl_wdt_cli.h>
@@ -710,6 +711,200 @@ static void cmd_logdis(char *buf, int len, int argc, char **argv)
     bl_sys_logall_disable();
 }
 
+static void cmd_load0w(char *buf, int len, int argc, char **argv)
+{
+    volatile uint32_t v = 0;
+
+    /* backtrace */
+    v = *(volatile uint32_t *)0;
+}
+
+typedef enum {
+    TEST_OP_GET32 = 0,
+    TEST_OP_GET16,
+    TEST_OP_SET32 = 256,
+    TEST_OP_SET16,
+    TEST_OP_MAX = 0x7FFFFFFF
+} test_op_t;
+static __attribute__ ((noinline)) uint32_t misaligned_acc_test(void *ptr, test_op_t op, uint32_t v)
+{
+    uint32_t res = 0;
+
+    switch (op) {
+        case TEST_OP_GET32:
+            res = *(volatile uint32_t *)ptr;
+            break;
+        case TEST_OP_GET16:
+            res = *(volatile uint16_t *)ptr;
+            break;
+        case TEST_OP_SET32:
+            *(volatile uint32_t *)ptr = v;
+            break;
+        case TEST_OP_SET16:
+            *(volatile uint16_t *)ptr = v;
+            break;
+        default:
+            break;
+    }
+
+    return res;
+}
+
+void test_align(uint32_t buf)
+{
+    volatile uint32_t testv[4] = {0};
+    uint32_t t1 = 0;
+    uint32_t t2 = 0;
+    uint32_t t3 = 0;
+    uint32_t i = 0;
+    volatile uint32_t reg = buf;
+
+    portDISABLE_INTERRUPTS();
+
+    /* test get 32 */
+    __asm volatile ("nop":::"memory");
+    t1 = *(volatile uint32_t*)0x4000A52C;
+    // 3*n + 5
+    testv[0] = *(volatile uint32_t *)(reg + 0 * 8 + 1);
+    t2 = *(volatile uint32_t*)0x4000A52C;
+    // 3*n + 1
+    testv[1] = *(volatile uint32_t *)(reg + 1 * 8 + 0);
+    t3 = *(volatile uint32_t*)0x4000A52C;
+    log_info("testv[0] = %08lx, testv[1] = %08lx\r\n", testv[0], testv[1]);
+    log_info("time_us = %ld & %ld ---> %d\r\n", (t2 - t1), (t3 - t2), (t2 - t1)/(t3 - t2));
+
+    /* test get 16 */
+    __asm volatile ("nop":::"memory");
+    t1 = bl_timer_now_us();
+    for (i = 0; i < 1 * 1000 * 1000; i++) {
+        testv[0] = misaligned_acc_test((void *)(reg + 2 * 8 + 1), TEST_OP_GET16, 0);
+    }
+    t2 = bl_timer_now_us();
+    for (i = 0; i < 1 * 1000 * 1000; i++) {
+        testv[1] = misaligned_acc_test((void *)(reg + 3 * 8 + 0), TEST_OP_GET16, 0);
+    }
+    t3 = bl_timer_now_us();
+    log_info("testv[0] = %08lx, testv[1] = %08lx\r\n", testv[0], testv[1]);
+    log_info("time_us = %ld & %ld ---> %d\r\n", (t2 - t1), (t3 - t2), (t2 - t1)/(t3 - t2));
+
+    /* test set 32 */
+    __asm volatile ("nop":::"memory");
+    t1 = bl_timer_now_us();
+    for (i = 0; i < 1 * 1000 * 1000; i++) {
+        misaligned_acc_test((void *)(reg + 4 * 8 + 1), TEST_OP_SET32, 0x44332211);
+    }
+    t2 = bl_timer_now_us();
+    for (i = 0; i < 1 * 1000 * 1000; i++) {
+        misaligned_acc_test((void *)(reg + 5 * 8 + 0), TEST_OP_SET32, 0x44332211);
+    }
+    t3 = bl_timer_now_us();
+    log_info("time_us = %ld & %ld ---> %d\r\n", (t2 - t1), (t3 - t2), (t2 - t1)/(t3 - t2));
+
+    /* test set 16 */
+    __asm volatile ("nop":::"memory");
+    t1 = bl_timer_now_us();
+    for (i = 0; i < 1 * 1000 * 1000; i++) {
+        misaligned_acc_test((void *)(reg + 6 * 8 + 1), TEST_OP_SET16, 0x6655);
+    }
+    t2 = bl_timer_now_us();
+    for (i = 0; i < 1 * 1000 * 1000; i++) {
+        misaligned_acc_test((void *)(reg + 7 * 8 + 0), TEST_OP_SET16, 0x6655);
+    }
+    t3 = bl_timer_now_us();
+    log_info("time_us = %ld & %ld ---> %d\r\n", (t2 - t1), (t3 - t2), (t2 - t1)/(t3 - t2));
+
+    portENABLE_INTERRUPTS();
+}
+
+void test_misaligned_access(void) __attribute__((optimize("O0")));
+void test_misaligned_access(void)// __attribute__((optimize("O0")))
+{
+#define TEST_V_LEN         (32)
+    __attribute__ ((aligned(16))) volatile unsigned char test_vector[TEST_V_LEN] = {0};
+    int i = 0;
+    volatile uint32_t v = 0;
+    uint32_t addr = (uint32_t)test_vector;
+    volatile char *pb = (volatile char *)test_vector;
+    register float a asm("fa0") = 0.0f;
+    register float b asm("fa1") = 0.5f;
+
+    for (i = 0; i < TEST_V_LEN; i ++)
+        test_vector[i] = i;
+
+    addr += 1; // offset 1
+    __asm volatile ("nop");
+    v = *(volatile uint16_t *)(addr); // 0x0201
+    __asm volatile ("nop");
+    printf("%s: v=%8lx, should be 0x0201\r\n", __func__, v);
+    __asm volatile ("nop");
+    *(volatile uint16_t *)(addr) = 0x5aa5;
+    __asm volatile ("nop");
+    __asm volatile ("nop");
+    v = *(volatile uint16_t *)(addr); // 0x5aa5
+    __asm volatile ("nop");
+    printf("%s: v=%8lx, should be 0x5aa5\r\n", __func__, v);
+
+    addr += 4; // offset 5
+    __asm volatile ("nop");
+    v = *(volatile uint32_t *)(addr); //0x08070605
+    __asm volatile ("nop");
+    printf("%s: v=%8lx, should be 0x08070605\r\n", __func__, v);
+    __asm volatile ("nop");
+    *(volatile uint32_t *)(addr) = 0xa5aa55a5;
+    __asm volatile ("nop");
+    __asm volatile ("nop");
+    v = *(volatile uint32_t *)(addr); // 0xa5aa55a5
+    __asm volatile ("nop");
+    printf("%s: v=%8lx, should be 0xa5aa55a5\r\n", __func__, v);
+
+    pb[0x11] = 0x00;
+    pb[0x12] = 0x00;
+    pb[0x13] = 0xc0;
+    pb[0x14] = 0x3f;
+
+    addr += 12; // offset 0x11
+    __asm volatile ("nop");
+    a = *(float *)(addr);
+    __asm volatile ("nop");
+    v = a * 4.0f; /* should be 6 */
+    __asm volatile ("nop");
+    __asm volatile ("nop");
+    printf("%s: v=%8lx, should be 0x6\r\n", __func__, v);
+    b = v / 12.0f;
+    __asm volatile ("nop");
+    addr += 4; // offset 0x15
+    *(float *)(addr) = b;
+    __asm volatile ("nop");
+    v = *(volatile uint32_t *)(addr); // 0x3f000000
+    __asm volatile ("nop");
+    printf("%s: v=%8lx, should be 0x3f000000\r\n", __func__, v);
+}
+
+static void cmd_align(char *buf, int len, int argc, char **argv)
+{
+    char *testbuf = NULL;
+    int i = 0;
+
+    log_info("align test start.\r\n");
+    test_misaligned_access();
+
+    testbuf = aos_malloc(64);
+    if (!testbuf) {
+        log_error("mem error.\r\n");
+    }
+ 
+    memset(testbuf, 0xEE, 1024);
+    for (i = 0; i < 32; i++) {
+        testbuf[i] = i;
+    }
+    test_align((uint32_t)(testbuf));
+
+    log_buf(testbuf, 64);
+    aos_free(testbuf);
+
+    log_info("align test end.\r\n");
+}
+
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
@@ -731,6 +926,8 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         {"hbnenter", "hbnenter", cmd_hbn_enter},
         {"logen", "logen", cmd_logen},
         {"logdis", "logdis", cmd_logdis},
+        {"load0w", "load word from 0", cmd_load0w},
+        {"aligntc", "align case test", cmd_align},
 };
 
 static void _cli_init()

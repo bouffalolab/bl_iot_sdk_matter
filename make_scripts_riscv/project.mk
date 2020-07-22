@@ -292,6 +292,9 @@ endif
 ifdef CONFIG_STACK_CHECK_ALL
 COMMON_FLAGS += -fstack-protector-all
 endif
+ifeq ($(CONFIG_ENABLE_FP),1)
+COMMON_FLAGS += -fno-omit-frame-pointer -DCONF_ENABLE_FRAME_PTR
+endif
 
 ifdef CONFIG_OPTIMIZATION_LEVEL_RELEASE
 OPTIMIZATION_FLAGS = -Os

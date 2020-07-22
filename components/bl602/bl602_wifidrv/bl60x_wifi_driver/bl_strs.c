@@ -204,8 +204,11 @@ static const char *const bl_apmid2str[MSG_I(APM_MAX)] = {
     [MSG_I(APM_START_CAC_CFM)] = "APM_START_CAC_CFM",
     [MSG_I(APM_STOP_CAC_REQ)]  = "APM_STOP_CAC_REQ",
     [MSG_I(APM_STOP_CAC_CFM)]  = "APM_STOP_CAC_CFM",
+    [MSG_I(APM_STA_CONNECT_TIMEOUT)]  = "APM_STA_CONNECT_TIMEOUT",
     [MSG_I(APM_STA_DEL_REQ)]   = "APM_STA_DEL_REQ",
     [MSG_I(APM_STA_DEL_CFM)]   = "APM_STA_DEL_CFM",
+    [MSG_I(APM_CONF_MAX_STA_REQ)]   = "APM_CONF_MAX_STA_REQ",
+    [MSG_I(APM_CONF_MAX_STA_CFM)]   = "APM_CONF_MAX_STA_CFM",
 };
 
 static const char *const bl_meshid2str[MSG_I(MESH_MAX)] = {

@@ -270,7 +270,7 @@ int wifi_mgmr_cli_scanlist(void)
     printf("cached scan list\r\n");
     printf("****************************************************************************************************\r\n");
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
-        if (wifiMgmr.scan_items[i].is_used) {
+        if (wifiMgmr.scan_items[i].is_used && (!wifi_mgmr_scan_item_is_timeout(&wifiMgmr, &wifiMgmr.scan_items[i]))) {
             printf("index[%02d]: channel %02u, bssid %02X:%02X:%02X:%02X:%02X:%02X, rssi %3d, ppm abs:rel %3d : %3d, auth %20s, cipher:%12s, SSID %s\r\n",
                     i,
                     wifiMgmr.scan_items[i].channel,
@@ -329,13 +329,26 @@ static void wifi_scan_cmd(char *buf, int len, int argc, char **argv)
     wifi_mgmr_scan(NULL, NULL);
 }
 
+static void wifi_scan_filter_cmd(char *buf, int len, int argc, char **argv)
+{
+    int filter = -1;
+
+    if (2 != argc) {
+        return;
+    }
+
+    filter = argv[1][0] == '1' ? 1 : 0;
+    blog_info("Scan Filter %s\r\n", filter ? "enable" : "disdable");
+    wifi_mgmr_scan_filter_hidden_ssid(filter);
+}
+
 static void wifi_ip_info(char *buf, int len, int argc, char **argv)
 {
     ip4_addr_t ip, gw, mask;
     wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
     printf("IP  :%s \r\n", ip4addr_ntoa(&ip) );
-    printf("GW  :%s \r\n", ip4addr_ntoa(&gw));
     printf("MASK:%s \r\n", ip4addr_ntoa(&mask));
+    printf("GW  :%s \r\n", ip4addr_ntoa(&gw));
 }
 
 static uint8_t packet_raw[] = {
@@ -368,6 +381,65 @@ static void wifi_disconnect_cmd(char *buf, int len, int argc, char **argv)
     /*XXX Must make sure sta is already disconnect, otherwise sta disable won't work*/
     vTaskDelay(1000);
     wifi_mgmr_sta_disable(NULL);
+}
+
+static void wifi_sta_ip_set_cmd(char *buf, int len, int argc, char **argv)
+{
+    /* sample input
+     *
+     * cmd_ip_set 192.168.1.212 255.255.255.0 192.168.1.1 114.114.114.114 114.114.114.114
+     * 
+     * */
+    uint32_t ip, mask, gw, dns1, dns2;
+    char addr_str[20];
+    ip4_addr_t addr;
+
+    if (6 != argc) {
+        puts("Illegal CMD format\r\n");
+        return;
+    }
+    ip = ipaddr_addr(argv[1]);
+    mask = ipaddr_addr(argv[2]);
+    gw = ipaddr_addr(argv[3]);
+    dns1 = ipaddr_addr(argv[4]);
+    dns2 = ipaddr_addr(argv[5]);
+
+    ip4_addr_set_u32(&addr, ip);
+    ip4addr_ntoa_r(&addr, addr_str, sizeof(addr_str));
+    puts("IP  : ");
+    puts(addr_str);
+    puts("\r\n");
+
+    ip4_addr_set_u32(&addr, mask);
+    ip4addr_ntoa_r(&addr, addr_str, sizeof(addr_str));
+    puts("MASK: ");
+    puts(addr_str);
+    puts("\r\n");
+
+    ip4_addr_set_u32(&addr, gw);
+    ip4addr_ntoa_r(&addr, addr_str, sizeof(addr_str));
+    puts("GW  : ");
+    puts(addr_str);
+    puts("\r\n");
+
+    ip4_addr_set_u32(&addr, dns1);
+    ip4addr_ntoa_r(&addr, addr_str, sizeof(addr_str));
+    puts("DNS1: ");
+    puts(addr_str);
+    puts("\r\n");
+
+    ip4_addr_set_u32(&addr, dns2);
+    ip4addr_ntoa_r(&addr, addr_str, sizeof(addr_str));
+    puts("DNS2: ");
+    puts(addr_str);
+    puts("\r\n");
+
+    wifi_mgmr_sta_ip_set(ip, mask, gw, dns1, dns2);
+}
+
+static void wifi_sta_ip_unset_cmd(char *buf, int len, int argc, char **argv)
+{
+    wifi_mgmr_sta_ip_unset();
 }
 
 static void wifi_connect_cmd(char *buf, int len, int argc, char **argv)
@@ -540,6 +612,7 @@ static void wifi_sniffer_off_cmd(char *buf, int len, int argc, char **argv)
 static void cmd_wifi_ap_start(char *buf, int len, int argc, char **argv)
 {
     uint8_t mac[6];
+    uint8_t hidden_ssid = 0;
     char ssid_name[32];
     int channel;
     wifi_interface_t wifi_interface;
@@ -553,14 +626,17 @@ static void cmd_wifi_ap_start(char *buf, int len, int argc, char **argv)
     wifi_interface = wifi_mgmr_ap_enable();
     if (1 == argc) {
         /*no password when only one param*/
-        wifi_mgmr_ap_start(wifi_interface, ssid_name, 0, NULL, 1);
+        wifi_mgmr_ap_start(wifi_interface, ssid_name, hidden_ssid, NULL, 1);
     } else {
         /*hardcode password*/
+        if (3 == argc) {
+            hidden_ssid = 1;
+        }
         channel = atoi(argv[1]);
         if (channel <=0 || channel > 11) {
             return;
         }
-        wifi_mgmr_ap_start(wifi_interface, ssid_name, 0, "12345678", channel);
+        wifi_mgmr_ap_start(wifi_interface, ssid_name, hidden_ssid, "12345678", channel);
     }
 }
 
@@ -568,6 +644,21 @@ static void cmd_wifi_ap_stop(char *buf, int len, int argc, char **argv)
 {
     wifi_mgmr_ap_stop(NULL);
     printf("--->>> cmd_wifi_ap_stop\r\n");
+}
+
+static void cmd_wifi_ap_conf_max_sta(char *buf, int len, int argc, char **argv)
+{
+    int max_sta_supported;
+
+    if (2 != argc) {
+        printf("Usage: wifi_ap_max_sta [num]\r\n");
+        return;
+    }
+
+    max_sta_supported = atoi(argv[1]);
+    printf("Conf Max Sta to %d\r\n", max_sta_supported);
+
+    wifi_mgmr_conf_max_sta(max_sta_supported);
 }
 
 static void cmd_wifi_dump(char *buf, int len, int argc, char **argv)
@@ -701,9 +792,12 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "rf_dump", "rf dump", cmd_rf_dump},
         { "wifi_capcode", "wifi capcode", wifi_capcode_cmd},
         { "wifi_scan", "wifi scan", wifi_scan_cmd},
+        { "wifi_scan_filter", "wifi scan", wifi_scan_filter_cmd},
         { "wifi_ip_info", "wifi scan", wifi_ip_info},
         { "wifi_mon", "wifi monitor", wifi_mon_cmd},
         { "wifi_raw_send", "wifi raw send test", cmd_wifi_raw_send},
+        { "wifi_sta_ip_set", "wifi STA IP config [ip] [mask] [gw] [dns1] [dns2]", wifi_sta_ip_set_cmd},
+        { "wifi_sta_ip_unset", "wifi STA IP config unset", wifi_sta_ip_unset_cmd},
         { "wifi_sta_disconnect", "wifi station disconnect", wifi_disconnect_cmd},
         { "wifi_sta_connect", "wifi station connect", wifi_connect_cmd},
         { "wifi_sta_get_state", "wifi sta get state", wifi_sta_get_state_cmd},
@@ -716,7 +810,8 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_sniffer_on", "wifi sniffer mode on", wifi_sniffer_on_cmd},
         { "wifi_sniffer_off", "wifi sniffer mode off", wifi_sniffer_off_cmd},
         { "wifi_ap_start", "start Ap mode", cmd_wifi_ap_start},
-        { "wifi_ap_stop", "start Ap mode", cmd_wifi_ap_stop},
+        { "wifi_ap_stop", "stop Ap mode", cmd_wifi_ap_stop},
+        { "wifi_ap_conf_max_sta", "config Ap max sta", cmd_wifi_ap_conf_max_sta},
         { "wifi_dump", "dump fw statistic", cmd_wifi_dump},
         { "wifi_mib", "dump mib statistic", cmd_wifi_mib},
         { "wifi_pkt", "wifi dump needed", cmd_dump_reset},

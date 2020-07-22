@@ -224,7 +224,9 @@ is_exception:
 	csrr a0, mcause
 	csrr a1, mepc
 	csrr a2, mtval
+	add  a3, sp, x0
 	call exception_entry
+	j processed_source
 1:
     ebreak
 	j 1b

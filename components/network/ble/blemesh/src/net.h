@@ -5,6 +5,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef __NET_H__
+#define __NET_H__
+
+
 #include "mesh_config.h"
 #include "include/access.h"
 
@@ -387,3 +391,6 @@ static inline void send_cb_finalize(const struct bt_mesh_send_cb *cb,
 		cb->end(0, cb_data);
 	}
 }
+
+#endif /*__NET_H__*/
+

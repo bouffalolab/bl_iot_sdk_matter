@@ -104,12 +104,20 @@ error:
  */
 int32_t jl_softap_connect_wifi_router(char *ssid, char *passwd)
 {
+    char pmk[66] = { 0 };
     wifi_interface_t wifi_interface;
 
-    log_info("Connecting to Router SSID %s, PWD %s", ssid, passwd);
+    wifi_mgmr_psk_cal(
+            passwd,
+            ssid,
+            strlen(ssid),
+            pmk
+    );
+    log_info("Connecting to Router SSID %s, PWD %s, PMK %s", ssid, passwd, pmk);
     // step 1 save router info to flash
     ef_set_env(JL_EF_ROUTER_SSID_KEY, ssid);
     ef_set_env(JL_EF_ROUTER_PSWD_KEY, passwd);
+    ef_set_env(JL_EF_ROUTER_PMK_KEY, pmk);
     ef_save_env();
 
     // step 2 close AP mode
@@ -120,7 +128,7 @@ int32_t jl_softap_connect_wifi_router(char *ssid, char *passwd)
     jl_device_status = S_CONNECTING_AP;
 #endif
     wifi_interface = wifi_mgmr_sta_enable();
-    wifi_mgmr_sta_connect(wifi_interface, ssid, passwd, NULL, NULL, 0, 0);
+    wifi_mgmr_sta_connect(wifi_interface, ssid, passwd, pmk, NULL, 0, 0);
 
     return 0;
 }

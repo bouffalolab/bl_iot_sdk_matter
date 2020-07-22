@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <lwip/netifapi.h>
+#include <lwip/dns.h>
 #include <aos/yloop.h>
 #include <bl60x_fw_api.h>
 #include "bl_main.h"
@@ -79,6 +80,11 @@ static void _pending_task_clr(uint32_t bit)
 static int _pending_task_is_set(uint32_t bit)
 {
     return (wifiMgmr.pending_task & bit) ? 1 : 0;
+}
+
+static int _features_is_set(uint32_t bit)
+{
+    return (wifiMgmr.features & bit) ? 1 : 0;
 }
 
 static bool stateGlobalGuard( void *ch, struct event *event )
@@ -189,7 +195,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
     if (scan->channel > wifiMgmr.channel_nums || !scan->channel){
         goto __exit;
     }
-    if (0 == scan->ssid[0]) {
+    if (0 == scan->ssid[0] && (!_features_is_set(WIFI_MGMR_FEATURES_SCAN_SAVE_HIDDEN_SSID))) {
         goto __exit;
     }
 
@@ -510,7 +516,7 @@ void dhcpd_start(struct netif *netif);
     os_printf(DEBUG_HEADER "start AP with ssid %s;\r\n", ap->ssid);
     os_printf(DEBUG_HEADER "              pwd  %s;\r\n", ap->psk);
     os_printf(DEBUG_HEADER "              channel  %ld;\r\n", ap->channel);
-    bl_main_apm_start(ap->ssid, ap->psk, ap->channel, wifiMgmr.wlan_ap.vif_index);
+    bl_main_apm_start(ap->ssid, ap->psk, ap->channel, wifiMgmr.wlan_ap.vif_index, ap->hidden_ssid);
     wifiMgmr.inf_ap_enabled = 1;
     aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STARTED, 0);
 
@@ -543,6 +549,21 @@ err_t dhcp_server_stop(struct netif *netif);
     return false;
 }
 
+static bool stateGlobalGuard_conf_max_sta(void *ev, struct event *event )
+{
+    wifi_mgmr_msg_t *msg;
+
+    msg = event->data;
+    if (WIFI_MGMR_EVENT_APP_CONF_MAX_STA != msg->ev) {
+        return false;
+    }
+
+    os_printf(DEBUG_HEADER "Conf max sta supported %lu...\r\n", (uint32_t)msg->data1);
+    bl_main_conf_max_sta((uint32_t)msg->data1);
+
+    return false;
+}
+
 const static struct state stateGlobal = {
    .parentState = NULL,
    .entryState = NULL,
@@ -554,12 +575,13 @@ const static struct state stateGlobal = {
       {EVENT_TYPE_APP, NULL, &stateGlobalGuard, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_AP_START, &stateGlobalGuard_AP, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_AP_STOP, &stateGlobalGuard_stop, &stateGlobalAction, &stateIdle},
+      {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_CONF_MAX_STA, &stateGlobalGuard_conf_max_sta, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_DISCONNECT, &stateGlobalGuard_fw_disconnect, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_POWERSAVING, &stateGlobalGuard_fw_powersaving, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_SCAN, &stateGlobalGuard_fw_scan, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW,  (void*)WIFI_MGMR_EVENT_FW_DATA_RAW_SEND, &stateSnifferGuard_raw_send, &stateGlobalAction, &stateIdle},
    },
-   .numTransitions = 10,
+   .numTransitions = 11,
    .data = "group",
    .entryAction = &stateGlobalEnter,
    .exitAction = &stateGlobalExit,
@@ -852,6 +874,42 @@ static void ip_obtaining_timeout(timer_cb_arg_t data)
     wifi_mgmr_api_fw_disconnect();
 }
 
+static void __sta_setup_ip(void)
+{
+    uint32_t ip, mask, gw, dns1, dns2;
+    ip4_addr_t addr_ipaddr;
+    ip4_addr_t addr_netmask;
+    ip4_addr_t addr_gw;
+
+    taskENTER_CRITICAL();
+    ip = wifiMgmr.wlan_sta.ipv4.ip;
+    mask = wifiMgmr.wlan_sta.ipv4.mask;
+    gw = wifiMgmr.wlan_sta.ipv4.gw;
+    dns1 = wifiMgmr.wlan_sta.ipv4.dns1;
+    dns2 = wifiMgmr.wlan_sta.ipv4.dns2;
+    taskEXIT_CRITICAL();
+
+    if (ip) {
+        /*use static IP address*/
+        os_printf(DEBUG_HEADER "Static IP Starting...%p\r\n", &(wifiMgmr.wlan_sta.netif));
+
+        ip4_addr_set_u32(&addr_ipaddr, dns1);
+        dns_setserver(0, &addr_ipaddr);
+        ip4_addr_set_u32(&addr_ipaddr, dns2);
+        dns_setserver(1, &addr_ipaddr);
+
+        ip4_addr_set_u32(&addr_ipaddr, ip);
+        ip4_addr_set_u32(&addr_netmask, mask);
+        ip4_addr_set_u32(&addr_gw, gw);
+        netifapi_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
+        netifapi_netif_set_addr(&(wifiMgmr.wlan_sta.netif), &addr_ipaddr, &addr_netmask, &addr_gw);
+    } else {
+        /*use DHCP*/
+        os_printf(DEBUG_HEADER "DHCP Starting...%p\r\n", &(wifiMgmr.wlan_sta.netif));
+        wifi_netif_dhcp_start(&(wifiMgmr.wlan_sta.netif));
+    }
+}
+
 static void stateConnectedIPNoEnter(void *stateData, struct event *event )
 {
     connectedIPNoData_t *stateConnectedIPNo_data;
@@ -866,8 +924,7 @@ static void stateConnectedIPNoEnter(void *stateData, struct event *event )
         OS_TIMER_TYPE_ONESHOT
     );
     os_timer_start(&(stateConnectedIPNo_data->timer));
-    os_printf(DEBUG_HEADER "DHCP Starting...%p\r\n", &(wifiMgmr.wlan_sta.netif));
-    wifi_netif_dhcp_start(&(wifiMgmr.wlan_sta.netif));
+    __sta_setup_ip();
     aos_post_event(EV_WIFI, CODE_WIFI_ON_CONNECTED, 0);
 }
 
@@ -909,6 +966,18 @@ static bool stateConnectedIPYesGuard( void *ch, struct event *event )
         return true;
     }
     return false;
+}
+
+static bool stateConnectedIPYesGuard_ip_update(void *ch, struct event *event)
+{
+    wifi_mgmr_msg_t *msg;
+
+    msg = event->data;
+    if (ch != (void*)msg->ev) {
+        return false;
+    }
+
+    return true;
 }
 
 static bool stateConnectedIPYesGuard_disconnect( void *ch, struct event *event )
@@ -962,7 +1031,13 @@ static void stateConnectedIPYes_enter( void *stateData, struct event *event )
 
 static void stateConnectedIPYes_exit( void *stateData, struct event *event )
 {
+   ip4_addr_t addr_ipaddr;
+
+   ip4_addr_set_any(&addr_ipaddr);
    os_printf(DEBUG_HEADER "Exiting %s state\r\n", (char *)stateData);
+   // Stop DHCP Client anyway
+   netifapi_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
+   netifapi_netif_set_addr(&(wifiMgmr.wlan_sta.netif), &addr_ipaddr, &addr_ipaddr, &addr_ipaddr);
 }
 
 const static struct state stateConnectedIPYes = {
@@ -970,11 +1045,12 @@ const static struct state stateConnectedIPYes = {
    .entryState = NULL,
    .transitions = (struct transition[])
    {
+      {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_IP_UPDATE, &stateConnectedIPYesGuard_ip_update, &stateConnectedIPYes_action, &stateConnectedIPNo},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_DISCONNECT, &stateConnectedIPYesGuard_disconnect, &stateConnectedIPYes_action, &stateDisconnect},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_RC_CONFIG, &stateConnectedIPYesGuard_rcconfig, &stateConnectedIPYes_action, &stateDisconnect},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_IND_DISCONNECT, &stateConnectedIPYesGuard, &stateConnectedIPYes_action, &stateDisconnect},
    },
-   .numTransitions = 3,
+   .numTransitions = 4,
    .data = "wifiConnected_IPOK",
    .entryAction = &stateConnectedIPYes_enter,
    .exitAction = &stateConnectedIPYes_exit,
@@ -1204,6 +1280,7 @@ int wifi_mgmr_init(void)
             sizeof(wifiMgmr.mq_pool)
     );
     wifiMgmr.ready = 1;//TODO check ret
+    wifiMgmr.scan_item_timeout = WIFI_MGMR_CONFIG_SCAN_ITEM_TIMEOUT;
     return ret;
 }
 

@@ -53,12 +53,13 @@ int bl_main_if_remove(uint8_t vif_index);
 int bl_main_if_add(int is_sta, struct netif *netif, uint8_t *vif_index);
 int bl_main_monitor(void);
 int bl_main_connect(const uint8_t* ssid, int ssid_len, const uint8_t *psk, int psk_len, const uint8_t *pmk, int pmk_len, const uint8_t *mac, const uint8_t band, const uint16_t freq);
-int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index);
+int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid);
 int bl_main_apm_stop(uint8_t vif_index);
 int bl_main_apm_sta_cnt_get(uint8_t *sta_cnt);
 int bl_main_apm_sta_info_get(struct wifi_apm_sta_info *apm_sta_info, uint8_t idx);
 int bl_main_apm_sta_delete(uint8_t sta_idx);
 int bl_main_apm_remove_all_sta();
+int bl_main_conf_max_sta(uint8_t max_sta_supported);
 int bl_main_scan(void);
 int bl_main_raw_send(uint8_t *pkt , int len);
 int bl_main_set_country_code(char *country_code);
@@ -164,6 +165,7 @@ struct wifi_event
 {
 #define WIFI_EVENT_ID_IND_CHANNEL_SWITCH        0
 #define WIFI_EVENT_ID_IND_SCAN_DONE             1
+#define WIFI_EVENT_ID_IND_SCAN_DONE_ONJOIN      2
     uint32_t id;
     uint8_t data[0];
 };

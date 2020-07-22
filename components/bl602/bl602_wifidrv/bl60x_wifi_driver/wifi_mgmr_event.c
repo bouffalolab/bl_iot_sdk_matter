@@ -104,6 +104,11 @@ static void cb_event_ind(void *env, struct wifi_event *event)
             aos_post_event(EV_WIFI, CODE_WIFI_ON_SCAN_DONE, WIFI_SCAN_DONE_EVENT_OK);
         }
         break;
+        case WIFI_EVENT_ID_IND_SCAN_DONE_ONJOIN:
+        {
+            aos_post_event(EV_WIFI, CODE_WIFI_ON_SCAN_DONE_ONJOIN, 0);
+        }
+        break;
         default:
         {
             printf("----------------UNKNOWN WIFI EVENT %d-------------------\r\n", (int)event->id);

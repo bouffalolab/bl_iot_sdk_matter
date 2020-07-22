@@ -24,6 +24,7 @@ extern "C" {
 #include "mesh_config.h"
 #if defined(BFLB_BLE)
 #include "work_q.h"
+#include "net/buf.h"
 #endif
 
 #define BT_MESH_ADDR_UNASSIGNED   0x0000
@@ -90,7 +91,7 @@ struct bt_mesh_elem {
 #define BT_MESH_MODEL_ID_GEN_BATTERY_SRV           0x100c
 #define BT_MESH_MODEL_ID_GEN_BATTERY_CLI           0x100d
 #define BT_MESH_MODEL_ID_GEN_LOCATION_SRV          0x100e
-#define BT_MESH_MODEL_ID_GEN_LOCATION_SETUPSRV     0x100f
+#define BT_MESH_MODEL_ID_GEN_LOCATION_SETUP_SRV    0x100f
 #define BT_MESH_MODEL_ID_GEN_LOCATION_CLI          0x1010
 #define BT_MESH_MODEL_ID_GEN_ADMIN_PROP_SRV        0x1011
 #define BT_MESH_MODEL_ID_GEN_MANUFACTURER_PROP_SRV 0x1012
@@ -125,7 +126,7 @@ struct bt_mesh_elem {
 #define BT_MESH_MODEL_ID_LIGHT_XYL_SETUP_SRV       0x130d
 #define BT_MESH_MODEL_ID_LIGHT_XYL_CLI             0x130e
 #define BT_MESH_MODEL_ID_LIGHT_LC_SRV              0x130f
-#define BT_MESH_MODEL_ID_LIGHT_LC_SETUPSRV         0x1310
+#define BT_MESH_MODEL_ID_LIGHT_LC_SETUP_SRV        0x1310
 #define BT_MESH_MODEL_ID_LIGHT_LC_CLI              0x1311
 
 /** Message sending context. */
@@ -153,6 +154,17 @@ struct bt_mesh_msg_ctx {
 
 	/** TTL, or BT_MESH_TTL_DEFAULT for default TTL. */
 	u8_t  send_ttl;
+
+	/** Change by Espressif, opcode of a received message.
+     *  Not used for sending message. */
+    u32_t recv_op;
+
+    /** Change by Espressif, model corresponds to the message */
+    struct bt_mesh_model *model;
+
+    /** Change by Espressif, if the message is sent by a server
+     *  model. Not used for receiving message. */
+    bool srv_send;
 };
 
 struct bt_mesh_model_op {
@@ -163,7 +175,7 @@ struct bt_mesh_model_op {
 	const size_t min_len;
 
 	/* Message handler for the opcode */
-	void (*const func)(struct bt_mesh_model *model,
+	void (*func)(struct bt_mesh_model *model,
 			   struct bt_mesh_msg_ctx *ctx,
 			   struct net_buf_simple *buf);
 };
@@ -318,6 +330,9 @@ struct bt_mesh_model_pub {
 
 	/** Publish Period Timer. Only for stack-internal use. */
 	struct k_delayed_work timer;
+
+	/** Role of the device that is going to publish messages */
+    uint8_t dev_role;
 };
 
 /** @def BT_MESH_MODEL_PUB_DEFINE
@@ -359,7 +374,8 @@ struct bt_mesh_model {
 	/* Subscription List (group or virtual addresses) */
 	u16_t groups[CONFIG_BT_MESH_MODEL_GROUP_COUNT];
 
-	const struct bt_mesh_model_op * const op;
+	//const struct bt_mesh_model_op * const op;
+	const struct bt_mesh_model_op *op;
 
 	/* Model-specific user data */
 	void *user_data;

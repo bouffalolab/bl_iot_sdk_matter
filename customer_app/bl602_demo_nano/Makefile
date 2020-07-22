@@ -23,6 +23,9 @@ COMPONENTS_BLSYS   := bltime blfdt blmtd blota bloop looprt loopset
 COMPONENTS_BLE     := blecontroller blestack
 
 INCLUDE_COMPONENTS += freertos_riscv_ram bl602 bl602_std bl602_wifi bl602_wifidrv hal_drv lwip lwip_dhcpd vfs yloop utils cli blog
+ifeq ($(CONFIG_BT_SETTINGS),1)
+INCLUDE_COMPONENTS += easyflash4
+endif
 INCLUDE_COMPONENTS += $(COMPONENTS_NETWORK)
 INCLUDE_COMPONENTS += $(COMPONENTS_BLSYS)
 INCLUDE_COMPONENTS += $(COMPONENTS_VFS)

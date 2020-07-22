@@ -7,6 +7,13 @@
  */
 
 /* bt_mesh_model.flags */
+#ifndef __ACCESS_H__
+#define __ACCESS_H__
+
+#include "include/access.h"
+#include "net/buf.h"
+#include "net.h"
+
 
 enum {
 	BT_MESH_MOD_BIND_PENDING = BIT(0),
@@ -50,3 +57,6 @@ struct bt_mesh_model *bt_mesh_model_get(bool vnd, u8_t elem_idx, u8_t mod_idx);
 void bt_mesh_model_recv(struct bt_mesh_net_rx *rx, struct net_buf_simple *buf);
 
 int bt_mesh_comp_register(const struct bt_mesh_comp *comp);
+
+#endif /* __ACCESS_H__ */
+

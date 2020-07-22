@@ -1,32 +1,3 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <stdlib.h>
 #include "conn.h"
 #include "gatt.h"
@@ -460,19 +431,17 @@ static void ble_stop_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 #if defined(CONFIG_BT_PERIPHERAL)
 static void ble_read_local_address(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	int ret;
-	bt_addr_le_t adv_addr;
+	bt_addr_le_t local_pub_addr;
+	bt_addr_le_t local_ram_addr;
 	char le_addr[BT_ADDR_LE_STR_LEN];
-	
-	memset(&adv_addr,0,sizeof(bt_addr_le_t));
-	ret = bt_get_local_address(&adv_addr);
-	if(!ret){
-		bt_addr_le_to_str(&adv_addr, le_addr, sizeof(le_addr));
-		vOutputString("Local addr : %s\r\n",le_addr);
 
-	}else{
-		vOutputString("Failed to read address\r\n");
-	}
+       bt_get_local_public_address(&local_pub_addr);
+	bt_addr_le_to_str(&local_pub_addr, le_addr, sizeof(le_addr));
+	vOutputString("Local public addr : %s\r\n", le_addr);
+
+	bt_get_local_ramdon_address(&local_ram_addr);
+	bt_addr_le_to_str(&local_ram_addr, le_addr, sizeof(le_addr));
+	vOutputString("Local random addr : %s\r\n", le_addr);
 }
 
 static void ble_set_adv_channel(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)

@@ -5,10 +5,17 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef __TRANSPORT_H__
+#define __TRANSPORT_H__
+
 #include "mesh_config.h"
+#include "net/buf.h"
+#include "net.h"
+
 
 #define TRANS_SEQ_AUTH_NVAL            0xffffffffffffffff
 
+#define BLE_MESH_SDU_UNSEG_MAX         11
 #define BT_MESH_TX_SDU_MAX             (CONFIG_BT_MESH_TX_SEG_MAX * 12)
 
 #define TRANS_CTL_OP_MASK              ((u8_t)BIT_MASK(7))
@@ -74,6 +81,10 @@ struct bt_mesh_ctl_friend_sub_confirm {
 	u8_t xact;
 } __packed;
 
+u8_t bt_mesh_get_seg_retrans_num(void);
+
+s32_t bt_mesh_get_seg_retrans_timeout(u8_t ttl);
+
 void bt_mesh_set_hb_sub_dst(u16_t addr);
 
 struct bt_mesh_app_key *bt_mesh_app_key_find(u16_t app_idx);
@@ -97,3 +108,6 @@ void bt_mesh_trans_init(void);
 void bt_mesh_rpl_clear(void);
 
 void bt_mesh_heartbeat_send(void);
+
+#endif /*__TRANSPORT_H__*/
+

@@ -3,6 +3,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef __MESH_SETTING_H__
+#define __MESH_SETTING_H__
 
 #if defined(BFLB_BLE)
 #define NV_MESH_IV          "bt/mesh/IV"
@@ -34,3 +36,5 @@ void bt_mesh_clear_app_key(struct bt_mesh_app_key *key);
 void bt_mesh_clear_rpl(void);
 
 void bt_mesh_settings_init(void);
+
+#endif /*__MESH_SETTING_H__*/

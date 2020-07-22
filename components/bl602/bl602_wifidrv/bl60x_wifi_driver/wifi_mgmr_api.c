@@ -107,6 +107,23 @@ int wifi_mgmr_api_ip_got(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns1,
     return 0;
 }
 
+int wifi_mgmr_api_ip_update(void)
+{
+    wifi_mgmr_msg_t *msg;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t)];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_GLB_IP_UPDATE;
+    msg->data1 = (void*)0x11223344;
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t);
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
 int wifi_mgmr_api_reconnect(void)
 {
     wifi_mgmr_msg_t *msg;
@@ -184,6 +201,23 @@ int wifi_mgmr_api_rate_config(uint16_t config)
     msg = (wifi_mgmr_msg_t*)buffer;
     msg->ev = WIFI_MGMR_EVENT_APP_RC_CONFIG;
     msg->data1 = (void*)(intptr_t)config;
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t);
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
+int wifi_mgmr_api_conf_max_sta(uint8_t max_sta_supported)
+{
+    wifi_mgmr_msg_t *msg;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t)];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_APP_CONF_MAX_STA;
+    msg->data1 = (void*)(intptr_t)max_sta_supported;
     msg->data2 = (void*)0x55667788;
     msg->len = sizeof (wifi_mgmr_msg_t);
 
@@ -306,7 +340,7 @@ int wifi_mgmr_api_fw_powersaving(int mode)
     return 0;
 }
 
-int wifi_mgmr_api_ap_start(char *ssid, char *passwd, int channel)
+int wifi_mgmr_api_ap_start(char *ssid, char *passwd, int channel, uint8_t hidden_ssid)
 {
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_ap_msg_t *ap;
@@ -337,6 +371,7 @@ int wifi_mgmr_api_ap_start(char *ssid, char *passwd, int channel)
         ap->psk_len = 0;
     }
     ap->channel = channel;
+    ap->hidden_ssid = hidden_ssid ? 1 : 0;
 
     wifi_mgmr_event_notify(msg);
 

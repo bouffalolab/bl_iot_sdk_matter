@@ -5,6 +5,7 @@
 
 #define JL_EF_ROUTER_SSID_KEY "JL_ROTUER_SSID"
 #define JL_EF_ROUTER_PSWD_KEY "JL_ROUTER_PSWD"
+#define JL_EF_ROUTER_PMK_KEY  "JL_ROUTER_PMK"
 
 /**
  * @brief:set wifi mode to AP mode.

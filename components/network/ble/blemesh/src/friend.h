@@ -5,6 +5,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef __FRIEND_H__
+#define __FRIEND_H__
 
 enum bt_mesh_friend_pdu_type {
 	BT_MESH_FRIEND_PDU_SINGLE,
@@ -47,3 +49,6 @@ int bt_mesh_friend_sub_rem(struct bt_mesh_net_rx *rx,
 			   struct net_buf_simple *buf);
 
 int bt_mesh_friend_init(void);
+
+#endif /*__FRIEND_H__*/
+

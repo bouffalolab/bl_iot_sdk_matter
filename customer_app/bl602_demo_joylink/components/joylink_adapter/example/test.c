@@ -273,8 +273,10 @@ void set_led_off()
 
 int start_joylink()
 {
+    wifi_interface_t wifi_interface;
     char *is_activated_env = NULL;
     char ssid[33] = { 0 }, passwd[65] = { 0 };
+    char pmk[66] = { 0 };
     char *p = NULL;
     // (1) if device is activated, connect to router and start joylink_main_start
     // (2) else, start AP and start jl_ap_net_config_mode_task
@@ -296,12 +298,23 @@ int start_joylink()
                 jl_device_status = S_CONNECTING_AP;
 #endif
                 strcpy(passwd, p);
-                wifi_sta_connect(ssid, passwd);
-                joylink_main();
-                return 0;
+                p = ef_get_env(JL_EF_ROUTER_PMK_KEY);
+                if (p) {
+                    strcpy(pmk, p);
+                    log_info("Connecting to Router SSID %s, PWD %s, PMK %s", ssid, passwd, pmk);
+                    wifi_interface = wifi_mgmr_sta_enable();
+                    wifi_mgmr_sta_connect(wifi_interface, ssid, passwd, pmk, NULL, 0, 0);
+                    /* wifi_sta_connect(ssid, passwd); */
+                    joylink_main();
+                    return 0;
+                }
+                log_error("Router PMK null, this should not happen");
+                return -1;
             }
+            log_error("Router PASSWD null, this should not happen");
+            return -1;
         }
-        log_error("Router SSID or PASSWD null, this should not happen");
+        log_error("Router SSID null, this should not happen");
         return -1;
     } else {
 #ifdef JOYLINK_SDK_EXAMPLE_MWO

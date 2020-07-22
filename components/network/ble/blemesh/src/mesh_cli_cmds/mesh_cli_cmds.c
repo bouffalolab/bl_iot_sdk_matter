@@ -16,9 +16,16 @@
 #include "adv.h"
 #include "beacon.h"
 #include "hci_core.h"
-#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-#include "gen_srv.h"
+#if (defined(CONFIG_BT_MESH_MODEL_GEN_SRV) || defined(CONFIG_BT_MESH_MODEL_GEN_CLI))
+//#include "gen_srv.h"
+#include "bfl_ble_mesh_generic_model_api.h"
 #endif
+#if (defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV) || defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI))
+#include "bfl_ble_mesh_lighting_model_api.h"
+#endif
+#include "bfl_ble_mesh_local_data_operation_api.h"
+#include "bfl_ble_mesh_networking_api.h"
+
 
 #if defined(CONFIG_BT_SETTINGS)
 #include "easyflash.h"
@@ -58,6 +65,7 @@ static struct {
 #endif
 
 static void prov_reset(void);
+static void gen_dev_uuid(void);
 static void link_open(bt_mesh_prov_bearer_t bearer);
 static void link_close(bt_mesh_prov_bearer_t bearer);
 static int output_number(bt_mesh_output_action_t action, u32_t number);
@@ -82,6 +90,14 @@ static void blemesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 static void blemesh_set_dev_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+static void blemesh_gen_oo_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+static void blemesh_light_lgn_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_light_ctl_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void blemesh_light_hsl_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 static void blemesh_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_reset(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -152,15 +168,73 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 
 	.default_ttl = 7,
 
+	/* 6 transmissions with 20ms interval */
+	.net_transmit = BT_MESH_TRANSMIT(5, 20),
 	/* 3 transmissions with 20ms interval */
-	.net_transmit = BT_MESH_TRANSMIT(2, 20),
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 };
 
 #if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-struct bt_mesh_gen_onoff_srv onoff_srv = {
+//struct bt_mesh_gen_onoff_srv onoff_srv = {
+//};
+BFL_BLE_MESH_MODEL_PUB_DEFINE(onoff_pub, 2 + 3, ROLE_NODE);
+static bfl_ble_mesh_gen_onoff_srv_t onoff_server = {
+    .rsp_ctrl.get_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
+    .rsp_ctrl.set_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
+};
+
+#endif
+
+#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(onoff_cli_pub, 2 + 1, ROLE_NODE);
+static bfl_ble_mesh_client_t onoff_client;
+#endif
+
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(lightness_pub, 2 + 3, ROLE_NODE);
+static bfl_ble_mesh_light_lightness_state_t lightness_state;
+static bfl_ble_mesh_light_lightness_srv_t lightness_server = {
+    .rsp_ctrl.get_auto_rsp = BFL_BLE_MESH_SERVER_RSP_BY_APP,
+    .rsp_ctrl.set_auto_rsp = BFL_BLE_MESH_SERVER_RSP_BY_APP,
+    .state = &lightness_state,
 };
 #endif
+
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(lightness_cli_pub, 2 + 1, ROLE_NODE);
+static bfl_ble_mesh_client_t lightness_client;
+#endif
+	
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(ctl_pub, 2 + 3, ROLE_NODE);
+static bfl_ble_mesh_light_ctl_state_t ctl_state;
+static bfl_ble_mesh_light_ctl_srv_t ctl_server = {
+	.rsp_ctrl.get_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
+	.rsp_ctrl.set_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
+	.state = &ctl_state,
+};
+#endif
+
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(ctl_cli_pub, 2 + 1, ROLE_NODE);
+static bfl_ble_mesh_client_t ctl_client;
+#endif
+
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(hsl_pub, 2 + 3, ROLE_NODE);
+static bfl_ble_mesh_light_hsl_state_t hsl_state;
+static bfl_ble_mesh_light_hsl_srv_t hsl_server = {
+	.rsp_ctrl.get_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
+	.rsp_ctrl.set_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
+	.state = &hsl_state,
+};
+#endif
+
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+BFL_BLE_MESH_MODEL_PUB_DEFINE(hsl_cli_pub, 2 + 1, ROLE_NODE);
+static bfl_ble_mesh_client_t hsl_client;
+#endif
+
 
 static struct bt_mesh_model sig_models[] = {
 	BT_MESH_MODEL_CFG_SRV(&cfg_srv),
@@ -168,12 +242,63 @@ static struct bt_mesh_model sig_models[] = {
 	BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 	BT_MESH_MODEL_HEALTH_CLI(&health_cli),
 	#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-	BT_MESH_MODEL_GEN_ONOFF(&onoff_srv),
+	//BT_MESH_MODEL_GEN_ONOFF(&onoff_srv),
+	BFL_BLE_MESH_MODEL_GEN_ONOFF_SRV(&onoff_pub, &onoff_server),
 	#endif
+	#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+	BFL_BLE_MESH_MODEL_GEN_ONOFF_CLI(&onoff_cli_pub, &onoff_client),
+	#endif
+    #if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+	BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_SRV(&lightness_pub, &lightness_server),
+    #endif
+    #if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+	BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_CLI(&lightness_cli_pub, &lightness_client),
+    #endif
+    #if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+	BFL_BLE_MESH_MODEL_LIGHT_CTL_SRV(&ctl_pub, &ctl_server),
+    #endif
+    #if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+	BFL_BLE_MESH_MODEL_LIGHT_CTL_CLI(&ctl_cli_pub, &ctl_client),
+    #endif
+    #if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+	BFL_BLE_MESH_MODEL_LIGHT_HSL_SRV(&hsl_pub, &hsl_server),
+    #endif
+    #if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+	BFL_BLE_MESH_MODEL_LIGHT_HSL_CLI(&hsl_cli_pub, &hsl_client),
+    #endif
+};
+
+#define VENDOR_DATA_LEN (BT_MESH_TX_SDU_MAX-4-3)
+struct vendor_data_t{
+	uint8_t data[VENDOR_DATA_LEN];
+}vendor_data;
+
+static void vendor_data_set(struct bt_mesh_model *model,
+                              struct bt_mesh_msg_ctx *ctx,
+                              struct net_buf_simple *buf)
+{
+    NET_BUF_SIMPLE_DEFINE(msg, 3 + VENDOR_DATA_LEN + 4);
+
+    vOutputString("data[%s]\n", bt_hex(buf->data, buf->len));
+
+    if (buf == NULL) {
+        BT_ERR("%s, Invalid model user_data", __func__);
+        return;
+    }
+    bt_mesh_model_msg_init(&msg, 0xC2003F);
+	net_buf_simple_add_mem(&msg, buf->data, buf->len);
+
+    bt_mesh_model_send(model, ctx, &msg, NULL, NULL);
+}
+
+/* Mapping of message handlers for Generic Power OnOff Server (0x1006) */
+const struct bt_mesh_model_op vendor_data_op[] = {
+    { 0xC1003F, 1, vendor_data_set },
+    BT_MESH_MODEL_OP_END,
 };
 
 static struct bt_mesh_model vendor_models[] = {
-	BT_MESH_MODEL_VND(0x003F, 0x002A, NULL, NULL, NULL),
+	BT_MESH_MODEL_VND(0x003F, 0x002A, vendor_data_op, NULL, &vendor_data),
 };
 
 static struct bt_mesh_elem elements[] = {
@@ -218,6 +343,22 @@ const struct cli_command btMeshCmdSet[] = {
      
     {"blemesh_input_str", "\r\nblemesh_input_str:[input Alphanumeric in provisionging procedure]\r\n\
      [Max Size:16 Characters, e.g.123ABC]\r\n", blemesh_input_str},
+#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+	{"blemesh_gen_oo_cli", "\r\blemesh_gen_oo_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t onoff tid trans_time delay]\r\n\
+     []\r\n", blemesh_gen_oo_cli},
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+     {"blemesh_light_lgn_cli", "\r\blemesh_light_lgn_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t lightness tid trans_time delay]\r\n\
+     []\r\n", blemesh_light_lgn_cli},
+     {"blemesh_light_ctl_cli", "\r\blemesh_light_ctl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t ctl_lightness ctl_temperatrue ctl_delta_uv tid trans_time delay]\r\n\
+     []\r\n", blemesh_light_ctl_cli},
+     {"blemesh_light_hsl_cli", "\r\blemesh_light_hsl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en lightness hue saturation tid trans_time delay]\r\n\
+     []\r\n", blemesh_light_hsl_cli},
+#endif
+
+    #if defined(BL70X)
+    {NULL, NULL, "No handler / Invalid command", NULL}
+    #endif
 };
 
 #if defined(CONFIG_BT_MESH_LOW_POWER)
@@ -278,6 +419,8 @@ static void blemesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
         return;
     }
 
+    // auto generate device uuid
+    gen_dev_uuid();
     err = bt_mesh_init(&prov, &comp);
     if(err){
         vOutputString("Failed to init \r\n");
@@ -416,6 +559,23 @@ static void prov_reset(void)
 	vOutputString("The local node has been reset and needs reprovisioning\r\n");
 }
 
+static void gen_dev_uuid(void)
+{
+//device uuid: 07af0000-1111-2222-3333-mac address(6 bytes)
+
+	bt_addr_le_t adv_addr;
+	bt_get_local_public_address(&adv_addr);
+	u8_t uuid[16] = {0x07,0xaf,0x00,0x00,0x11,0x11,0x22,0x22,0x33,0x33,
+	                        adv_addr.a.val[5],
+	                        adv_addr.a.val[4],
+	                        adv_addr.a.val[3],
+	                        adv_addr.a.val[2],
+	                        adv_addr.a.val[1],
+	                        adv_addr.a.val[0]};
+	memcpy(dev_uuid, uuid, 16);
+
+}
+
 static void blemesh_set_dev_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     if(argc != 2){
@@ -485,6 +645,530 @@ static void blemesh_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 	input_act = BT_MESH_NO_INPUT;
 }
+
+#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+void ble_mesh_generic_onoff_client_model_cb(bfl_ble_mesh_generic_client_cb_event_t event,
+        bfl_ble_mesh_generic_client_cb_param_t *param)
+{
+    uint32_t opcode = param->params->opcode;
+
+    vOutputString("enter %s: event is %d, error code is %d, opcode is 0x%x\n",
+             __func__, event, param->error_code, opcode);
+
+    switch (event) {
+    case BFL_BLE_MESH_GENERIC_CLIENT_GET_STATE_EVT: {
+        switch (opcode) {
+        case BFL_BLE_MESH_MODEL_OP_GEN_ONOFF_GET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("GenOnOffClient:GetStatus,OK[%x]\n", param->status_cb.onoff_status.present_onoff);
+            } else {
+                vOutputString("GenOnOffClient:GetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+    case BFL_BLE_MESH_GENERIC_CLIENT_SET_STATE_EVT: {
+        switch (opcode) {
+        case BFL_BLE_MESH_MODEL_OP_GEN_ONOFF_SET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("GenOnOffClient:SetStatus,OK[%x]\n", param->status_cb.onoff_status.present_onoff);
+            } else {
+                vOutputString("GenOnOffClient:SetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+        case BFL_BLE_MESH_MODEL_OP_GEN_ONOFF_SET_UNACK:
+            if (param->error_code == BFL_OK) {
+                vOutputString("GenOnOffClient:SetUNACK,OK\n");
+            } else {
+                vOutputString("GenOnOffClient:SetUNACK,Fail[%x]\n", param->error_code);
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+    case BFL_BLE_MESH_GENERIC_CLIENT_PUBLISH_EVT: {
+        if (param->error_code == BFL_OK) {
+            vOutputString("GenOnOffClient:Publish,OK\n");
+        } else {
+            vOutputString("GenOnOffClient:Publish,Fail[%x]\n", param->error_code);
+        }
+        break;
+    }
+    case BFL_BLE_MESH_GENERIC_CLIENT_TIMEOUT_EVT:
+        vOutputString("GenOnOffClient:TimeOut[%x]\n", param->error_code);
+        break;
+    case BFL_BLE_MESH_GENERIC_CLIENT_EVT_MAX:
+        vOutputString("GenONOFFClient:InvalidEvt[%x]\n", param->error_code);
+        break;
+    default:
+        break;
+    }
+    vOutputString("exit %s \n", __func__);
+}
+
+
+static void blemesh_gen_oo_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int err = BFL_OK;
+
+    if(argc < 1){
+        vOutputString("Number of Parameters is not correct\r\n");
+        return;
+    }
+
+    bfl_ble_mesh_generic_client_set_state_t gen_client_set;
+    bfl_ble_mesh_generic_client_get_state_t gen_client_get;
+    bfl_ble_mesh_client_common_param_t onoff_common = {
+        .msg_timeout = 0,
+        .ctx.send_ttl = 7,
+        .model = NULL,
+    };
+
+    vOutputString("enter %s\n", __func__);
+
+	/*Get client model*/
+	for(int i = 0; i < sizeof(sig_models)/sizeof(struct bt_mesh_model); ++i){
+		if(sig_models[i].id == BFL_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI){
+			 onoff_common.model = &sig_models[i];
+		}
+	}
+	if(onoff_common.model == NULL){
+		vOutputString("Can't find gen onoff cli %s\n", __func__);
+		return;
+	}
+
+	if(argc > 6){
+	    /* appkey_index */
+	    get_uint16_from_string(&argv[2], &onoff_common.ctx.app_idx);
+	    /* opcode */
+	    get_uint32_from_string(&argv[3], &onoff_common.opcode);
+	    /* role */
+	    get_uint8_from_string(&argv[4], &onoff_common.msg_role);
+	    /* address */
+	    get_uint16_from_string(&argv[5], &onoff_common.ctx.addr);
+	    /* network key index */
+	    get_uint16_from_string(&argv[6], &onoff_common.ctx.net_idx);
+	}
+	if(argc > 11){
+	    /* op_en */
+	    uint8_t op_en_t;
+	    get_uint8_from_string(&argv[7], &op_en_t);
+		gen_client_set.onoff_set.op_en = op_en_t?true:false;
+
+	    /* onoff */
+	    get_uint8_from_string(&argv[8], &gen_client_set.onoff_set.onoff);
+	    /* tid */
+	    get_uint8_from_string(&argv[9], &gen_client_set.onoff_set.tid);
+	    /* trans_time */
+	    get_uint8_from_string(&argv[10], &gen_client_set.onoff_set.trans_time);
+	    /* delay */
+	    get_uint8_from_string(&argv[11], &gen_client_set.onoff_set.delay);
+	}
+
+    if (strcmp(argv[1], "get") == 0) {
+        err = bfl_ble_mesh_generic_client_get_state(&onoff_common, &gen_client_get);
+    } else if (strcmp(argv[1], "set") == 0) {
+        err = bfl_ble_mesh_generic_client_set_state(&onoff_common, &gen_client_set);
+    } else if (strcmp(argv[1], "reg") == 0) {
+        err = bfl_ble_mesh_register_generic_client_callback(ble_mesh_generic_onoff_client_model_cb);
+        if (err == BFL_OK) {
+            vOutputString("GenONOFFClient:Reg,OK\n");
+        }
+    }
+    vOutputString("exit %s\n", __func__);
+}
+#endif
+
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+void ble_mesh_light_client_model_cb(bfl_ble_mesh_light_client_cb_event_t event,
+        bfl_ble_mesh_light_client_cb_param_t *param)
+{
+	uint32_t opcode = param->params->opcode;
+
+    vOutputString("enter %s: event is %d, error code is %d, opcode is 0x%x\n",
+             __func__, event, param->error_code, opcode);
+
+    switch (event) {
+    case BFL_BLE_MESH_LIGHT_CLIENT_GET_STATE_EVT: {
+        switch (opcode) {
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_GET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light lightness Client:GetStatus,OK, ln[%x]ln_t[%x]\n"
+								, param->status_cb.lightness_status.present_lightness
+								, param->status_cb.lightness_status.target_lightness);
+            } else {
+                vOutputString("Light lightness Client:GetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_GET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light ctl Client:GetStatus,OK,ln[%x]ln_t[%x] tp[%x]tp_t[%x]\n",
+					param->status_cb.ctl_status.present_ctl_lightness,
+					param->status_cb.ctl_status.target_ctl_lightness,
+					param->status_cb.ctl_status.present_ctl_temperature,
+					param->status_cb.ctl_status.target_ctl_temperature);
+            } else {
+                vOutputString("Light ctl Client:GetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_GET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light hsl Client:GetStatus,OK,l[%x] h[%x] s[%x]\n",
+					param->status_cb.hsl_status.hsl_lightness,
+					param->status_cb.hsl_status.hsl_hue,
+					param->status_cb.hsl_status.hsl_saturation);
+            } else {
+                vOutputString("Light hsl Client:GetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+    case BFL_BLE_MESH_LIGHT_CLIENT_SET_STATE_EVT: {
+        switch (opcode) {
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_SET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light lightness Client:SetStatus,OK, ln[%x]ln_t[%x]\n"
+								, param->status_cb.lightness_status.present_lightness
+								, param->status_cb.lightness_status.target_lightness);
+            } else {
+                vOutputString("Light lightness Client:SetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_SET_UNACK:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light lightness Client:SetUNACK,OK\n");
+            } else {
+                vOutputString("Light lightness Client:SetUNACK,Fail[%x]\n", param->error_code);
+            }
+            break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_SET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light ctl Client:SetStatus,OK, ln[%x]ln_t[%x] tp[%x]tp_t[%x]\n", 
+					param->status_cb.ctl_status.present_ctl_lightness,
+					param->status_cb.ctl_status.target_ctl_lightness,
+					param->status_cb.ctl_status.present_ctl_temperature,
+					param->status_cb.ctl_status.target_ctl_temperature);
+            } else {
+                vOutputString("Light ctl Client:SetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_SET_UNACK:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light ctl Client:SetUNACK,OK\n");
+            } else {
+                vOutputString("Light ctl Client:SetUNACK,Fail[%x]\n", param->error_code);
+            }
+            break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_SET:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light hsl Client:SetStatus,OK, l[%x] h[%x] s[%x]\n", 
+					param->status_cb.hsl_status.hsl_lightness,
+					param->status_cb.hsl_status.hsl_hue,
+					param->status_cb.hsl_status.hsl_saturation);
+            } else {
+                vOutputString("Light ctl Client:SetStatus,Fail[%x]\n", param->error_code);
+            }
+            break;
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_SET_UNACK:
+            if (param->error_code == BFL_OK) {
+                vOutputString("Light hsl Client:SetUNACK,OK\n");
+            } else {
+                vOutputString("Light hsl Client:SetUNACK,Fail[%x]\n", param->error_code);
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+    case BFL_BLE_MESH_LIGHT_CLIENT_PUBLISH_EVT: {
+		switch (opcode) {
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_GET:
+	        if (param->error_code == BFL_OK) {
+	            vOutputString("Light lightness Client:Publish,OK\n");
+	        } else {
+	            vOutputString("Light lightness Client:Publish,Fail[%x]\n", param->error_code);
+	        }
+			break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_GET:
+	        if (param->error_code == BFL_OK) {
+	            vOutputString("Light ctl Client:Publish,OK\n");
+	        } else {
+	            vOutputString("Light ctl Client:Publish,Fail[%x]\n", param->error_code);
+	        }
+			break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_GET:
+	        if (param->error_code == BFL_OK) {
+	            vOutputString("Light hsl Client:Publish,OK\n");
+	        } else {
+	            vOutputString("Light hsl Client:Publish,Fail[%x]\n", param->error_code);
+	        }
+			break;
+		default:
+        	break;
+		}
+		break;
+    }
+    case BFL_BLE_MESH_LIGHT_CLIENT_TIMEOUT_EVT:{
+		switch (opcode) {
+        case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_GET:
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_SET:
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_LIGHTNESS_SET_UNACK:
+        	vOutputString("Light lightness Client:TimeOut[%x]\n", param->error_code);
+			break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_GET:
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_SET:
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_CTL_SET_UNACK:
+        	vOutputString("Light ctl Client:TimeOut[%x]\n", param->error_code);
+			break;
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_GET:
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_SET:
+		case BFL_BLE_MESH_MODEL_OP_LIGHT_HSL_SET_UNACK:
+        	vOutputString("Light hsl Client:TimeOut[%x]\n", param->error_code);
+			break;
+		default:
+			break;
+		}
+        break;
+    }
+    case BFL_BLE_MESH_LIGHT_CLIENT_EVT_MAX:{
+        vOutputString("InvalidEvt, Opcode[%x] [%x]\n", opcode, param->error_code);
+        break;
+    }
+    default:
+        break;
+    }
+    vOutputString("exit %s \n", __func__);
+}
+
+static void blemesh_light_lgn_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int err = BFL_OK;
+
+    if(argc < 1){
+        vOutputString("Number of Parameters is not correct\r\n");
+        return;
+    }
+
+    bfl_ble_mesh_light_client_set_state_t light_client_set;
+    bfl_ble_mesh_light_client_get_state_t light_client_get;
+    bfl_ble_mesh_client_common_param_t lgn_common = {
+        .msg_timeout = 0,
+        .ctx.send_ttl = 7,
+        .model = NULL,
+    };
+
+    vOutputString("enter %s\n", __func__);
+
+	/*Get client model*/
+	for(int i = 0; i < sizeof(sig_models)/sizeof(struct bt_mesh_model); ++i){
+		if(sig_models[i].id == BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_CLI){
+			 lgn_common.model = &sig_models[i];
+		}
+	}
+	if(lgn_common.model == NULL){
+		vOutputString("Can't find light ligntness cli %s\n", __func__);
+		return;
+	}
+
+	if(argc > 6){
+	    /* appkey_index */
+	    get_uint16_from_string(&argv[2], &lgn_common.ctx.app_idx);
+	    /* opcode */
+	    get_uint32_from_string(&argv[3], &lgn_common.opcode);
+	    /* role */
+	    get_uint8_from_string(&argv[4], &lgn_common.msg_role);
+	    /* address */
+	    get_uint16_from_string(&argv[5], &lgn_common.ctx.addr);
+	    /* network key index */
+	    get_uint16_from_string(&argv[6], &lgn_common.ctx.net_idx);
+	}
+	if(argc > 11){
+	    /* op_en */
+	    uint8_t op_en_t;
+	    get_uint8_from_string(&argv[7], &op_en_t);
+		light_client_set.lightness_set.op_en = op_en_t?true:false;
+
+	    /* lightness */
+	    get_uint16_from_string(&argv[8], &light_client_set.lightness_set.lightness);
+	    /* tid */
+	    get_uint8_from_string(&argv[9], &light_client_set.lightness_set.tid);
+	    /* trans_time */
+	    get_uint8_from_string(&argv[10], &light_client_set.lightness_set.trans_time);
+	    /* delay */
+	    get_uint8_from_string(&argv[11], &light_client_set.lightness_set.delay);
+	}
+
+    if (strcmp(argv[1], "get") == 0) {
+        err = bfl_ble_mesh_light_client_get_state(&lgn_common, &light_client_get);
+    } else if (strcmp(argv[1], "set") == 0) {
+        err = bfl_ble_mesh_light_client_set_state(&lgn_common, &light_client_set);
+    } else if (strcmp(argv[1], "reg") == 0) {
+        err = bfl_ble_mesh_register_light_client_callback(ble_mesh_light_client_model_cb);
+        if (err == BFL_OK) {
+            vOutputString("Light lightness client:Reg,OK\n");
+        }
+    }
+    vOutputString("exit %s\n", __func__);
+}
+
+static void blemesh_light_ctl_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int err = BFL_OK;
+
+	if(argc < 1){
+		vOutputString("Number of Parameters is not correct\r\n");
+		return;
+	}
+
+	bfl_ble_mesh_light_client_set_state_t light_client_set;
+	bfl_ble_mesh_light_client_get_state_t light_client_get;
+	bfl_ble_mesh_client_common_param_t ctl_common = {
+		.msg_timeout = 0,
+		.ctx.send_ttl = 7,
+		.model = NULL,
+	};
+
+	vOutputString("enter %s\n", __func__);
+
+	/*Get client model*/
+	for(int i = 0; i < sizeof(sig_models)/sizeof(struct bt_mesh_model); ++i){
+		if(sig_models[i].id == BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_CLI){
+			 ctl_common.model = &sig_models[i];
+		}
+	}
+	if(ctl_common.model == NULL){
+		vOutputString("Can't find light ctl cli %s\n", __func__);
+		return;
+	}
+
+	if(argc > 6){
+		/* appkey_index */
+		get_uint16_from_string(&argv[2], &ctl_common.ctx.app_idx);
+		/* opcode */
+		get_uint32_from_string(&argv[3], &ctl_common.opcode);
+		/* role */
+		get_uint8_from_string(&argv[4], &ctl_common.msg_role);
+		/* address */
+		get_uint16_from_string(&argv[5], &ctl_common.ctx.addr);
+		/* network key index */
+		get_uint16_from_string(&argv[6], &ctl_common.ctx.net_idx);
+	}
+	if(argc > 13){
+		/* op_en */
+		uint8_t op_en_t;
+		get_uint8_from_string(&argv[7], &op_en_t);
+		light_client_set.ctl_set.op_en = op_en_t?true:false;
+
+		/* onoff */
+		get_uint16_from_string(&argv[8], &light_client_set.ctl_set.ctl_lightness);
+
+		get_uint16_from_string(&argv[9], &light_client_set.ctl_set.ctl_temperatrue);
+
+		get_uint16_from_string(&argv[10], (uint16_t*)&light_client_set.ctl_set.ctl_delta_uv);
+		/* tid */
+		get_uint8_from_string(&argv[11], &light_client_set.ctl_set.tid);
+		/* trans_time */
+		get_uint8_from_string(&argv[12], &light_client_set.ctl_set.trans_time);
+		/* delay */
+		get_uint8_from_string(&argv[13], &light_client_set.ctl_set.delay);
+	}
+
+	if (strcmp(argv[1], "get") == 0) {
+		err = bfl_ble_mesh_light_client_get_state(&ctl_common, &light_client_get);
+	} else if (strcmp(argv[1], "set") == 0) {
+		err = bfl_ble_mesh_light_client_set_state(&ctl_common, &light_client_set);
+	} else if (strcmp(argv[1], "reg") == 0) {
+		err = bfl_ble_mesh_register_light_client_callback(ble_mesh_light_client_model_cb);
+		if (err == BFL_OK) {
+			vOutputString("Light lightness client:Reg,OK\n");
+		}
+	}
+	vOutputString("exit %s\n", __func__);
+}
+
+static void blemesh_light_hsl_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int err = BFL_OK;
+
+	if(argc < 1){
+		vOutputString("Number of Parameters is not correct\n");
+		return;
+	}
+
+	bfl_ble_mesh_light_client_set_state_t light_client_set;
+	bfl_ble_mesh_light_client_get_state_t light_client_get;
+	bfl_ble_mesh_client_common_param_t hsl_common = {
+		.msg_timeout = 0,
+		.ctx.send_ttl = 7,
+		.model = NULL,
+	};
+
+	vOutputString("enter %s\n", __func__);
+
+	/*Get client model*/
+	for(int i = 0; i < sizeof(sig_models)/sizeof(struct bt_mesh_model); ++i){
+		if(sig_models[i].id == BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_CLI){
+			 hsl_common.model = &sig_models[i];
+		}
+	}
+	if(hsl_common.model == NULL){
+		vOutputString("Can't find light ligntness cli %s\n", __func__);
+		return;
+	}
+
+	if(argc > 6){
+		/* appkey_index */
+		get_uint16_from_string(&argv[2], &hsl_common.ctx.app_idx);
+		/* opcode */
+		get_uint32_from_string(&argv[3], &hsl_common.opcode);
+		/* role */
+		get_uint8_from_string(&argv[4], &hsl_common.msg_role);
+		/* address */
+		get_uint16_from_string(&argv[5], &hsl_common.ctx.addr);
+		/* network key index */
+		get_uint16_from_string(&argv[6], &hsl_common.ctx.net_idx);
+	}
+	if(argc > 13){
+		/* op_en */
+		uint8_t op_en_t;
+		get_uint8_from_string(&argv[7], &op_en_t);
+		light_client_set.hsl_set.op_en = op_en_t?true:false;
+
+		/* onoff */
+		get_uint16_from_string(&argv[8], &light_client_set.hsl_set.hsl_lightness);
+		get_uint16_from_string(&argv[9], &light_client_set.hsl_set.hsl_hue);
+		get_uint16_from_string(&argv[10], &light_client_set.hsl_set.hsl_saturation);
+		/* tid */
+		get_uint8_from_string(&argv[11], &light_client_set.hsl_set.tid);
+		/* trans_time */
+		get_uint8_from_string(&argv[12], &light_client_set.hsl_set.trans_time);
+		/* delay */
+		get_uint8_from_string(&argv[13], &light_client_set.hsl_set.delay);
+	}
+
+	if (strcmp(argv[1], "get") == 0) {
+		err = bfl_ble_mesh_light_client_get_state(&hsl_common, &light_client_get);
+	} else if (strcmp(argv[1], "set") == 0) {
+		err = bfl_ble_mesh_light_client_set_state(&hsl_common, &light_client_set);
+	} else if (strcmp(argv[1], "reg") == 0) {
+		err = bfl_ble_mesh_register_light_client_callback(ble_mesh_light_client_model_cb);
+		if (err == BFL_OK) {
+			vOutputString("Light lightness client:Reg,OK\n");
+		}
+	}
+	vOutputString("exit %s\n", __func__);
+}
+#endif
+
 
 static int input(bt_mesh_input_action_t act, u8_t size)
 {

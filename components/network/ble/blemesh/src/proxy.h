@@ -5,6 +5,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef __PROXY_H__
+#define __PROXY_H__
 
 #define BT_MESH_PROXY_NET_PDU   0x00
 #define BT_MESH_PROXY_BEACON    0x01
@@ -35,3 +37,5 @@ bool bt_mesh_proxy_relay(struct net_buf_simple *buf, u16_t dst);
 void bt_mesh_proxy_addr_add(struct net_buf_simple *buf, u16_t addr);
 
 int bt_mesh_proxy_init(void);
+
+#endif /*__PROXY_H__*/

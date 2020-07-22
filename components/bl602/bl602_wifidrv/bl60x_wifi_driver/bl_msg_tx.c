@@ -840,7 +840,7 @@ int bl_send_mm_powersaving_req(struct bl_hw *bl_hw, int mode)
     return bl_send_msg(bl_hw, req, 1, MM_SET_PS_MODE_CFM, NULL);
 }
 
-int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *ssid, char *password, int channel, uint8_t vif_index)
+int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid)
 {
     struct apm_start_req *req;
     uint8_t rate[] = {0x82,0x84,0x8b,0x96,0x12,0x24,0x48,0x6c,0x0c,0x18,0x30,0x60};
@@ -863,6 +863,7 @@ int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *
     req->center_freq1 = req->chan.freq;
     req->center_freq2 = 0;
     req->ch_width = PHY_CHNL_BW_20;
+    req->hidden_ssid = hidden_ssid;
     req->bcn_addr = 0;
     req->bcn_len = 0;
     req->tim_oft = 0;
@@ -901,7 +902,7 @@ int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *
     req->ssid.length = strlen(ssid);
     req->rate_set.length = 12;
     memcpy(req->rate_set.array, rate, req->rate_set.length);
-    req->beacon_period = 0x64;
+    req->beacon_period = 0x1; //force AP DTIM period
     req->qos_supported = 1;
 #endif
 
@@ -946,6 +947,23 @@ int bl_send_apm_sta_del_req(struct bl_hw *bl_hw, struct apm_sta_del_cfm *cfm, ui
 
     /* Send the APM_STA_DEL_REQ message to LMAC FW */
     return bl_send_msg(bl_hw, req, 1, APM_STA_DEL_CFM, cfm);
+}
+
+int bl_send_apm_conf_max_sta_req(struct bl_hw *bl_hw, uint8_t max_sta_supported)
+{
+    struct apm_conf_max_sta_req *req;
+
+    /* Build the APM_STOP_REQ message */
+    req = bl_msg_zalloc(APM_CONF_MAX_STA_REQ, TASK_APM, DRV_TASK_ID, sizeof(struct apm_conf_max_sta_req));
+    if (!req) {
+        return -ENOMEM;
+    }
+
+    /* Set parameters for the APM_STOP_REQ message */
+    req->max_sta_supported = max_sta_supported;
+
+    /* Send the APM_STOP_REQ message to LMAC FW */
+    return bl_send_msg(bl_hw, req, 1, APM_CONF_MAX_STA_CFM, NULL);
 }
 
 int bl_send_channel_set_req(struct bl_hw *bl_hw, int channel)

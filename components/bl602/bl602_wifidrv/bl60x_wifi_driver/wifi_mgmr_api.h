@@ -51,12 +51,14 @@ typedef struct
 
 int wifi_mgmr_api_connect(char *ssid, char *psk, char *pmk, uint8_t *mac, uint8_t band, uint16_t freq);
 int wifi_mgmr_api_ip_got(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns1, uint32_t dns2);
+int wifi_mgmr_api_ip_update(void);
 int wifi_mgmr_api_reconnect(void);
 int wifi_mgmr_api_disconnect(void);
 int wifi_mgmr_api_rate_config(uint16_t config);
+int wifi_mgmr_api_conf_max_sta(uint8_t max_sta_supported);
 int wifi_mgmr_api_ifaceup(void);
 int wifi_mgmr_api_sniffer_enable(void);
-int wifi_mgmr_api_ap_start(char *ssid, char *passwd, int channel);
+int wifi_mgmr_api_ap_start(char *ssid, char *passwd, int channel, uint8_t hidden_ssid);
 int wifi_mgmr_api_ap_stop(void);
 int wifi_mgmr_api_idle(void);
 int wifi_mgmr_api_channel_set(int channel, int use_40Mhz);

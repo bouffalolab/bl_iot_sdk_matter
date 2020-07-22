@@ -27,7 +27,6 @@ ble_stack_srcs_include_dirs    += src/port/include \
 								src/common/include \
 								src/common/include/zephyr  \
 								src/common/include/misc  \
-								src/common/include/common  \
 								src/common/include/toolchain \
 								src/common/tinycrypt/include/tinycrypt  \
 								src/hci_onchip   \

@@ -67,6 +67,7 @@ typedef enum WIFI_MGMR_EVENT {
     WIFI_MGMR_EVENT_APP_PHY_UP,
     WIFI_MGMR_EVENT_APP_AP_START,
     WIFI_MGMR_EVENT_APP_AP_STOP,
+    WIFI_MGMR_EVENT_APP_CONF_MAX_STA,
     WIFI_MGMR_EVENT_APP_RC_CONFIG,
 
     /*boundary between APP and FW*/
@@ -91,6 +92,7 @@ typedef enum WIFI_MGMR_EVENT {
     WIFI_MGMR_EVENT_GLB_AP_IND_STA_DEL,
     WIFI_MGMR_EVENT_GLB_DISABLE_AUTORECONNECT,
     WIFI_MGMR_EVENT_GLB_ENABLE_AUTORECONNECT,
+    WIFI_MGMR_EVENT_GLB_IP_UPDATE,
 
 } WIFI_MGMR_EVENT_T;
 
@@ -139,6 +141,7 @@ typedef struct wifi_mgmr_ap_msg {
     int32_t channel;
     char ssid[32];
     char ssid_tail[1];
+    uint8_t hidden_ssid;
     uint32_t ssid_len;
     char psk[32];
     char psk_tail[1];
@@ -193,6 +196,13 @@ struct wlan_netif {
     int mode;//0: sta; 1: ap
     uint8_t vif_index;
     uint8_t mac[6];
+    struct {
+        uint32_t ip;
+        uint32_t mask;
+        uint32_t gw;
+        uint32_t dns1;
+        uint32_t dns2;
+    } ipv4;
     struct netif netif;
     union {
         struct {
@@ -250,6 +260,13 @@ typedef struct wifi_mgmr {
     /*pending task*/
     uint32_t pending_task;
 #define WIFI_MGMR_PENDING_TASK_SCAN_BIT     (1 << 0)
+    /*Feature Bits*/
+    uint32_t features;
+#define WIFI_MGMR_FEATURES_SCAN_SAVE_HIDDEN_SSID    (1 << 0)
+
+    /*Manager config*/
+    int scan_item_timeout;
+#define WIFI_MGMR_CONFIG_SCAN_ITEM_TIMEOUT      (15000)
 } wifi_mgmr_t;
 
 int wifi_mgmr_event_notify(wifi_mgmr_msg_t *msg);
@@ -263,4 +280,9 @@ int wifi_mgmr_scan_complete_notify();
 extern wifi_mgmr_t wifiMgmr;
 char *wifi_mgmr_auth_to_str(uint8_t auth);
 char *wifi_mgmr_cipher_to_str(uint8_t cipher);
+
+static inline int wifi_mgmr_scan_item_is_timeout(wifi_mgmr_t *mgmr, wifi_mgmr_scan_item_t *item)
+{
+    return ((unsigned int)os_tick_get() - (unsigned int)item->timestamp_lastseen) >= mgmr->scan_item_timeout ? 1 : 0;
+}
 #endif

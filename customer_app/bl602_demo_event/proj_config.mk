@@ -31,10 +31,6 @@ CONFIG_ENABLE_PSM_EF_SIZE:=16K
 CONFIG_FREERTOS_TICKLESS_MODE:=0
 
 CONFIG_BT:=1
-CONFIG_BT_STACK_CLI:=1
-CONFIG_BT_MESH?=1
-CONFIG_BT_MESH_MODEL_GEN_SRV?=1
-CONFIG_BLE_TP_SERVER?=1
 
 #blog enable components format :=blog_testc cli vfs helper
 LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop blestack

@@ -43,6 +43,7 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/bl_pds.c \
                   bl602_hal/hal_pds.c \
                   bl602_hal/bl_rtc.c \
+                  bl602_hal/hal_hwtimer.c \
 
 COMPONENT_SRCDIRS := bl602_hal
 

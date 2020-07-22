@@ -138,13 +138,18 @@ static void netif_status_callback(struct netif *netif)
                 "  IP: %s\r\n", ip4addr_ntoa(netif_ip4_addr(netif)));
     os_printf("  MK: %s\r\n", ip4addr_ntoa(netif_ip4_netmask(netif)));
     os_printf("  GW: %s\r\n", ip4addr_ntoa(netif_ip4_gw(netif)));
-    wifi_mgmr_api_ip_got(
-        netif_ip4_addr(netif)->addr,
-        netif_ip4_netmask(netif)->addr,
-        netif_ip4_gw(netif)->addr,
-        ((const ip4_addr_t*)ip_2_ip4(dns_getserver(0)))->addr,
-        ((const ip4_addr_t*)ip_2_ip4(dns_getserver(1)))->addr
-    );
+    if (ip4_addr_isany(netif_ip4_addr(netif))) {
+        os_printf(" SKIP Notify for set Empty Address\r\n");
+    } else {
+        wifi_mgmr_api_ip_update();
+        wifi_mgmr_api_ip_got(
+            netif_ip4_addr(netif)->addr,
+            netif_ip4_netmask(netif)->addr,
+            netif_ip4_gw(netif)->addr,
+            ((const ip4_addr_t*)ip_2_ip4(dns_getserver(0)))->addr,
+            ((const ip4_addr_t*)ip_2_ip4(dns_getserver(1)))->addr
+        );
+    }
 }
 
 err_t bl606a0_wifi_netif_init(struct netif *netif)

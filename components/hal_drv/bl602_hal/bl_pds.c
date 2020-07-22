@@ -434,6 +434,9 @@ void ATTR_TCM_SECTION bl_pds_enter(uint32_t pdsLevel, uint32_t pdsSleepCycles)
         return;
     }
     
+    // Disable global interrupt
+    __disable_irq();
+    
     // Disable GPIO7 pull up/down to reduce PDS current, 0x4000F014[16]=0
     HBN_Hw_Pu_Pd_Cfg(DISABLE);
     
@@ -447,9 +450,6 @@ void ATTR_TCM_SECTION bl_pds_enter(uint32_t pdsLevel, uint32_t pdsSleepCycles)
     SEC_Eng_Turn_Off_Sec_Ring();
 #endif
     Sec_Eng_Trng_Disable();
-    
-    // Disable global interrupt before flash power down
-    __disable_irq();
     
     // Power down flash
     SF_Ctrl_Set_Owner(SF_CTRL_OWNER_SAHB);
@@ -489,9 +489,6 @@ void ATTR_TCM_SECTION bl_pds_enter(uint32_t pdsLevel, uint32_t pdsSleepCycles)
     SF_Ctrl_Set_Owner(SF_CTRL_OWNER_SAHB);
     SFlash_Restore_From_Powerdown(&flashCfg, flashContRead);
     
-    // Enable global interrupt
-    __enable_irq();
-    
     // Enable TRNG
 #if IS_ECO_VERSION == 0
     SEC_Eng_Turn_Off_Sec_Ring();
@@ -505,4 +502,7 @@ void ATTR_TCM_SECTION bl_pds_enter(uint32_t pdsLevel, uint32_t pdsSleepCycles)
     
     // Enable GPIO7 pull up/down, 0x4000F014[16]=1
     HBN_Hw_Pu_Pd_Cfg(ENABLE);
+    
+    // Enable global interrupt
+    __enable_irq();
 }

@@ -16,7 +16,7 @@ SECTIONS
 {
   __stack_size = DEFINED(__stack_size) ? __stack_size : 2K;
   BOOT2_PT_ADDR = 0x42049C00;
-  BOOT2_FLASHCFG_ADDR = 0x42049d14;
+  BOOT2_FLASHCFG_ADDR = 0x42049c18;
 
   .init           :
   {
@@ -34,8 +34,7 @@ SECTIONS
   .rodata         :
   {
     *(.rdata)
-    *(EXCLUDE_FILE(*bl602_glb.o *bl602_pds.o) .rodata)
-    *(EXCLUDE_FILE(*bl602_glb.o *bl602_pds.o) .rodata*)
+    *(.rodata .rodata.*)
     *(.sdata2.*)
 
     /* static cli cmds */
@@ -105,8 +104,6 @@ SECTIONS
     *(.tcm_const)
     *(.sclock_rlt_code)
     *(.sclock_rlt_const)
-    KEEP(*bl602_glb.o(.rodata .rodata*))
-    KEEP(*bl602_pds.o(.rodata .rodata*))
     *(.data .data.*)
     *(.gnu.linkonce.d.*)
 

@@ -35,6 +35,7 @@
 #include <clic.h>
 #include <blog.h>
 #include "bl_irq.h"
+#include <panic.h>
 
 void bl_irq_enable(unsigned int source)
 {
@@ -141,6 +142,14 @@ void bl_irq_register_with_ctx(int irqnum, void *handler, void *ctx)
 
     return;
     
+}
+
+void bl_irq_ctx_get(int irqnum, void **ctx)
+{
+    _irq_num_check(irqnum);
+    *ctx = handler_list[1][irqnum];
+
+    return;
 }
 
 void bl_irq_register(int irqnum, void *handler)
@@ -289,17 +298,30 @@ static void __dump_exception_code_str(uint32_t code)
     }
 }
 
-void exception_entry(uint32_t mcause, uint32_t mepc, uint32_t mtval)
+extern void misaligned_load_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc);
+extern void misaligned_store_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc);
+
+#define EXCPT_LOAD_MISALIGNED        4
+#define EXCPT_STORE_MISALIGNED       6
+
+void exception_entry(uint32_t mcause, uint32_t mepc, uint32_t mtval, uintptr_t *regs)
 {
-    puts("Exception Entry--->>>\r\n");
-    printf("mcause %08lx, mepc %08lx, mtval %08lx\r\n",
-        mcause,
-        mepc,
-        mtval
-    );
-    __dump_exception_code_str(mcause & 0xFFFF);
-    while (1) {
-        /*Deap loop now*/
+    if ((mcause & 0x3ff) == EXCPT_LOAD_MISALIGNED){
+        misaligned_load_trap(regs, mcause, mepc);
+    } else if ((mcause & 0x3ff) == EXCPT_STORE_MISALIGNED){
+        misaligned_store_trap(regs, mcause, mepc);
+    } else {
+        puts("Exception Entry--->>>\r\n");
+        printf("mcause %08lx, mepc %08lx, mtval %08lx\r\n",
+            mcause,
+            mepc,
+            mtval
+        );
+        __dump_exception_code_str(mcause & 0xFFFF);
+        backtrace_now((int (*)(const char *fmt, ...))printf, regs);
+        while (1) {
+            /*Deap loop now*/
+        }
     }
 }
 

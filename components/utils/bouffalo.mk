@@ -17,6 +17,7 @@ COMPONENT_SRCS := src/utils_hex.c \
                   src/utils_hexdump.c \
                   src/utils_time.c \
                   src/utils_notifier.c \
+                  src/utils_getopt.c \
 
 
 COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))

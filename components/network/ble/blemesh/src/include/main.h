@@ -21,6 +21,9 @@
 extern "C" {
 #endif
 
+#include "include/access.h"
+
+
 typedef enum {
 	BT_MESH_NO_OUTPUT       = 0,
 	BT_MESH_BLINK           = BIT(0),
@@ -174,6 +177,13 @@ struct bt_mesh_prov {
 	 *  unprovisioned advertising on one or more provisioning bearers.
 	 */
 	void        (*reset)(void);
+};
+
+enum ble_mesh_role {
+    NODE = 0,
+    PROVISIONER,
+    FAST_PROV,
+    ROLE_NVAL,
 };
 
 /** @brief Provide provisioning input OOB string.

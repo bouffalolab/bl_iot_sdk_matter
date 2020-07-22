@@ -1920,10 +1920,18 @@ enum apm_msg_tag
     APM_STA_ADD_IND,
     /// Nofity host that a station has left the network
     APM_STA_DEL_IND,
+    /// Check sta connect timeout
+    APM_STA_CONNECT_TIMEOUT_IND,
+
     /// Request to delete STA
     APM_STA_DEL_REQ,
     /// Confirmation of delete STA
     APM_STA_DEL_CFM,
+
+    /// CONF MAX STA Request
+    APM_CONF_MAX_STA_REQ,
+    /// CONF MAX STA Confirm
+    APM_CONF_MAX_STA_CFM,
 
     /// MAX number of messages
     APM_MAX,
@@ -1942,6 +1950,8 @@ struct apm_start_req
     u32_l center_freq2;
     /// Width of channel
     u8_l ch_width;
+    /// Hidden ssid
+    u8_l hidden_ssid;
     /// Address, in host memory, to the beacon template
     u32_l bcn_addr;
     /// Length of the beacon template
@@ -1992,6 +2002,13 @@ struct apm_stop_req
 {
     /// Index of the VIF for which the AP has to be stopped
     u8_l vif_idx;
+};
+
+/// Structure containing the parameters of the @ref APM_CONF_MAX_STA_REQ message.
+struct apm_conf_max_sta_req
+{
+    /// max Stattion supported
+    u8_l max_sta_supported;
 };
 
 struct apm_sta_del_req

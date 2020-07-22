@@ -27,6 +27,19 @@
 #include "access.h"
 #include "foundation.h"
 
+#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+#include "generic_client.h"
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
+#include "generic_server.h"
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+#include "lighting_client.h"
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+#include "lighting_server.h"
+#endif
+
 static const struct bt_mesh_comp *dev_comp;
 static u16_t dev_primary_addr;
 
@@ -41,6 +54,54 @@ static const struct {
 #endif
 #if defined(CONFIG_BT_MESH_HEALTH_CLI)
 	{ BT_MESH_MODEL_ID_HEALTH_CLI, bt_mesh_health_cli_init },
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
+    { BT_MESH_MODEL_ID_GEN_ONOFF_CLI,             bt_mesh_gen_onoff_cli_init             },
+    { BT_MESH_MODEL_ID_GEN_LEVEL_CLI,             bt_mesh_gen_level_cli_init             },
+    { BT_MESH_MODEL_ID_GEN_DEF_TRANS_TIME_CLI,    bt_mesh_gen_def_trans_time_cli_init    },
+    { BT_MESH_MODEL_ID_GEN_POWER_ONOFF_CLI,       bt_mesh_gen_pwr_onoff_cli_init         },
+    { BT_MESH_MODEL_ID_GEN_POWER_LEVEL_CLI,       bt_mesh_gen_pwr_level_cli_init         },
+    { BT_MESH_MODEL_ID_GEN_BATTERY_CLI,           bt_mesh_gen_battery_cli_init           },
+    { BT_MESH_MODEL_ID_GEN_LOCATION_CLI,          bt_mesh_gen_location_cli_init          },
+    { BT_MESH_MODEL_ID_GEN_PROP_CLI,              bt_mesh_gen_property_cli_init          },
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
+    { BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_CLI,       bt_mesh_light_lightness_cli_init       },
+    { BT_MESH_MODEL_ID_LIGHT_CTL_CLI,             bt_mesh_light_ctl_cli_init             },
+    { BT_MESH_MODEL_ID_LIGHT_HSL_CLI,             bt_mesh_light_hsl_cli_init             },
+    { BT_MESH_MODEL_ID_LIGHT_XYL_CLI,             bt_mesh_light_xyl_cli_init             },
+    { BT_MESH_MODEL_ID_LIGHT_LC_CLI,              bt_mesh_light_lc_cli_init              },
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
+    { BT_MESH_MODEL_ID_GEN_ONOFF_SRV,             bt_mesh_gen_onoff_srv_init             },
+    { BT_MESH_MODEL_ID_GEN_LEVEL_SRV,             bt_mesh_gen_level_srv_init             },
+    { BT_MESH_MODEL_ID_GEN_DEF_TRANS_TIME_SRV,    bt_mesh_gen_def_trans_time_srv_init    },
+    { BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,       bt_mesh_gen_power_onoff_srv_init       },
+    { BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV, bt_mesh_gen_power_onoff_setup_srv_init },
+    { BT_MESH_MODEL_ID_GEN_POWER_LEVEL_SRV,       bt_mesh_gen_power_level_srv_init       },
+    { BT_MESH_MODEL_ID_GEN_POWER_LEVEL_SETUP_SRV, bt_mesh_gen_power_level_setup_srv_init },
+    { BT_MESH_MODEL_ID_GEN_BATTERY_SRV,           bt_mesh_gen_battery_srv_init           },
+    { BT_MESH_MODEL_ID_GEN_LOCATION_SRV,          bt_mesh_gen_location_srv_init          },
+    { BT_MESH_MODEL_ID_GEN_LOCATION_SETUP_SRV,    bt_mesh_gen_location_setup_srv_init    },
+    { BT_MESH_MODEL_ID_GEN_USER_PROP_SRV,         bt_mesh_gen_user_prop_srv_init         },
+    { BT_MESH_MODEL_ID_GEN_ADMIN_PROP_SRV,        bt_mesh_gen_admin_prop_srv_init        },
+    { BT_MESH_MODEL_ID_GEN_MANUFACTURER_PROP_SRV, bt_mesh_gen_manu_prop_srv_init         },
+    { BT_MESH_MODEL_ID_GEN_CLIENT_PROP_SRV,       bt_mesh_gen_client_prop_srv_init       },
+#endif
+#if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
+    { BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,       bt_mesh_light_lightness_srv_init       },
+    { BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV, bt_mesh_light_lightness_setup_srv_init },
+    { BT_MESH_MODEL_ID_LIGHT_CTL_SRV,             bt_mesh_light_ctl_srv_init             },
+    { BT_MESH_MODEL_ID_LIGHT_CTL_SETUP_SRV,       bt_mesh_light_ctl_setup_srv_init       },
+    { BT_MESH_MODEL_ID_LIGHT_CTL_TEMP_SRV,        bt_mesh_light_ctl_temp_srv_init        },
+    { BT_MESH_MODEL_ID_LIGHT_HSL_SRV,             bt_mesh_light_hsl_srv_init             },
+    { BT_MESH_MODEL_ID_LIGHT_HSL_HUE_SRV,         bt_mesh_light_hsl_hue_srv_init         },
+    { BT_MESH_MODEL_ID_LIGHT_HSL_SAT_SRV,         bt_mesh_light_hsl_sat_srv_init         },
+    { BT_MESH_MODEL_ID_LIGHT_HSL_SETUP_SRV,       bt_mesh_light_hsl_setup_srv_init       },
+    { BT_MESH_MODEL_ID_LIGHT_XYL_SRV,             bt_mesh_light_xyl_srv_init             },
+    { BT_MESH_MODEL_ID_LIGHT_XYL_SETUP_SRV,       bt_mesh_light_xyl_setup_srv_init       },
+    { BT_MESH_MODEL_ID_LIGHT_LC_SRV,              bt_mesh_light_lc_srv_init              },
+    { BT_MESH_MODEL_ID_LIGHT_LC_SETUP_SRV,        bt_mesh_light_lc_setup_srv_init        },
 #endif
 };
 
@@ -580,6 +641,18 @@ void bt_mesh_model_recv(struct bt_mesh_net_rx *rx, struct net_buf_simple *buf)
 				       opcode);
 				continue;
 			}
+
+	        /* The following three operations are added by Espressif.
+	         * 1. Update the "recv_op" with the opcode got from the buf;
+	         * 2. Update the model pointer with the found model;
+	         * 3. Update the "srv_send" to be true when received a message.
+	         *    This flag will be used when a server model sends a status
+	         *    message, and has no impact on the client messages.
+	         * Most of these info will be used by the application layer.
+	         */
+	        rx->ctx.recv_op = opcode;
+	        rx->ctx.model = model;
+	        rx->ctx.srv_send = true;
 
 			/* The callback will likely parse the buffer, so
 			 * store the parsing state in case multiple models

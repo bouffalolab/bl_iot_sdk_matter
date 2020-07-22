@@ -333,14 +333,14 @@ int bl_main_if_add(int is_sta, struct netif *netif, uint8_t *vif_index)
     return error;
 }
 
-int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index)
+int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid)
 {
     int error = 0;
     struct apm_start_cfm start_ap_cfm;
 
     memset(&start_ap_cfm, 0, sizeof(start_ap_cfm));
     os_printf("[WF] APM_START_REQ Sending with vif_index %u\r\n", vif_index);
-    error = bl_send_apm_start_req(&wifi_hw, &start_ap_cfm, ssid, password, channel, vif_index);
+    error = bl_send_apm_start_req(&wifi_hw, &start_ap_cfm, ssid, password, channel, vif_index, hidden_ssid);
     os_printf("[WF] APM_START_REQ Done\r\n");
     os_printf("[WF] status is %02X\r\n", start_ap_cfm.status);
     os_printf("[WF] vif_idx is %02X\r\n", start_ap_cfm.vif_idx);
@@ -443,6 +443,11 @@ int bl_main_apm_remove_all_sta()
         }
     }
     return 0;
+}
+
+int bl_main_conf_max_sta(uint8_t max_sta_supported)
+{
+    return bl_send_apm_conf_max_sta_req(&wifi_hw, max_sta_supported);
 }
 
 int bl_main_scan()

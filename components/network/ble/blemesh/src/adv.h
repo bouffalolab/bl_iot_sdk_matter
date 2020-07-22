@@ -5,6 +5,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef __ADV_H__
+#define __ADV_H__
 
 /* Maximum advertising data payload for a single data type */
 #define BT_MESH_ADV_DATA_SIZE 29
@@ -64,3 +66,5 @@ void bt_mesh_adv_init(void);
 int bt_mesh_scan_enable(void);
 
 int bt_mesh_scan_disable(void);
+
+#endif /*__ADV_H__*/

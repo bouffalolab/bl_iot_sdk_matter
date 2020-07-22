@@ -68,7 +68,17 @@ BUILD_ASSERT(CONFIG_BT_MESH_ADV_BUF_COUNT >= (CONFIG_BT_MESH_TX_SEG_MAX + 3));
  * We use 400 since 300 is a common send duration for standard HCI, and we
  * need to have a timeout that's bigger than that.
  */
-#define SEG_RETRANSMIT_TIMEOUT(tx) (K_MSEC(400) + 50 * (tx)->ttl)
+#define SEG_RETRANSMIT_TIMEOUT_UNICAST(tx)  (K_MSEC(400) + 50 * (tx)->ttl)
+/* When sending to a group, the messages are not acknowledged, and there's no
+ * reason to delay the repetitions significantly. Delaying by more than 0 ms
+ * to avoid flooding the network.
+ */
+#define SEG_RETRANSMIT_TIMEOUT_GROUP        K_MSEC(50)
+
+#define SEG_RETRANSMIT_TIMEOUT(tx)                  \
+            (BT_MESH_ADDR_IS_UNICAST((tx)->dst) ?  \
+            SEG_RETRANSMIT_TIMEOUT_UNICAST(tx) :    \
+            SEG_RETRANSMIT_TIMEOUT_GROUP)
 
 /* How long to wait for available buffers before giving up */
 #define BUF_TIMEOUT                 K_NO_WAIT
@@ -112,6 +122,25 @@ static u8_t /*__noinit*/ seg_rx_buf_data[(CONFIG_BT_MESH_RX_SEG_MSG_COUNT *
 				      CONFIG_BT_MESH_RX_SDU_MAX)];
 
 static u16_t hb_sub_dst = BT_MESH_ADDR_UNASSIGNED;
+
+u8_t bt_mesh_get_seg_retrans_num(void)
+{
+    return SEG_RETRANSMIT_ATTEMPTS;
+}
+
+s32_t bt_mesh_get_seg_retrans_timeout(u8_t ttl)
+{
+    /* This function will be used when a client model sending an
+     * acknowledged message. And if the dst of a message is not
+     * a unicast address, the function will not be invoked.
+     * So we can directly use the SEG_RETRANSMIT_TIMEOUT_UNICAST
+     * macro here.
+     */
+    struct seg_tx tx = {
+        .ttl = ttl,
+    };
+    return SEG_RETRANSMIT_TIMEOUT_UNICAST(&tx);
+}
 
 void bt_mesh_set_hb_sub_dst(u16_t addr)
 {

@@ -220,7 +220,7 @@ static void notify_event_channel_switch(int channel)
     }
 }
 
-static void notify_event_scan_done()
+static void notify_event_scan_done(int join_scan)
 {
     uint8_t buffer[sizeof(struct wifi_event) + sizeof(struct wifi_event_data_ind_scan_done)];
     struct wifi_event *event;
@@ -231,7 +231,7 @@ static void notify_event_scan_done()
     memset(event, 0, sizeof(struct wifi_event));
     memset(ind, 0, sizeof(struct wifi_event_data_ind_scan_done));
 
-    event->id = WIFI_EVENT_ID_IND_SCAN_DONE;
+    event->id = join_scan ? WIFI_EVENT_ID_IND_SCAN_DONE_ONJOIN : WIFI_EVENT_ID_IND_SCAN_DONE;
     ind->nothing = __LINE__;
 
     //FIXME race condition protect
@@ -427,8 +427,15 @@ static int bl_rx_scanu_start_cfm(struct bl_hw *bl_hw,
 
     bl_hw->scan_request = NULL;
 #endif
-    notify_event_scan_done();
+    notify_event_scan_done(0);
     RWNX_DBG(RWNX_FN_LEAVE_STR);
+
+    return 0;
+}
+
+static int bl_rx_scanu_join_cfm(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct ipc_e2a_msg *msg)
+{
+    notify_event_scan_done(1);
 
     return 0;
 }
@@ -658,6 +665,7 @@ next:
 
 const static msg_cb_fct scan_hdlrs[MSG_I(SCANU_MAX)] = {
     [MSG_I(SCANU_START_CFM)]           = bl_rx_scanu_start_cfm,
+    [MSG_I(SCANU_JOIN_CFM)]            = bl_rx_scanu_join_cfm,
     [MSG_I(SCANU_RESULT_IND)]          = bl_rx_scanu_result_ind,
 };
 

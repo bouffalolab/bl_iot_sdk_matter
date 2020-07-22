@@ -50,7 +50,7 @@ void hal_pds_enter_without_time_compensation(uint32_t pdsLevel, uint32_t pdsSlee
     bl_pds_enter(pdsLevel, pdsSleepCycles);
 }
 
-void hal_pds_enter_with_time_compensation(uint32_t pdsLevel, uint32_t pdsSleepCycles)
+uint32_t hal_pds_enter_with_time_compensation(uint32_t pdsLevel, uint32_t pdsSleepCycles)
 {
     uint32_t rtcLowBeforeSleep, rtcHighBeforeSleep;
     uint32_t rtcLowAfterSleep, rtcHighAfterSleep;
@@ -67,7 +67,9 @@ void hal_pds_enter_with_time_compensation(uint32_t pdsLevel, uint32_t pdsSleepCy
     
     actualSleepDuration_32768cycles = (rtcLowAfterSleep - rtcLowBeforeSleep);
     
-    actualSleepDuration_ms = ((((uint64_t)actualSleepDuration_32768cycles<<10)-((uint64_t)actualSleepDuration_32768cycles<<4)-((uint64_t)actualSleepDuration_32768cycles<<3))>>15);
+    actualSleepDuration_ms = (actualSleepDuration_32768cycles>>5)-(actualSleepDuration_32768cycles>>11)-(actualSleepDuration_32768cycles>>12);
     
     vTaskStepTick(actualSleepDuration_ms);
+    
+    return actualSleepDuration_ms;
 }

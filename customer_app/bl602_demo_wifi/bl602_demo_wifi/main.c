@@ -373,6 +373,11 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
             wifi_mgmr_cli_scanlist();
         }
         break;
+        case CODE_WIFI_ON_SCAN_DONE_ONJOIN:
+        {
+            printf("[APP] [EVT] SCAN On Join %lld\r\n", aos_now_ms());
+        }
+        break;
         case CODE_WIFI_ON_DISCONNECT:
         {
             printf("[APP] [EVT] disconnect %lld, Reason: %s\r\n",

@@ -85,6 +85,8 @@ static void gpio_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pi
 int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, uint8_t rts_pin, uint32_t baudrate)
 {
     static uint8_t uart_clk_init = 0;
+    const uint8_t uart_div = 3;
+
     UART_CFG_Type uartCfg =
     {
         160*1000*1000,                                        /* UART clock */
@@ -107,7 +109,7 @@ int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, ui
 
     /* enable clk */
     if (0 == uart_clk_init) {
-        GLB_Set_UART_CLK(1, HBN_UART_CLK_FCLK, 0);
+        GLB_Set_UART_CLK(1, HBN_UART_CLK_FCLK, uart_div);
         uart_clk_init = 1;
     }
 
@@ -115,6 +117,7 @@ int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, ui
     gpio_init(id, tx_pin, rx_pin, cts_pin, rts_pin);
 
     uartCfg.baudRate = baudrate;
+    uartCfg.uartClk = (160 * 1000 * 1000) / (uart_div + 1);
 
     /* Disable all interrupt */
     UART_IntMask(id, UART_INT_ALL, MASK);
