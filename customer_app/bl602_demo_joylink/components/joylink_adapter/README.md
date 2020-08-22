@@ -1,2 +1,0 @@
-1、通过__JOYLINK_ALL_ACTIVE_INFO__宏定义控制激活绑定接口。
-2、通过__JOYLINK_LOG_SUPPORT_HTTP__宏切换激活绑定日志上报的协议，如果定义，则通过http上报，没有定义通过https上报。

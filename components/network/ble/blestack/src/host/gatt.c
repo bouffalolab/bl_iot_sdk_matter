@@ -1031,6 +1031,23 @@ void bt_gatt_init(void)
 #endif
 }
 
+#if defined(BFLB_BLE)
+void bt_gatt_deinit(void)
+{
+    #if defined(CONFIG_BT_GATT_CACHING)
+    k_delayed_work_del_timer(&db_hash_work);
+    #endif
+
+    if (IS_ENABLED(CONFIG_BT_GATT_SERVICE_CHANGED)){
+        k_delayed_work_del_timer(&gatt_sc.work);
+    }
+        
+    #if defined(CONFIG_BT_SETTINGS_CCC_STORE_ON_WRITE)
+    k_delayed_work_del_timer(&gatt_ccc_store.work);
+    #endif
+}
+#endif
+
 #if defined(CONFIG_BT_GATT_DYNAMIC_DB) || \
     (defined(CONFIG_BT_GATT_CACHING) && defined(CONFIG_BT_SETTINGS))
 static void sc_indicate(u16_t start, u16_t end)

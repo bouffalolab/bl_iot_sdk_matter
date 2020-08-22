@@ -25,6 +25,9 @@
 						BT_GATT_PERM_WRITE_AUTHEN)
 
 void bt_gatt_init(void);
+#if defined(BFLB_BLE)
+void bt_gatt_deinit(void);
+#endif
 void bt_gatt_connected(struct bt_conn *conn);
 void bt_gatt_encrypt_change(struct bt_conn *conn);
 void bt_gatt_disconnected(struct bt_conn *conn);

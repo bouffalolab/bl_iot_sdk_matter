@@ -3,7 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-
 .. toctree::
    :caption: Developer_Environment
    :numbered:
@@ -31,6 +30,7 @@
    Examples/demo_system_fdt/fdt
    Examples/demo_wifi/wifi
    Examples/demo_ble/ble
+   Examples/demo_blsync_ble/blsync_ble
 
 .. toctree::
    :caption: Components
@@ -52,4 +52,12 @@
    Components/Network/tls/tls
    Components/BLE/provision_WiFi/provision_WiFi
    Components/BLE/mesh/mesh
-   Components/BLE/ble stack/ble stack
+   Components/BLE/ble_stack/ble_stack
+   
+.. toctree::
+   :caption: API
+   :numbered:
+   
+   API/sys/cronalarms
+   API/wifi/wifi_mgmr
+   API/sys/utils_getopt

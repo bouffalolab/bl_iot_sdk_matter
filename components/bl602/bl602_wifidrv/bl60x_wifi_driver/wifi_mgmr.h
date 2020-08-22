@@ -69,6 +69,7 @@ typedef enum WIFI_MGMR_EVENT {
     WIFI_MGMR_EVENT_APP_AP_STOP,
     WIFI_MGMR_EVENT_APP_CONF_MAX_STA,
     WIFI_MGMR_EVENT_APP_RC_CONFIG,
+    WIFI_MGMR_EVENT_APP_DENOISE,
 
     /*boundary between APP and FW*/
     WIFI_MGMR_EVENT_MAXAPP_MINIFW,
@@ -143,7 +144,7 @@ typedef struct wifi_mgmr_ap_msg {
     char ssid_tail[1];
     uint8_t hidden_ssid;
     uint32_t ssid_len;
-    char psk[32];
+    char psk[64];
     char psk_tail[1];
     uint32_t psk_len;
 } wifi_mgmr_ap_msg_t;
@@ -218,7 +219,7 @@ typedef struct wifi_mgmr_connect_ind_stat_info {
 #define WIFI_MGMR_CONNECT_IND_STAT_INFO_TYPE_IND_DISCONNECTION (2)
     uint8_t type_ind;
     char ssid[32];
-    char psk[32];
+    char psk[65];
     uint8_t bssid[6];
     uint16_t chan_freq;
     uint8_t chan_band;

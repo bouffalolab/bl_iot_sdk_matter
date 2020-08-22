@@ -342,13 +342,49 @@ static void wifi_scan_filter_cmd(char *buf, int len, int argc, char **argv)
     wifi_mgmr_scan_filter_hidden_ssid(filter);
 }
 
-static void wifi_ip_info(char *buf, int len, int argc, char **argv)
+static void wifi_sta_ip_info(char *buf, int len, int argc, char **argv)
 {
     ip4_addr_t ip, gw, mask;
+    int rssi;
+    int8_t power_rate_table[38];
+
+
     wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
-    printf("IP  :%s \r\n", ip4addr_ntoa(&ip) );
-    printf("MASK:%s \r\n", ip4addr_ntoa(&mask));
-    printf("GW  :%s \r\n", ip4addr_ntoa(&gw));
+    wifi_mgmr_rssi_get(&rssi);
+    bl_tpc_power_table_get(power_rate_table);
+    printf("RSSI:   %ddbm\r\n", rssi);
+    printf("IP  :   %s \r\n", ip4addr_ntoa(&ip) );
+    printf("MASK:   %s \r\n", ip4addr_ntoa(&mask));
+    printf("GW  :   %s \r\n", ip4addr_ntoa(&gw));
+    puts(  "Power Table (dbm):\r\n");
+    puts(  "--------------------------------\r\n");
+    printf("  11b: %u %u %u %u             (1Mbps 2Mbps 5.5Mbps 11Mbps)\r\n",
+        power_rate_table[0],
+        power_rate_table[1],
+        power_rate_table[2],
+        power_rate_table[3]
+    );
+    printf("  11g: %u %u %u %u %u %u %u %u (6Mbps 9Mbps 12Mbps 18Mbps 24Mbps 36Mbps 48Mbps 54Mbps)\r\n",
+        power_rate_table[0 + 8],
+        power_rate_table[1 + 8],
+        power_rate_table[2 + 8],
+        power_rate_table[3 + 8],
+        power_rate_table[4 + 8],
+        power_rate_table[5 + 8],
+        power_rate_table[6 + 8],
+        power_rate_table[7 + 8]
+    );
+    printf("  11n: %u %u %u %u %u %u %u %u (MCS0 ~ MCS7)\r\n",
+        power_rate_table[0 + 16],
+        power_rate_table[1 + 16],
+        power_rate_table[2 + 16],
+        power_rate_table[3 + 16],
+        power_rate_table[4 + 16],
+        power_rate_table[5 + 16],
+        power_rate_table[6 + 16],
+        power_rate_table[7 + 16]
+    );
+    puts(  "--------------------------------\r\n");
 }
 
 static uint8_t packet_raw[] = {
@@ -558,9 +594,19 @@ static void wifi_capcode_update(char *buf, int len, int argc, char **argv)
 }
 #endif
 
+static void wifi_denoise_enable_cmd(char *buf, int len, int argc, char **argv)
+{
+    wifi_mgmr_api_denoise_enable();
+}
+
+static void wifi_denoise_disable_cmd(char *buf, int len, int argc, char **argv)
+{
+    wifi_mgmr_api_denoise_disable();
+}
+
 static void wifi_power_saving_on_cmd(char *buf, int len, int argc, char **argv)
 {
-    wifi_mgmr_sta_powersaving(1);
+    wifi_mgmr_sta_powersaving(2);
 }
 
 static void wifi_power_saving_off_cmd(char *buf, int len, int argc, char **argv)
@@ -787,15 +833,27 @@ static void cmd_wifi_state_get(char *buf, int len, int argc, char **argv)
     }
 }
 
+static void cmd_wifi_power_table_update(char *buf, int len, int argc, char **argv)
+{
+    int8_t power_table_test[38] = {
+        18, 18, 18, 18, 18, 18, 18, 18, //power dbm for 11b 1Mbps/2Mbps/5Mbps/11Mbps
+        16, 16, 16, 16, 16, 16, 14, 14, //power dbm for 11g 6,9,12,18,24,36,48,54 Mbps
+        16, 16, 16, 16, 16, 14, 14, 14, //power dbm for 11n MCS0~MCS7
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //power re-cal for channel 1~14
+    };
+    //call this API before any other Wi-Fi related APi is called, to make sure every thing is all right
+    bl_tpc_update_power_table(power_table_test);
+}
+
 // STATIC_CLI_CMD_ATTRIBUTE makes this(these) command(s) static
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "rf_dump", "rf dump", cmd_rf_dump},
         { "wifi_capcode", "wifi capcode", wifi_capcode_cmd},
         { "wifi_scan", "wifi scan", wifi_scan_cmd},
         { "wifi_scan_filter", "wifi scan", wifi_scan_filter_cmd},
-        { "wifi_ip_info", "wifi scan", wifi_ip_info},
         { "wifi_mon", "wifi monitor", wifi_mon_cmd},
         { "wifi_raw_send", "wifi raw send test", cmd_wifi_raw_send},
+        { "wifi_sta_info", "wifi sta info", wifi_sta_ip_info},
         { "wifi_sta_ip_set", "wifi STA IP config [ip] [mask] [gw] [dns1] [dns2]", wifi_sta_ip_set_cmd},
         { "wifi_sta_ip_unset", "wifi STA IP config unset", wifi_sta_ip_unset_cmd},
         { "wifi_sta_disconnect", "wifi station disconnect", wifi_disconnect_cmd},
@@ -807,6 +865,8 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "rc_fix_dis", "wifi rate control fixed rate diable", wifi_rc_fixed_disable},
         { "wifi_sta_ps_on", "wifi power saving mode ON", wifi_power_saving_on_cmd},
         { "wifi_sta_ps_off", "wifi power saving mode OFF", wifi_power_saving_off_cmd},
+        { "wifi_sta_denoise_enable", "wifi denoise", wifi_denoise_enable_cmd},
+        { "wifi_sta_denoise_disable", "wifi denoise", wifi_denoise_disable_cmd},
         { "wifi_sniffer_on", "wifi sniffer mode on", wifi_sniffer_on_cmd},
         { "wifi_sniffer_off", "wifi sniffer mode off", wifi_sniffer_off_cmd},
         { "wifi_ap_start", "start Ap mode", cmd_wifi_ap_start},
@@ -825,6 +885,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_sta_del", "delete one sta in AP mode", wifi_ap_sta_delete_cmd},
         { "wifi_edca_dump", "dump EDCA data", wifi_edca_dump_cmd},
         { "wifi_state", "get wifi_state", cmd_wifi_state_get},
+        { "wifi_update_power", "Power table test command", cmd_wifi_power_table_update},
 };                                                                                   
 
 int wifi_mgmr_cli_init(void)

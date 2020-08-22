@@ -400,13 +400,13 @@ void EF_Ctrl_Writelock_Dbg_Pwd(uint8_t program)
 void EF_Ctrl_Write_Secure_Cfg(EF_Ctrl_Sec_Param_Type *cfg,uint8_t program)
 {
     uint32_t tmpVal;
-	
+    
     tmpVal=BL_RD_REG(EF_DATA_BASE,EF_DATA_0_EF_CFG_0);
-	tmpVal= BL_SET_REG_BITS_VAL(tmpVal,EF_DATA_0_EF_DBG_MODE,cfg->ef_dbg_mode);
-	tmpVal= BL_SET_REG_BITS_VAL(tmpVal,EF_DATA_0_EF_DBG_JTAG_0_DIS,cfg->ef_dbg_jtag_0_dis);
-	tmpVal= BL_SET_REG_BITS_VAL(tmpVal,EF_DATA_0_EF_SBOOT_EN,cfg->ef_sboot_en);
-	BL_WR_REG(EF_DATA_BASE,EF_DATA_0_EF_CFG_0,tmpVal);
-	
+    tmpVal= BL_SET_REG_BITS_VAL(tmpVal,EF_DATA_0_EF_DBG_MODE,cfg->ef_dbg_mode);
+    tmpVal= BL_SET_REG_BITS_VAL(tmpVal,EF_DATA_0_EF_DBG_JTAG_0_DIS,cfg->ef_dbg_jtag_0_dis);
+    tmpVal= BL_SET_REG_BITS_VAL(tmpVal,EF_DATA_0_EF_SBOOT_EN,cfg->ef_sboot_en);
+    BL_WR_REG(EF_DATA_BASE,EF_DATA_0_EF_CFG_0,tmpVal);
+    
     if(program){
         EF_Ctrl_Program_Efuse_0();
     }
@@ -638,6 +638,32 @@ void ATTR_CLOCK_SECTION EF_Ctrl_Read_RC32K_Trim( Efuse_Ana_RC32K_Trim_Type *trim
     trim->trimRc32kExtCodeEn=(tmpVal>>31)&0x01;
 }
 #endif
+
+/****************************************************************************//**
+ * @brief  Efuse read TSEN trim
+ *
+ * @param  trim: Trim data pointer
+ *
+ * @return None
+ *
+*******************************************************************************/
+void ATTR_CLOCK_SECTION EF_Ctrl_Read_TSEN_Trim( Efuse_TSEN_Refcode_Corner_Type *trim)
+{
+    uint32_t tmpVal=0;
+    /* Switch to AHB clock */
+    EF_Ctrl_Sw_AHB_Clk_0();
+
+    EF_CTRL_LOAD_BEFORE_READ_R0;
+
+    tmpVal=BL_RD_REG(EF_DATA_BASE,EF_DATA_0_EF_KEY_SLOT_5_W3);
+    trim->tsenRefcodeCornerEn=tmpVal&0x01;
+
+    tmpVal=BL_RD_REG(EF_DATA_BASE,EF_DATA_0_LOCK);
+    trim->tsenRefcodeCorner=tmpVal&0xfff;  
+    trim->tsenRefcodeCornerParity=(tmpVal >> 12)&0x01;     
+
+}
+
 
 /****************************************************************************//**
  * @brief  Efuse write software usage

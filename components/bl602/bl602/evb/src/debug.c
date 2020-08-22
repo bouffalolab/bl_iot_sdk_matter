@@ -502,7 +502,8 @@ static char *flt(char *str, double num, int size, int precision, char fmt, int f
 }
 
 
-int vsnprintf(char *buffer, size_t n, const char *format, va_list ap)
+/*use O0 preventing consuming more stack*/
+int __attribute__((optimize("O1"))) vsnprintf(char *buffer, size_t n, const char *format, va_list ap)
 {
 	const char *p = format;
 	char ch;

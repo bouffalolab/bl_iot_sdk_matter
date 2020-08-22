@@ -515,6 +515,8 @@ void ADC_Tsen_Init(ADC_TSEN_MOD_Type tsenMod);
 BL_Err_Type ADC_Mic_Init(ADC_MIC_Type * adc_mic_config);
 void ADC_MIC_Bias_Disable(void);
 void ADC_MIC_Bias_Enable(void);
+BL_Err_Type ADC_Trim_TSEN(uint16_t * tsen_offset);
+float TSEN_Get_Temp(uint32_t tsen_offset);
 
 /*@} end of group ADC_Public_Functions */
 

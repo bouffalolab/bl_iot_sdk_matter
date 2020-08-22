@@ -326,7 +326,7 @@ static bool l2cap_chan_add(struct bt_conn *conn, struct bt_l2cap_chan *chan,
 #if defined(CONFIG_BT_L2CAP_DYNAMIC_CHANNEL)
 	if (L2CAP_LE_CID_IS_DYN(ch->rx.cid)) {
 		k_work_init(&ch->rx_work, l2cap_rx_process);
-		k_fifo_init(&ch->rx_queue);
+		k_fifo_init(&ch->rx_queue, 20);
 		bt_l2cap_chan_set_state(chan, BT_L2CAP_CONNECT);
 	}
 #endif /* CONFIG_BT_L2CAP_DYNAMIC_CHANNEL */
@@ -740,7 +740,7 @@ static void l2cap_chan_tx_init(struct bt_l2cap_le_chan *chan)
 
 	(void)memset(&chan->tx, 0, sizeof(chan->tx));
 	k_sem_init(&chan->tx.credits, 0, UINT_MAX);
-	k_fifo_init(&chan->tx_queue);
+	k_fifo_init(&chan->tx_queue, 20);
 }
 
 static void l2cap_chan_tx_give_credits(struct bt_l2cap_le_chan *chan,

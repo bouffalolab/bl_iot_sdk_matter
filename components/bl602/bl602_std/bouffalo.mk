@@ -33,6 +33,7 @@ COMPONENT_SRCS := bl602_std/StdDriver/Src/bl602_uart.c \
                   bl602_std/StdDriver/Src/bl602_ef_ctrl.c \
                   bl602_std/StdDriver/Src/bl602_dac.c \
                   bl602_std/StdDriver/Src/bl602_ir.c \
+                  bl602_std/StdDriver/Src/bl602_spi.c \
                   bl602_std/Common/soft_crc/softcrc.c \
                   bl602_std/Common/xz/xz_crc32.c \
                   bl602_std/Common/xz/xz_dec_lzma2.c \

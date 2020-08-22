@@ -54,11 +54,7 @@ extern struct bt_conn *default_conn;
 extern struct bt_data ad_discov[2];
 static u8_t selected_id = BT_ID_DEFAULT;
 
-#if defined(BL602) || (BL702)
 #define vOutputString(...)  printf(__VA_ARGS__)
-#else
-#define vOutputString(...)  bl_print(SYSTEM_UART_ID, PRINT_MODULE_BLE_STACK/*PRINT_MODULE_CLI*/, __VA_ARGS__)
-#endif
 
 static void pts_ble_start_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void pts_ble_start_scan_rpa(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -99,11 +95,7 @@ static void pts_ble_wl_connect(char *pcWriteBuffer, int xWriteBufferLen, int arg
 #endif
 static void pts_ble_prepare_write(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
-#if defined(BL602)||(BL702)
 const struct cli_command PtsCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
-#else
-const struct cli_command PtsCmdSet[] = {
-#endif
     /*1.The cmd string to type, 2.Cmd description, 3.The function to run, 4.Number of parameters*/
 
     {"pts_ble_address_register", "\r\npts_ble_address_register:\r\n\[Address type, 0:non-rpa, 1:rpa, 2:public adderss]\r\n\

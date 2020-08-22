@@ -11,7 +11,7 @@
 #ifndef __LOCAL_OPERATION_H__
 #define __LOCAL_OPERATION_H__
 
-#include "mesh_types.h"
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {

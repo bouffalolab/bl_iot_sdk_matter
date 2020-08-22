@@ -31,6 +31,9 @@
 
 #include <bl602_sec_eng.h>
 
+#include <FreeRTOS.h>
+#include <semphr.h>
+
 #include "bl_irq.h"
 #include "bl_sec.h"
 
@@ -42,6 +45,44 @@ typedef struct sha256_link_item {
     uint32_t tmp[16];
     uint32_t pad[16];
 } sha256_link_item_t;
+
+#define BL_SHA_ID SEC_ENG_SHA_ID0 // this is the only valid value
+
+int bl_sha_mutex_take()
+{
+    if (pdPASS != xSemaphoreTake(g_bl_sec_sha_mutex, portMAX_DELAY)) {
+        blog_error("sha semphr take failed\r\n");
+        return -1;
+    }
+    return 0;
+}
+
+int bl_sha_mutex_give()
+{
+    if (pdPASS != xSemaphoreGive(g_bl_sec_sha_mutex)) {
+        blog_error("sha semphr give failed\\n");
+        return -1;
+    }
+    return 0;
+}
+
+void bl_sha_init(bl_sha_ctx_t *ctx, const bl_sha_type_t type)
+{
+    const SEC_ENG_SHA_Type sha_type = type; // bl_sha_type_t is the same as SEC_ENG_SHA_Type in driver
+
+    Sec_Eng_SHA256_Init((SEC_Eng_SHA256_Ctx *)&ctx->sha_ctx, BL_SHA_ID, sha_type, ctx->tmp, ctx->pad);
+    Sec_Eng_SHA_Start(BL_SHA_ID);
+}
+
+int bl_sha_update(bl_sha_ctx_t *ctx, const uint8_t *input, uint32_t len)
+{
+    return Sec_Eng_SHA256_Update((SEC_Eng_SHA256_Ctx *)&ctx->sha_ctx, BL_SHA_ID, input, len);
+}
+
+int bl_sha_finish(bl_sha_ctx_t *ctx, uint8_t *hash)
+{
+    return Sec_Eng_SHA256_Finish((SEC_Eng_SHA256_Ctx *)&ctx->sha_ctx, BL_SHA_ID, hash);
+}
 
 static const uint8_t shaSrcBuf1[64] =
 {

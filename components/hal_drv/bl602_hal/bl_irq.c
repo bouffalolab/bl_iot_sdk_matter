@@ -304,8 +304,23 @@ extern void misaligned_store_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t m
 #define EXCPT_LOAD_MISALIGNED        4
 #define EXCPT_STORE_MISALIGNED       6
 
+#ifdef DBG_RECORD_EXCEP_VAL
+struct{
+	uint32_t mcause;
+	uint32_t mepc;
+	uint32_t mtval;
+}rval[4];
+int rval_idx;
+#endif /* DBG_RECORD_EXCEP_VAL */
+
 void exception_entry(uint32_t mcause, uint32_t mepc, uint32_t mtval, uintptr_t *regs)
 {
+#ifdef DBG_RECORD_EXCEP_VAL
+	rval[rval_idx&0x3].mcause = mcause;
+	rval[rval_idx&0x3].mepc = mepc;
+	rval[rval_idx&0x3].mtval = mtval;
+	rval_idx++;
+#endif /* DBG_RECORD_EXCEP_VAL */
     if ((mcause & 0x3ff) == EXCPT_LOAD_MISALIGNED){
         misaligned_load_trap(regs, mcause, mepc);
     } else if ((mcause & 0x3ff) == EXCPT_STORE_MISALIGNED){

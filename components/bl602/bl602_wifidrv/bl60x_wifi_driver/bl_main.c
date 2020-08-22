@@ -226,6 +226,11 @@ int bl_main_powersaving(int mode)
     return bl_send_mm_powersaving_req(&wifi_hw, mode);
 }
 
+int bl_main_denoise(int mode)
+{
+    return bl_send_mm_denoise_req(&wifi_hw, mode);
+}
+
 int bl_main_monitor()
 {
     struct mm_monitor_cfm cfm;

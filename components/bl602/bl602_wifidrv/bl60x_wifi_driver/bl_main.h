@@ -44,6 +44,7 @@ struct wifi_apm_sta_info
 };
 
 int bl_main_powersaving(int mode);
+int bl_main_denoise(int mode);
 int bl_main_disconnect(void);
 int bl_main_phy_up(void);
 int bl_main_channel_set(int channel);

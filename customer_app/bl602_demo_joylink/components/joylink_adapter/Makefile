@@ -1,26 +1,26 @@
-## import basic make rule from Makefile.rule
-include ./Makefile.rule
+TOP_DIR = .
 
-## set dependences for the final exacutable file
-DEPS= example pal/src
+include ${TOP_DIR}/scripts/config.mk
 
-## target for this Makefile
-all: ${DEPS} test
+DEPS := pal example
 
-## rules for make clean
-clean: ${DEPS}
+all:  clean_lib ${DEPS} jt
 
-## rules for make distclean
+clean: clean_lib ${DEPS} 
+
 distclean: ${DEPS}
 	${RM} ${TARGET_LIB}/*
-	${RM} ${TARGET_BIN}/*
 
-## rules for make DEPS
-${DEPS}:
-	make -C $@ $(MAKECMDGOALS)
+${DEPS}: 
+	make -C $@ $(MAKECMDGOALS) 
 
-## rules for make test that is the final target
-test:
-	make test -C example
+jt:
+	make jt -C example
 
-.PHONY:all clean distclean ${DEPS} test
+clean_lib:
+	rm -rf ${TARGET_LIB}
+	mkdir -p ${TARGET_LIB}
+	rm -rf ${TARGET_BIN}
+	mkdir -p ${TARGET_BIN}
+
+.PHONY:all clean distclean ${DEPS} jt

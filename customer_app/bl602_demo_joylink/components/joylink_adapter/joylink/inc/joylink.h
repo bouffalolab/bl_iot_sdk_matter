@@ -10,13 +10,13 @@ extern "C"{
 #include "joylink_stdint.h"
 
 #define _VERSION_  "2.1.22"
-#define JL_MINOR_VERSION            18
-#define _RELEASE_TIME_  "2020_03_30"
+#define JL_MINOR_VERSION            20
+#define _RELEASE_TIME_  "2020_08_11"
 #define JL_PACKET_HEADER_VERSION        (1)
 
 #define JL_MAX_PACKET_LEN           (1400)
 #define JL_MAX_IP_LEN               (16)
-#define JL_MAX_MAC_LEN              (13)
+#define JL_MAX_MAC_LEN              (17)
 #define JL_MAX_UUID_LEN             (7)
 #define JL_MAX_FEEDID_LEN           (33)
 #define JL_MAX_KEY_BIN_LEN          (21)
@@ -40,6 +40,7 @@ extern "C"{
 
 #define JL_BZCODE_GET_SNAPSHOT      (1004)
 #define JL_BZCODE_CTRL              (1002)
+#define JL_BZCODE_MENU            (1050)
 #define JL_BZCODE_UNBIND            (1060)
 
 // #pragma pack(1)

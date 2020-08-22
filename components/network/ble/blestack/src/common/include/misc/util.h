@@ -23,6 +23,7 @@ extern "C" {
 #include <zephyr/types.h>
 #if defined(BFLB_BLE)
 #include <stddef.h>
+#include "utils_string.h"
 #endif
 
 /* Helper to pass a int as a pointer or vice-versa.

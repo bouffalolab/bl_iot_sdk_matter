@@ -34,13 +34,45 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#define MTIMER_TICKS_PER_US     (1)
+#define MTIMER_TICKS_PER_US     (10)
+static inline uint64_t timer_us_now()
+{
+    uint32_t tick_low, tick_high, tick_tmp;
+    uint64_t tick64;
+
+    do {
+        tick_high = *(volatile uint32_t*)0x0200BFFC;
+        tick_low = *(volatile uint32_t*)0x0200BFF8;
+
+        tick_tmp = *(volatile uint32_t*)0x0200BFFC;//make sure no overflow
+    } while (tick_high != tick_tmp);
+
+    tick64 = (((uint64_t)tick_high) << 32) | tick_low;
+    return tick64;
+}
+
 uint32_t bl_timer_now_us(void)
 {
-    uint32_t tick_now;
+    return timer_us_now() / MTIMER_TICKS_PER_US;
+}
 
-    tick_now = *(volatile uint32_t*)0x0200BFF8;
-    return MTIMER_TICKS_PER_US * tick_now;
+uint64_t bl_timer_now_us64(void)
+{
+    return timer_us_now() / MTIMER_TICKS_PER_US;
+}
+
+void bl_timer_delay_us(uint32_t us)
+{
+    uint32_t tick_now, tick_start;
+    int ticks, diff;
+
+    tick_start = *(volatile uint32_t*)0x0200BFF8;
+    ticks = us * MTIMER_TICKS_PER_US;
+
+    do {
+        tick_now = *(volatile uint32_t*)0x0200BFF8;
+        diff = (int32_t)tick_now - (int32_t)tick_start;
+    } while (diff < ticks);
 }
 
 static BL_Err_Type Timer_INT_Case(TIMER_CFG_Type *timerCfg)

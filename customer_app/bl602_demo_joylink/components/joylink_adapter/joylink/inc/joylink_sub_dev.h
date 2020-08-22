@@ -60,7 +60,7 @@ typedef struct {
 
 typedef struct {
     char uuid[8];
-    char mac[16];
+    char mac[17];
 
     short version;
 

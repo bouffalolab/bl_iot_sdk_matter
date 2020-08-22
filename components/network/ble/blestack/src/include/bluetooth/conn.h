@@ -104,7 +104,7 @@ void bt_conn_foreach(int type, void (*func)(struct bt_conn *conn, void *data),
  */
 struct bt_conn *bt_conn_lookup_addr_le(u8_t id, const bt_addr_le_t *peer);
 
-#if defined(CFG_SLEEP)
+#if defined(BFLB_BLE)
 bool le_check_valid_conn(void);
 #endif
 

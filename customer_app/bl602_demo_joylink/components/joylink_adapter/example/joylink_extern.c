@@ -522,6 +522,19 @@ if(infile > 0)
 
     ef_get_ret = ef_get_env_blob(JL_EF_JLP_KEY, jlp, sizeof *jlp, &ef_get_read);
 
+    if (jl_port_get_one_product_info("mac", jlp->mac) != 0) {
+        log_error("mac cfg error\r\n");
+        return E_RET_ERROR;
+    }
+    if (jl_port_get_one_product_info("uuid", jlp->uuid) != 0) {
+        log_error("uuid cfg error\r\n");
+        return E_RET_ERROR;
+    }
+    if (jl_port_get_one_product_info("cid", jlp->CID) != 0) {
+        log_error("cid cfg error\r\n");
+        return E_RET_ERROR;
+    }
+
     if (ef_get_ret == 0) {
         // EF does NOT have this info
         log_warn("Using default jlp info");
@@ -530,7 +543,6 @@ if(infile > 0)
         jlp->is_actived = E_JL_TRUE;
         jlp->model_code_flag = E_JL_FALSE;
         jlp->version = JLP_VERSION;
-        jl_port_get_one_product_info("uuid", jlp->uuid);
 
         jlp->devtype = JLP_DEV_TYPE;
         jlp->lancon = JLP_LAN_CTRL;
@@ -781,6 +793,9 @@ joylink_dev_script_ctrl(const char *src, int src_len, JLContrl_t *ctr, int from_
     }else if(ctr->biz_code == JL_BZCODE_CTRL){
         joylink_dev_parse_ctrl(src + 12, &user_dev);
         return E_RET_OK;
+	}else if(ctr->biz_code == JL_BZCODE_MENU){
+		joylink_dev_parse_ctrl(src + 12, &user_dev);
+		return E_RET_OK;
     }else{
         char buf[50];
         jl_platform_sprintf(buf, "Unknown biz_code:%d", ctr->biz_code);
@@ -804,6 +819,7 @@ joylink_dev_ota(JLOtaOrder_t *otaOrder)
     if(NULL == otaOrder){
         return E_RET_ERROR;
     }
+    joylink_set_ota_info(otaOrder);
     task_id.thread_task = (threadtask) joylink_ota_task;
     task_id.stackSize = 15*1024;
     task_id.priority = JL_THREAD_PRI_DEFAULT;
@@ -1078,7 +1094,7 @@ int joylink_dev_http_post( char* host, char* query, char *revbuf, int buflen)
         goto RET;
     }
 
-    if (jl_platform_send(log_socket, query, jl_platform_strlen(query), 5000, 0) < 0) {
+    if (jl_platform_send(log_socket, query, jl_platform_strlen(query), 0, 5000) < 0) {
         log_error("... socket send failed");
         goto RET;
     }
@@ -1174,20 +1190,8 @@ RET:
         goto RET;
     }
 
-    if (jl_platform_send(log_socket, query, jl_platform_strlen(query), 5000, 0) < 0) {
+    if (jl_platform_send(log_socket, query, jl_platform_strlen(query), 0, 5000) < 0) {
         log_error("... socket send failed");
-        goto RET;
-    }
-
-    struct timeval receiving_timeout;
-    receiving_timeout.tv_sec = 5;
-    receiving_timeout.tv_usec = 0;
-    if (jl_platform_setsockopt(log_socket,
-                   JL_SOCK_OPT_LEVEL_SOL_SOCKET,
-                   JL_SOCK_OPT_NAME_SO_RCVTIMEO,
-                   &receiving_timeout,
-                   sizeof(receiving_timeout)) < 0) {
-        log_error("... failed to set socket receiving timeout");
         goto RET;
     }
 
@@ -1198,7 +1202,7 @@ RET:
         goto RET;
     }
     jl_platform_memset(recv_buf, 0, recv_buf_len);
-    len = jl_platform_recv(log_socket, recv_buf, recv_buf_len, 0, 0);
+    len = jl_platform_recv(log_socket, recv_buf, recv_buf_len, 0, 5000);
     if(len <= 0)
     {
         ret = -1;

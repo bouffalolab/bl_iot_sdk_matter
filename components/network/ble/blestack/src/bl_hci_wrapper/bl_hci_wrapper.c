@@ -126,19 +126,33 @@ static void bl_onchiphci_rx_packet_handler(uint8_t pkt_type, uint16_t src_id, ui
     uint8_t nb_h2c_cmd_pkts = 0x01, buf_type, *buf_data;
 	uint16_t tlt_len;
 	bool prio = true;
-	struct net_buf *buf;
+	struct net_buf *buf = NULL;
+	static uint32_t monitor = 0;// used to monitor buf pool
 
     buf_type = (pkt_type == BT_HCI_ACL_DATA)? BT_BUF_ACL_IN: BT_BUF_EVT; 
 
     if(pkt_type == BT_HCI_CMD_CMP_EVT || pkt_type == BT_HCI_CMD_STAT_EVT)
        buf  = bt_buf_get_cmd_complete(K_FOREVER);
-    else
-        /*not use K_FOREVER, rw main loop thread cannot be blocked here. if there is no rx buffer,directly igore.
-          otherwise, if rw main loop blocked here, hci command cannot be handled.*/
-       buf = bt_buf_get_rx(buf_type, K_NO_WAIT);
+    else{
+		do{
+			/* When deal with LE ADV report, Don't us reserve buf*/
+			if((pkt_type == BT_HCI_LE_EVT && param[0] == BT_HCI_EVT_LE_ADVERTISING_REPORT) && 
+				(bt_buf_get_rx_avail_cnt() <= CONFIG_BT_RX_BUF_RSV_COUNT)){
+				break;
+			}
+	        /*not use K_FOREVER, rw main loop thread cannot be blocked here. if there is no rx buffer,directly igore.
+	          otherwise, if rw main loop blocked here, hci command cannot be handled.*/
+	       buf = bt_buf_get_rx(buf_type, K_NO_WAIT);
+		}while(0);
+    }
     
-    if(!buf)
+    if(!buf){
+		if((++monitor)&0xff){
+			puts("hci_rx_pool is not available\n");
+		}
         return;
+    }
+	monitor = 0;
     
     buf_data = net_buf_tail(buf);
         

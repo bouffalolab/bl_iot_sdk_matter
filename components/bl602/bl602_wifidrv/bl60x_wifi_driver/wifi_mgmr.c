@@ -87,16 +87,6 @@ static int _features_is_set(uint32_t bit)
     return (wifiMgmr.features & bit) ? 1 : 0;
 }
 
-static bool stateGlobalGuard( void *ch, struct event *event )
-{
-    wifi_mgmr_msg_t *msg;
-
-    USER_UNUSED(msg);
-    msg = event->data;
-    os_printf(DEBUG_HEADER "%s:event is 0x%08X\r\n", __func__, msg->ev);
-    return false;
-}
-
 char *wifi_mgmr_auth_to_str(uint8_t auth)
 {
     switch (auth) {
@@ -564,6 +554,51 @@ static bool stateGlobalGuard_conf_max_sta(void *ev, struct event *event )
     return false;
 }
 
+//FIXME TODO ugly hack
+static int auto_repeat = 0;
+static void trigger_auto_denoise(void* arg)
+{
+    //Continuously check the microwave and try to denoise 
+    if (auto_repeat) {
+int wifi_mgmr_api_denoise_enable(void);
+        wifi_mgmr_api_denoise_enable();
+        aos_post_delayed_action(85, trigger_auto_denoise, NULL);
+    }
+}
+
+static bool stateGlobalGuard_denoise(void *ev, struct event *event )
+{
+    wifi_mgmr_msg_t *msg;
+
+    msg = event->data;
+    if (WIFI_MGMR_EVENT_APP_DENOISE != msg->ev) {
+        return false;
+    }
+
+    if (msg->data1) {
+        /*TODO no more magic here*/
+        //enable denoise
+        if (&stateConnectedIPYes == wifiMgmr.m.currentState) {
+            /*only enable denoise with IP OK*/
+            if (auto_repeat) {
+                /*Continuously detect*/
+                bl_main_denoise(3);
+            } else {
+                /*Initial detect*/
+                auto_repeat = 1;
+                bl_main_denoise(1);
+                aos_post_event(EV_WIFI, CODE_WIFI_ON_MGMR_DENOISE, 0);
+            }
+        }
+    } else {
+        //disable denoise
+        auto_repeat = 0;
+        bl_main_denoise(0);
+    }
+
+    return false;
+}
+
 const static struct state stateGlobal = {
    .parentState = NULL,
    .entryState = NULL,
@@ -572,10 +607,10 @@ const static struct state stateGlobal = {
       {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_SCAN_IND_BEACON, &stateGlobalGuard_scan_beacon, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_DISABLE_AUTORECONNECT, &stateGlobalGuard_disable_autoreconnect, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_ENABLE_AUTORECONNECT, &stateGlobalGuard_enable_autoreconnect, &stateGlobalAction, &stateIdle},
-      {EVENT_TYPE_APP, NULL, &stateGlobalGuard, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_AP_START, &stateGlobalGuard_AP, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_AP_STOP, &stateGlobalGuard_stop, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_CONF_MAX_STA, &stateGlobalGuard_conf_max_sta, &stateGlobalAction, &stateIdle},
+      {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_DENOISE, &stateGlobalGuard_denoise, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_DISCONNECT, &stateGlobalGuard_fw_disconnect, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_POWERSAVING, &stateGlobalGuard_fw_powersaving, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_SCAN, &stateGlobalGuard_fw_scan, &stateGlobalAction, &stateIdle},
@@ -1038,6 +1073,12 @@ static void stateConnectedIPYes_exit( void *stateData, struct event *event )
    // Stop DHCP Client anyway
    netifapi_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
    netifapi_netif_set_addr(&(wifiMgmr.wlan_sta.netif), &addr_ipaddr, &addr_ipaddr, &addr_ipaddr);
+
+   //FIXME TODO ugly hack
+   if (auto_repeat) {
+       auto_repeat = 0;
+       bl_main_denoise(0);
+   }
 }
 
 const static struct state stateConnectedIPYes = {
@@ -1222,6 +1263,21 @@ int wifi_mgmr_event_notify(wifi_mgmr_msg_t *msg)
     return 0;
 }
 
+static void event_cb_wifi_event_mgmr(input_event_t *event, void *private_data)
+{
+    switch (event->code) {
+        case CODE_WIFI_ON_MGMR_DENOISE:
+        {
+            aos_post_delayed_action(85, trigger_auto_denoise, NULL);
+        }
+        break;
+        default:
+        {
+            /*nothing*/
+        }
+    }
+}
+
 void wifi_mgmr_start(void)
 {
     struct event ev;
@@ -1236,6 +1292,8 @@ void wifi_mgmr_start(void)
     /*register event cb for Wi-Fi Manager*/
     wifi_mgmr_event_init();
 
+    /*register filter for call in event loop*/
+    aos_register_event_filter(EV_WIFI, event_cb_wifi_event_mgmr, NULL);
     /*Noitfy mgmr is ready*/
     aos_post_event(EV_WIFI, CODE_WIFI_ON_MGMR_DONE, 0);
 

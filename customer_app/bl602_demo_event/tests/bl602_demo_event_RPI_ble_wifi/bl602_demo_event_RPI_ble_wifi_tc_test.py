@@ -38,8 +38,8 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
         dut.expect("Advertising started", timeout=1)
         
         dut.write('ble_read_local_address')
-        local_addr = dut.expect(re.compile(r"Local random addr : (.*) "), timeout=2)
-        print(f'Local random addr {local_addr[0]}')
+        local_addr = dut.expect(re.compile(r"Local public addr : (.*) "), timeout=2)
+        print(f'Local public addr {local_addr[0]}')
         # scan bluetooth
         
         rst = scan_device(local_addr[0])
@@ -87,8 +87,8 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
         dut.expect("Advertising started", timeout=1)
         
         dut.write('ble_read_local_address')
-        local_addr = dut.expect(re.compile(r"Local random addr : (.*) "), timeout=2)
-        print(f'Local random addr is {local_addr[0]}')
+        local_addr = dut.expect(re.compile(r"Local public addr : (.*) "), timeout=2)
+        print(f'Local public addr is {local_addr[0]}')
         rst = scan_device(local_addr[0])
         if rst != True:
             raise Exception
@@ -134,7 +134,7 @@ def scan_device(mac):
 
 def connect_device(mac):
     
-    conn = btle.Peripheral(mac, "random")
+    conn = btle.Peripheral(mac, "public")
     print("BLE is connected")
     #conn.disconnect()
     #print("BLE is disconnected")

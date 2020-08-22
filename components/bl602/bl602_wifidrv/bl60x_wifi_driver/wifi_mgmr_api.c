@@ -412,6 +412,40 @@ int wifi_mgmr_api_idle(void)
     return 0;
 }
 
+int wifi_mgmr_api_denoise_enable(void)
+{
+    wifi_mgmr_msg_t *msg;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t)];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_APP_DENOISE;
+    msg->data1 = (void*)0x1;//use non-zero for enable denoise
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t);
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
+int wifi_mgmr_api_denoise_disable(void)
+{
+    wifi_mgmr_msg_t *msg;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t)];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_APP_DENOISE;
+    msg->data1 = (void*)0x0;//use non-zero for enable denoise
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t);
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
 int wifi_mgmr_api_channel_set(int channel, int use_40Mhz)
 {
     wifi_mgmr_msg_t *msg;

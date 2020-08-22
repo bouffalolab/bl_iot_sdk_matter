@@ -33,6 +33,7 @@
 #include <utils_list.h>
 #include <blog.h>
 #include <hal_hwtimer.h>
+#include <bl602_glb.h>
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -117,7 +118,8 @@ int hal_hwtimer_init(void)
 
         return -1;
     }
-
+    
+    GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_TMR);
     TIMER_IntMask(hw_timercfg.timerCh,TIMER_INT_ALL, MASK);
     TIMER_Disable(hw_timercfg.timerCh);
     TIMER_Init(&hw_timercfg);
@@ -187,6 +189,44 @@ int hal_hwtimer_delete(hw_timer_t *pstnode)
         utils_dlist_del(&(node->dlist_item));
     }
    
+    TIMER_IntMask(HW_TIMER_CHANNEL, TIMER_INT_COMP_0, UNMASK);
+    xSemaphoreGive(pstctx->hwtimer_mux);
+    return ret;
+}
+
+int hal_hwtimer_change_period(hw_timer_t *pstnode, uint32_t period)
+{
+    hw_timer_t *node;
+    int ret = 0;
+    struct hw_timer_ctx *pstctx;
+
+    if (period <= 0) {
+        blog_error("period illegal , change period failed \r\n");
+        return -1;
+    }
+
+    bl_irq_ctx_get(TIMER_CH0_IRQn, (void **)&pstctx);
+    if( xSemaphoreTake(pstctx->hwtimer_mux, portMAX_DELAY) == pdTRUE ) {
+        blog_info("get mux success \r\n");
+    }
+
+    TIMER_IntMask(HW_TIMER_CHANNEL, TIMER_INT_ALL, MASK);
+    utils_dlist_for_each_entry(pstctx->pstqueue, node, hw_timer_t, dlist_item) {
+        if (pstnode == node) {
+            break;
+        }
+    }
+
+    if (&node->dlist_item == pstctx->pstqueue) {
+        blog_error("not find node \r\n");
+        ret  = -1;
+    }
+
+    if (ret == 0) {
+        node->triggle_time = period;
+        node->calc_time = 0;
+    }
+
     TIMER_IntMask(HW_TIMER_CHANNEL, TIMER_INT_COMP_0, UNMASK);
     xSemaphoreGive(pstctx->hwtimer_mux);
     return ret;

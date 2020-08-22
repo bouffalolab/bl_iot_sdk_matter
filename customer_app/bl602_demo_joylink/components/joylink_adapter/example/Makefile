@@ -1,66 +1,61 @@
-## import basic make rule from Makefile.rule
-include ../Makefile.rule
+TOP_DIR = ..
+include ${TOP_DIR}/scripts/config.mk
 
-## set header and source files
-HEADERS = $(wildcard *.h)
+TARGET_DIR = ${TOP_DIR}/target
+TARGET_LIB = ${TARGET_DIR}/lib
+TARGET_BIN = ${TARGET_DIR}/bin
+
+INCLUDE_DIRS = $(shell ls -l ../joylink/inc | grep ^d | awk '{print $$9}')
 ORG_SOURCES = $(wildcard *.c)
-OUT_SRC = test.c joylink_porting_layer.c
+#OUT_SRC = test.c
+OUT_SRC = 
 
-# Please comment this line if you need the OTA example for Linux compiled
-OUT_SRC += joylink_extern_ota.c joylink_extern_user.c
-## set library names
 SOURCES=$(filter-out ${OUT_SRC}, ${ORG_SOURCES})
 OBJS = $(patsubst %.c, %.o, $(SOURCES))
-LIBNAME = $(strip ${shell pwd |xargs basename})
 
-## set include path
-INCLUDES += -I${PROJECT_ROOT_PATH}/joylink/inc
-INCLUDES += -I${PROJECT_ROOT_PATH}/joylink/inc/json
-INCLUDES += -I${PROJECT_ROOT_PATH}/joylink/inc/auth
-INCLUDES += -I${PROJECT_ROOT_PATH}/joylink/inc/list
-INCLUDES += -I${PROJECT_ROOT_PATH}/joylink/inc/softap
-INCLUDES += -I${PROJECT_ROOT_PATH}/pal/inc
+LIBNAME = lib$(strip ${shell pwd |xargs basename})
 
-## set static libraries
-STATIC_LIBS += ${PROJECT_ROOT_PATH}/joylink/lib/${PLATFORM}/libjoylink.a
-STATIC_LIBS += ${TARGET_LIB}/lib${PLATFORM}.a
-STATIC_LIBS += ${TARGET_LIB}/libexample.a
+CFLAGS += -I../joylink/inc
+CFLAGS += -I../pal/inc
+CFLAGS += $(addprefix -I../joylink/inc/,${INCLUDE_DIRS})
 
-## set library of math
-LIBS += -lm
+LIBS += ../joylink/lib/libjoylink.a
+LIBS += -lpal
 
-ifeq (${ARCH}, x86)
-all:${OBJS} liba libso
+ifeq (${ARCH}, x86)  
+LIBS += -lpthread -lm
+all:${OBJS} liba libso 
 else
-all:${OBJS} liba
+all:${OBJS} liba 
 endif
 
-## rules to make *.o
-.SUFFIXES: .c .o
-.c.o:
-	${CC} ${CFLAGS} -c $(INCLUDES) $(LIBS) $*.c
 
-## rules to make static libarary
-liba:
-	${AR} -crs lib${LIBNAME}.a ${OBJS}
-	${MV} lib${LIBNAME}.a ${TARGET_LIB}
+jt:${OBJS}
+	${CC} ${OBJS} -o $@ -L${TARGET_LIB} ${LIBS} ${LDFLAGS}
+	$(STRIP) $@
+	${MV} $@ ${TARGET_BIN}
 
-## rules to make shared libarary
-libso:
-	${CC}  ${OBJS} -shared -fPIC -o lib${LIBNAME}.so
-	${MV} lib${LIBNAME}.so ${TARGET_LIB}
+liba:${OBJS}
+	@echo ------------------
+	@echo ${SOURCES}
+	@echo ------------------
+	@echo ${OUT_SRC}
+	@echo ------------------
+	${AR} -crs ${LIBNAME}.a ${OBJS}
+	@echo ------------------
+	${MV} ${LIBNAME}.a ${TARGET_LIB}
 
-## rules to make binery file for test
-test:
-	${CC} -D_TEST_ test.c ${OBJS} -o $@ ${CFLAGS} ${INCLUDES} ${STATIC_LIBS} ${LIBS}
-	${MV} test ${TARGET_BIN}
+libso:${OBJS}
+	${CC} ${OBJS} -shared -fPIC -o ${LIBNAME}.so
+	${MV} ${LIBNAME}.so ${TARGET_LIB} 
 
-## rules to make clean
 clean:
-	${RM} *.o *.so *.a test
+	${RM} ${OBJS} *.i *.s $(wildcard src/*.d) $(wildcard src/*/*.d) $(wildcard src/*.su) $(wildcard src/*/*.su)
 
-## rules to make distclean
+$(OBJS):%.o:%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 distclean:clean
-	${RM} ./*.a ./*.so ${TARGET_LIB}/lib${LIBNAME}.*
+	${RM} ${TARGET_LIB}/*
 
-.PHONY:all clean test
+.PHONY:all clean test jt

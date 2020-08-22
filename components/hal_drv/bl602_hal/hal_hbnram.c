@@ -30,8 +30,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
-#include <bl602_sec_eng.h>
+#include <bl_sec.h>
 #include "hal_hbnram.h"
 
 #include <cli.h>
@@ -101,10 +102,8 @@ static uint8_t *memset_fourbytes(uint8_t *src, int n, int len)
     return src;
 }
 
-static int sha_check_withctx(uint8_t *input, uint8_t *output, SEC_ENG_SHA_Type shaType, uint32_t data_size, uint32_t length)
+static int sha_check_withctx(uint8_t *input, uint8_t *output, bl_sha_type_t shaType, uint32_t data_size, uint32_t length)
 {
-    uint32_t shaTmpBuf[16] = {0};
-    uint32_t padding[16] = {0};
     uint32_t i = 0;
     uint8_t *pallc;
     uint32_t count;
@@ -112,26 +111,26 @@ static int sha_check_withctx(uint8_t *input, uint8_t *output, SEC_ENG_SHA_Type s
 
     count = length / data_size;
     remain = length % data_size;
-    SEC_Eng_SHA256_Ctx shaCtx;
-    SEC_ENG_SHA_ID_Type shaID = SEC_ENG_SHA_ID0;
-    Sec_Eng_SHA256_Init(&shaCtx, shaID, shaType, shaTmpBuf, padding);
-    Sec_Eng_SHA_Start(shaID);
+    bl_sha_ctx_t shaCtx;
+    bl_sha_mutex_take();
+    bl_sha_init(&shaCtx, shaType);
 
     pallc = pvPortMalloc(data_size);
     for (i = 0; i < count; i++) {
         mem_fourbytes_copy(pallc, input + i * data_size, data_size);
-        Sec_Eng_SHA256_Update(&shaCtx, shaID, pallc, data_size);
+        bl_sha_update(&shaCtx, pallc, data_size);
     }
 
     if (remain != 0) {
         memset(pallc, 0, data_size);
         mem_fourbytes_copy(pallc, input + i * data_size, data_size);
-        Sec_Eng_SHA256_Update(&shaCtx, shaID, pallc, remain);
+        bl_sha_update(&shaCtx, pallc, remain);
     }
 
-    if (Sec_Eng_SHA256_Finish(&shaCtx, shaID, output) != SUCCESS) {
+    if (bl_sha_finish(&shaCtx, output) != 0) {
         printf("Sec_Eng_SHA256_Finish error \r\n");
     }
+    bl_sha_mutex_give();
 
     vPortFree(pallc);
 
@@ -217,12 +216,12 @@ int hal_hbnram_init(void)
         printf("magic is not right ,recalculate.\r\n");
         memset_fourbytes((uint8_t *)HBNRAM_ADDRESS, 0, HBNRAM_SIZE);
         *(uint32_t *)HBNRAM_ADDRESS = (uint32_t)MAGIC_NUM;
-        sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, SEC_ENG_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
+        sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, BL_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
         mem_fourbytes_copy((uint8_t *)(HBNRAM_ADDRESS + MAGIC_SIZE), output, HASH128_SIZE);
         return -1;
     } else {
         mem_fourbytes_copy(hash128, (uint8_t *)(HBNRAM_ADDRESS + MAGIC_SIZE), HASH128_SIZE);
-        sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, SEC_ENG_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
+        sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, BL_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
         mem_fourbytes_copy(calc_hash, output, HASH128_SIZE);
         flag = memcmp(calc_hash, hash128, HASH128_SIZE);
         if (flag == 0) {
@@ -230,7 +229,7 @@ int hal_hbnram_init(void)
         } else {
             printf("hash check failed, memset mem \r\n");
             memset_fourbytes((uint8_t *)HBNRAM_ADDRESS, 0, HBNRAM_SIZE);
-            sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, SEC_ENG_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
+            sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, BL_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
             mem_fourbytes_copy((uint8_t *)(HBNRAM_ADDRESS + MAGIC_SIZE), output, HASH128_SIZE);
             return -1;
         }
@@ -286,7 +285,7 @@ int hal_hbnram_alloc(const char *key, int len)
     memcpy(keybuf, (uint8_t *)key, strlen(key));
     mem_fourbytes_copy(paddr, keybuf, KEY_SEZE);
     mem_fourbytes_copy((uint8_t *)(paddr + KEY_SEZE + BUF_RESERVE_SIZE), (uint8_t *)&alen, LEN_SIZE);
-    sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, SEC_ENG_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
+    sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, BL_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
     mem_fourbytes_copy((uint8_t *)(HBNRAM_ADDRESS + MAGIC_SIZE), output, HASH128_SIZE);
 
     return 0;
@@ -342,7 +341,7 @@ int hal_hbnram_buffer_set(const char *key, uint8_t *buf, int length)
        mem_fourbytes_copy(phead + BUF_HEAD_SIZE, buf, length);
     }
   
-    sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, SEC_ENG_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
+    sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, BL_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
     mem_fourbytes_copy((uint8_t *)(HBNRAM_ADDRESS + MAGIC_SIZE), output, HASH128_SIZE);
 
     return length;
@@ -564,7 +563,7 @@ int hal_hbnram_copy_to_stream(hbnram_handle_t *handle, uint8_t *buf, int len)
     }
 
     handle->write_idex = handle->write_idex + len;
-    sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, SEC_ENG_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
+    sha_check_withctx((uint8_t*)HBNRAM_DATA_ADDR, output, BL_SHA256, SHA_DATA_SIZE, HBNRAM_DATA_SIZE);
     mem_fourbytes_copy((uint8_t *)(HBNRAM_ADDRESS + MAGIC_SIZE), output, HASH128_SIZE);
 
     return 0;

@@ -33,6 +33,7 @@
 #include <stdbool.h>
 
 void ble_controller_init(uint8_t task_priority);
+void ble_controller_deinit(void);
 
 #if defined(CONFIG_BLE_MFG)
 int le_rx_test_cmd_handler(uint16_t src_id, uint8_t rx_channel, bool from_hci);

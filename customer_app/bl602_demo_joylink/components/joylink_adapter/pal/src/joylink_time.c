@@ -27,7 +27,7 @@ int32_t jl_set_UTCtime(jl_time_stamp_t time_stamp)
     return 0;
 #endif
     // TODO: REPLACE ME
-    uint32_t timer_now_ms = bl_timer_now_us() / 1000;
+    uint64_t timer_now_ms = bl_timer_now_us64() / 1000;
     jl_time_delta_ms = ((int64_t)time_stamp.second * 1000 + time_stamp.ms) - (int64_t)timer_now_ms;
     return 0;
 }
@@ -94,7 +94,7 @@ uint32_t jl_time_get_timestamp_ms(jl_time_stamp_t *time_stamp)
     return 0;
 #endif
 #endif
-    uint64_t ts_ms = (int64_t)bl_timer_now_us() / 1000 + jl_time_delta_ms;
+    uint64_t ts_ms = (int64_t)bl_timer_now_us64() / 1000 + jl_time_delta_ms;
     if (time_stamp) {
         time_stamp->second = ts_ms / 1000;
         time_stamp->ms = ts_ms % 1000;
@@ -117,7 +117,7 @@ uint32_t jl_time_get_timestamp(jl_time_t *jl_time)
     return 0;
 #endif
 #endif
-    uint64_t ts_ms = (int64_t)bl_timer_now_us() / 1000 + jl_time_delta_ms;
+    uint64_t ts_ms = (int64_t)bl_timer_now_us64() / 1000 + jl_time_delta_ms;
 
     return ts_ms / 1000;
 }

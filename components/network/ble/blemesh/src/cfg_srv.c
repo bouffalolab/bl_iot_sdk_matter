@@ -3420,7 +3420,7 @@ void bt_mesh_heartbeat(u16_t src, u16_t dst, u8_t hops, u16_t feat)
 	       cfg->hb_sub.count);
 
 	if (cfg->hb_sub.func) {
-		cfg->hb_sub.func(hops, feat);
+		cfg->hb_sub.func(src, dst, hops, feat);
 	}
 }
 

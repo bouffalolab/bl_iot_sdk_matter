@@ -45,5 +45,6 @@ typedef struct hw_timer {
 int hal_hwtimer_init(void);
 hw_timer_t *hal_hwtimer_create(uint32_t period, hw_t handler, int repeat);
 int hal_hwtimer_delete(hw_timer_t *pstnode);
+int hal_hwtimer_change_period(hw_timer_t *pstnode, uint32_t period);
 
 #endif

@@ -446,6 +446,112 @@ static void update_poweroffset_config(const void *fdt, int offset1)
     }
 }
 
+static int update_sta_field(const void *fdt, int wifi_offset, const char *name)
+{
+    int offset1 = 0;        /* subnode offset1 */
+    int countindex = 0, lentmp = 0;
+    const char *result = 0;
+    const uint8_t *addr_prop = 0;
+    int auto_connect_enable;
+
+    offset1 = fdt_subnode_offset(fdt, wifi_offset, name);
+    if (offset1 > 0) {
+        /* set ssid pwd */
+        uint8_t ap_ssid[32];
+        uint8_t ap_ssid_len = 0;
+        uint8_t ap_psk[64];
+        uint8_t ap_psk_len = 0;
+
+        countindex = fdt_stringlist_count(fdt, offset1, "ssid");
+        if (1 == countindex) {
+            result = fdt_stringlist_get(fdt, offset1, "ssid", 0, &lentmp);
+            if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
+                blog_info("[STA] ap_ssid string[%d] = %s, ap_ssid_len = %d\r\n", 0, result, lentmp);
+                memcpy(ap_ssid, result, lentmp);
+                ap_ssid[lentmp] = '\0';
+                ap_ssid_len = lentmp;
+            }
+        }
+
+        countindex = fdt_stringlist_count(fdt, offset1, "pwd");
+        if (1 == countindex) {
+            result = fdt_stringlist_get(fdt, offset1, "pwd", 0, &lentmp);
+            if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
+                blog_info("[STA] ap_psk string[%d] = %s, ap_psk_len = %d\r\n", 0, result, lentmp);
+                memcpy(ap_psk, result, lentmp);
+                ap_psk[lentmp] = '\0';
+                ap_psk_len = lentmp;
+            }
+        }
+        addr_prop = fdt_getprop(fdt, offset1, "auto_connect_enable", &lentmp);
+        if (addr_prop) {
+            blog_info("auto_connect_enable = %ld\r\n", BL_FDT32_TO_U32(addr_prop, 0));
+
+            auto_connect_enable = BL_FDT32_TO_U32(addr_prop, 0);
+        } else {
+            auto_connect_enable = 0;
+        }
+
+        bl_wifi_sta_info_set(ap_ssid, ap_ssid_len, ap_psk, ap_psk_len, auto_connect_enable);
+    }
+    return offset1;
+}
+
+static int update_ap_field(const void *fdt, int wifi_offset, const char *name)
+{
+    int offset1 = 0;        /* subnode offset1 */
+    int countindex = 0, lentmp = 0;
+    const char *result = 0;
+    const uint8_t *addr_prop = 0;
+
+    offset1 = fdt_subnode_offset(fdt, wifi_offset, "ap");
+    if (offset1 > 0)
+    {
+        /* set ssid pwd */
+        uint8_t ap_ssid[32];
+        uint8_t ap_ssid_len = 0;
+        uint8_t ap_psk[64];
+        uint8_t ap_psk_len = 0;
+        uint8_t ap_channel = 0;
+
+        countindex = fdt_stringlist_count(fdt, offset1, "ssid");
+        if (1 == countindex) {
+            result = fdt_stringlist_get(fdt, offset1, "ssid", 0, &lentmp);
+            if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
+                blog_info("ap_ssid string[%d] = %s, ap_ssid_len = %d\r\n", 0, result, lentmp);
+                memcpy(ap_ssid, result, lentmp);
+                ap_ssid[lentmp] = '\0';
+                ap_ssid_len = lentmp;
+            }
+        }
+
+        countindex = fdt_stringlist_count(fdt, offset1, "pwd");
+        if (1 == countindex) {
+            result = fdt_stringlist_get(fdt, offset1, "pwd", 0, &lentmp);
+            if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
+                blog_info("ap_psk string[%d] = %s, ap_psk_len = %d\r\n", 0, result, lentmp);
+                memcpy(ap_psk, result, lentmp);
+                ap_psk[lentmp] = '\0';
+                ap_psk_len = lentmp;
+            }
+        }
+
+        addr_prop = fdt_getprop(fdt, offset1, "ap_channel", &lentmp);
+        if (addr_prop) {
+            blog_info("ap_channel = %ld\r\n", BL_FDT32_TO_U32(addr_prop, 0));
+
+            ap_channel = BL_FDT32_TO_U32(addr_prop, 0);
+        } else {
+            blog_error("ap_channel NULL.\r\n");
+        }
+
+        bl_wifi_ap_info_set(ap_ssid, ap_ssid_len,
+                            ap_psk, ap_psk_len,
+                            ap_channel);
+    }
+    return offset1;
+}
+
 static int hal_board_load_fdt_info(const void *dtb)
 {
     const void *fdt = (const void *)dtb;/* const */
@@ -453,10 +559,8 @@ static int hal_board_load_fdt_info(const void *dtb)
     int wifi_offset = 0;    /* subnode wifi */
     int offset1 = 0;        /* subnode offset1 */
     const uint8_t *addr_prop = 0;
-    const char *result = 0;
 
     int lentmp = 0;
-    int countindex = 0;
     int i;
 
     wifi_offset = fdt_subnode_offset(fdt, 0, "wifi");
@@ -534,71 +638,69 @@ static int hal_board_load_fdt_info(const void *dtb)
     if (offset1 > 0)
     {
         /* set tx_pwr_tbl */
-        uint8_t pwr_table[16*4];
+        uint8_t pwr_table[24];
 
         USER_UNUSED(pwr_table);
-        addr_prop = fdt_getprop(fdt, offset1, "pwr_table", &lentmp);
-        if (16*4*4 == lentmp) {
-            for (i = 0; i < 16*4; i++) {
+        addr_prop = fdt_getprop(fdt, offset1, "pwr_table_11b", &lentmp);
+        if (4*4 == lentmp) {
+            for (i = 0; i < 4; i++) {
                 pwr_table[i] = BL_FDT32_TO_U32(addr_prop, 4*i);
             }
-            blog_info("pwr_table :\r\n");
-            blog_buf(pwr_table, 16*4);
-
-            //TODO FIXME POWER
-            //bl_wifi_power_table_set((bl_tx_pwr_tbl_t *)pwr_table);
+            blog_info("pwr_table_11b :%u %u %u %u\r\n",
+                pwr_table[0],
+                pwr_table[1],
+                pwr_table[2],
+                pwr_table[3]
+            );
+            bl_tpc_update_power_rate_11b((int8_t*)pwr_table);
         }  else {
-            blog_error("pwr_table NULL. lentmp = %d\r\n", lentmp);
+            blog_error("pwr_table_11b NULL. lentmp = %d\r\n", lentmp);
         }
 
+        addr_prop = fdt_getprop(fdt, offset1, "pwr_table_11g", &lentmp);
+        if (8*4 == lentmp) {
+            for (i = 0; i < 8; i++) {
+                pwr_table[i] = BL_FDT32_TO_U32(addr_prop, 4*i);
+            }
+            blog_info("pwr_table_11g :%u %u %u %u %u %u %u %u\r\n",
+                pwr_table[0],
+                pwr_table[1],
+                pwr_table[2],
+                pwr_table[3],
+                pwr_table[4],
+                pwr_table[5],
+                pwr_table[6],
+                pwr_table[7]
+            );
+            bl_tpc_update_power_rate_11g((int8_t*)pwr_table);
+        } else {
+            blog_error("pwr_table_11g NULL. lentmp = %d\r\n", lentmp);
+        }
+
+        addr_prop = fdt_getprop(fdt, offset1, "pwr_table_11n", &lentmp);
+        if (8*4 == lentmp) {
+            for (i = 0; i < 8; i++) {
+                pwr_table[i] = BL_FDT32_TO_U32(addr_prop, 4*i);
+            }
+            blog_info("pwr_table_11n :%u %u %u %u %u %u %u %u\r\n",
+                pwr_table[0],
+                pwr_table[1],
+                pwr_table[2],
+                pwr_table[3],
+                pwr_table[4],
+                pwr_table[5],
+                pwr_table[6],
+                pwr_table[7]
+            );
+            bl_tpc_update_power_rate_11n((int8_t*)pwr_table);
+        }  else {
+            blog_error("pwr_table_11n NULL. lentmp = %d\r\n", lentmp);
+        }
         update_poweroffset_config(fdt, offset1);
     }
 
-    offset1 = fdt_subnode_offset(fdt, wifi_offset, "ap");
-    if (offset1 > 0)
-    {
-        /* set ssid pwd */
-        uint8_t ap_ssid[32];
-        uint8_t ap_ssid_len = 0;
-        uint8_t ap_psk[64];
-        uint8_t ap_psk_len = 0;
-        uint8_t ap_channel = 0;
-
-        countindex = fdt_stringlist_count(fdt, offset1, "ssid");
-        if (1 == countindex) {
-            result = fdt_stringlist_get(fdt, offset1, "ssid", 0, &lentmp);
-            if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
-                blog_info("ap_ssid string[%d] = %s, ap_ssid_len = %d\r\n", 0, result, lentmp);
-                memcpy(ap_ssid, result, lentmp);
-                ap_ssid[lentmp] = '\0';
-                ap_ssid_len = lentmp;
-            }
-        }
-
-        countindex = fdt_stringlist_count(fdt, offset1, "pwd");
-        if (1 == countindex) {
-            result = fdt_stringlist_get(fdt, offset1, "pwd", 0, &lentmp);
-            if ((lentmp > 0) &&(lentmp<32)) {/* !NULL */
-                blog_info("ap_psk string[%d] = %s, ap_psk_len = %d\r\n", 0, result, lentmp);
-                memcpy(ap_psk, result, lentmp);
-                ap_psk[lentmp] = '\0';
-                ap_psk_len = lentmp;
-            }
-        }
-
-        addr_prop = fdt_getprop(fdt, offset1, "ap_channel", &lentmp);
-        if (addr_prop) {
-            blog_info("ap_channel = %ld\r\n", BL_FDT32_TO_U32(addr_prop, 0));
-
-            ap_channel = BL_FDT32_TO_U32(addr_prop, 0);
-        } else {
-            blog_error("ap_channel NULL.\r\n");
-        }
-
-        bl_wifi_ap_info_set(ap_ssid, ap_ssid_len,
-                            ap_psk, ap_psk_len,
-                            ap_channel);
-    }
+    offset1 = update_ap_field(fdt, wifi_offset, "ap");
+    offset1 = update_sta_field(fdt, wifi_offset, "sta");
 
     return 0;
 }

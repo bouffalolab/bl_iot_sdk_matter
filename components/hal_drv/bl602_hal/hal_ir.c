@@ -35,6 +35,14 @@
 
 #include "hal_ir.h"
 #include "bl_ir.h"
+#include "bl_timer.h"
+#include <bl602_pds.h>
+
+#define CHIP_WS2812B        0
+#define CHIP_UCS1903        1
+#define WS2812B_RESET_US    50
+#define UCS1903_RESET_US    24
+static int g_chip_type = 0;
 
 #define BL_FDT32_TO_U8(addr, byte_offset)   ((uint8_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
 #define BL_FDT32_TO_U16(addr, byte_offset)  ((uint16_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
@@ -98,3 +106,52 @@ int hal_ir_init_from_dts(uint32_t fdt_input, uint32_t dtb_offset)
 
     return 0;
 }
+
+int hal_irled_init(int chip_type) 
+{
+    if (chip_type != 0 && chip_type != 1) {
+        blog_error("not correct chip type \r\n");
+
+        return -1;
+    }
+
+    bl_irled_gpio_init();
+    bl_irled_init(chip_type); 
+    
+    g_chip_type = chip_type;
+
+    return 0;
+}
+
+int hal_irled_send_data(int data_num, uint32_t *buf)
+{
+    int i;
+    static uint64_t last_us = 0;
+    uint64_t reset_us;
+
+    if (data_num <=0 || buf == NULL) {
+        blog_error("not correct para. \r\n");
+
+        return -1;
+    }
+
+    if (g_chip_type == 0) {
+        reset_us = WS2812B_RESET_US;
+    } else {
+        reset_us = UCS1903_RESET_US;
+    }
+    
+    if (bl_timer_now_us64() - last_us < reset_us) {
+         bl_timer_delay_us(reset_us - (bl_timer_now_us64() - last_us));
+    }
+
+    __disable_irq();
+    for (i = 0; i < data_num; i++) {
+        bl_irled_send_one_data(buf[i]);
+    }
+    __enable_irq();
+
+    last_us = bl_timer_now_us64();
+
+    return 0;
+}  

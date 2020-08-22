@@ -840,6 +840,25 @@ int bl_send_mm_powersaving_req(struct bl_hw *bl_hw, int mode)
     return bl_send_msg(bl_hw, req, 1, MM_SET_PS_MODE_CFM, NULL);
 }
 
+int bl_send_mm_denoise_req(struct bl_hw *bl_hw, int mode)
+{
+    struct mm_set_denoise_req *req;
+
+    RWNX_DBG(RWNX_FN_ENTRY_STR);
+
+    /* Build the MM_DENOISE_REQ message */
+    req = bl_msg_zalloc(MM_DENOISE_REQ, TASK_MM, DRV_TASK_ID, sizeof(struct mm_set_denoise_req));
+    if (!req) {
+        return -ENOMEM;
+    }
+
+    /* Set parameters for the MM_SET_PS_MODE_REQ message */
+    req->denoise_mode = mode;
+
+    /* Send the MM_SET_PS_MODE_REQ message to LMAC FW */
+    return bl_send_msg(bl_hw, req, 1, MM_SET_PS_MODE_CFM, NULL);
+}
+
 int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid)
 {
     struct apm_start_req *req;

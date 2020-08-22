@@ -20,9 +20,9 @@
 #endif
 
 extern int bl_rand();
-void k_queue_init(struct k_queue *queue)
+void k_queue_init(struct k_queue *queue, int size)
 {
-    int size = 20;
+    //int size = 20;
     uint8_t blk_size = sizeof(void *) + 1;
 
 
@@ -64,7 +64,15 @@ void k_queue_append_from_isr(struct k_queue *queue, void *data)
 
 void k_queue_free(struct k_queue *queue)
 {
+    if(NULL == queue || NULL == queue->hdl)
+    {
+        BT_ERR("Queue is NULL\n");
+        return;
+    }
+    
     vQueueDelete(queue->hdl);
+    queue->hdl = NULL;
+    return;
 }
 
 void k_queue_prepend(struct k_queue *queue, void *data)
@@ -106,6 +114,11 @@ void *k_queue_get(struct k_queue *queue, s32_t timeout)
 int k_queue_is_empty(struct k_queue *queue)
 {
      return uxQueueMessagesWaiting(queue->hdl)? 0:1;
+}
+
+int k_queue_get_cnt(struct k_queue *queue)
+{
+     return uxQueueMessagesWaiting(queue->hdl);
 }
 
 int k_sem_init(struct k_sem *sem, unsigned int initial_count, unsigned int limit)
@@ -156,12 +169,13 @@ int k_sem_give(struct k_sem *sem)
 
 int k_sem_delete(struct k_sem *sem)
 {
-    if (NULL == sem) {
+    if (NULL == sem || NULL == sem->sem.hdl) {
         BT_ERR("sem is NULL\n");
         return -EINVAL;
     }
 
     vSemaphoreDelete(sem->sem.hdl);
+    sem->sem.hdl = NULL;
     return 0;
 }
 
@@ -201,6 +215,19 @@ int k_thread_create(struct k_thread *new_thread, const char *name,
     xTaskCreate(entry, name, stack_size, NULL, prio, (void *)(&new_thread->task));
     
     return new_thread->task? 0 : -1;
+}
+
+void k_thread_delete(struct k_thread *new_thread)
+{
+    if(NULL == new_thread || 0 == new_thread->task)
+    {
+        BT_ERR("task is NULL\n");
+        return;
+    }
+    
+    vTaskDelete((void *)(new_thread->task));
+    new_thread->task = 0;
+    return;
 }
 
 int k_yield(void)

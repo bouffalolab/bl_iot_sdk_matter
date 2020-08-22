@@ -16,7 +16,7 @@
 #ifndef _DEVICE_PROPERTY_H_
 #define _DEVICE_PROPERTY_H_
 
-#include "mesh_types.h"
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {

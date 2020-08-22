@@ -2177,9 +2177,9 @@ static void bt_att_connected(struct bt_l2cap_chan *chan)
 
 	BT_DBG("chan %p cid 0x%04x", ch, ch->tx.cid);
 
-	k_fifo_init(&att->tx_queue);
+	k_fifo_init(&att->tx_queue, 20);
 #if CONFIG_BT_ATT_PREPARE_COUNT > 0
-	k_fifo_init(&att->prep_queue);
+	k_fifo_init(&att->prep_queue, 20);
 #endif
 
 	ch->tx.mtu = BT_ATT_DEFAULT_LE_MTU;

@@ -226,6 +226,23 @@ static void bssid_str_to_mac(uint8_t *hex, char *bssid, int len)
    }
 }
 
+int check_dts_config(char ssid[33], char password[64])
+{
+    bl_wifi_ap_info_t sta_info;
+
+    if (bl_wifi_sta_info_get(&sta_info)) {
+        /*no valid sta info is got*/
+        return -1;
+    }
+
+    strncpy(ssid, (const char*)sta_info.ssid, 32);
+    ssid[31] = '\0';
+    strncpy(password, (const char*)sta_info.psk, 64);
+    password[63] = '\0';
+
+    return 0;
+}
+
 static void _connect_wifi()
 {
     /*XXX caution for BIG STACK*/
@@ -258,6 +275,59 @@ static void _connect_wifi()
     if (val_buf[0]) {
         /*We believe that when ssid is set, wifi_confi is OK*/
         strncpy(ssid, val_buf, sizeof(ssid) - 1);
+
+        /*setup password ans PMK stuff from ENV*/
+        memset(val_buf, 0, sizeof(val_buf));
+        ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PASSWORD, val_buf, val_len, NULL);
+        if (val_buf[0]) {
+            strncpy(password, val_buf, sizeof(password) - 1);
+        }
+
+        memset(val_buf, 0, sizeof(val_buf));
+        ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PMK, val_buf, val_len, NULL);
+        if (val_buf[0]) {
+            strncpy(pmk, val_buf, sizeof(pmk) - 1);
+        }
+        if (0 == pmk[0]) {
+            printf("[APP] [WIFI] [T] %lld\r\n",
+               aos_now_ms()
+            );
+            puts("[APP]    Re-cal pmk\r\n");
+            /*At lease pmk is not illegal, we re-cal now*/
+            //XXX time consuming API, so consider lower-prirotiy for cal PSK to avoid sound glitch
+            wifi_mgmr_psk_cal(
+                    password,
+                    ssid,
+                    strlen(ssid),
+                    pmk
+            );
+            ef_set_env(WIFI_AP_PSM_INFO_PMK, pmk);
+            ef_save_env();
+        }
+        memset(val_buf, 0, sizeof(val_buf));
+        ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_CHANNEL, val_buf, val_len, NULL);
+        if (val_buf[0]) {
+            strncpy(chan, val_buf, sizeof(chan) - 1);
+            printf("connect wifi channel = %s\r\n", chan);
+            _chan_str_to_hex(&band, &freq, chan);
+        }
+        memset(val_buf, 0, sizeof(val_buf));
+        ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
+        if (val_buf[0]) {
+            strncpy(bssid, val_buf, sizeof(bssid) - 1);
+            printf("connect wifi bssid = %s\r\n", bssid);
+            bssid_str_to_mac(mac, bssid, strlen(bssid));
+            printf("mac = %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+                    mac[0],
+                    mac[1],
+                    mac[2],
+                    mac[3],
+                    mac[4],
+                    mac[5]
+            );
+        }
+    } else if (0 == check_dts_config(ssid, password)) {
+        /*nothing here*/
     } else {
         /*Won't connect, since ssid config is empty*/
         puts("[APP]    Empty Config\r\n");
@@ -269,55 +339,6 @@ static void _connect_wifi()
         return;
     }
 
-    memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PASSWORD, val_buf, val_len, NULL);
-    if (val_buf[0]) {
-        strncpy(password, val_buf, sizeof(password) - 1);
-    }
-
-    memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PMK, val_buf, val_len, NULL);
-    if (val_buf[0]) {
-        strncpy(pmk, val_buf, sizeof(pmk) - 1);
-    }
-    if (0 == pmk[0]) {
-        printf("[APP] [WIFI] [T] %lld\r\n",
-           aos_now_ms()
-        );
-        puts("[APP]    Re-cal pmk\r\n");
-        /*At lease pmk is not illegal, we re-cal now*/
-        //XXX time consuming API, so consider lower-prirotiy for cal PSK to avoid sound glitch
-        wifi_mgmr_psk_cal(
-                password,
-                ssid,
-                strlen(ssid),
-                pmk
-        );
-        ef_set_env(WIFI_AP_PSM_INFO_PMK, pmk);
-        ef_save_env();
-    }
-    memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_CHANNEL, val_buf, val_len, NULL);
-    if (val_buf[0]) {
-        strncpy(chan, val_buf, sizeof(chan) - 1);
-        printf("connect wifi channel = %s\r\n", chan);
-        _chan_str_to_hex(&band, &freq, chan);
-    }
-    memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
-    if (val_buf[0]) {
-        strncpy(bssid, val_buf, sizeof(bssid) - 1);
-        printf("connect wifi bssid = %s\r\n", bssid);
-        bssid_str_to_mac(mac, bssid, strlen(bssid));
-        printf("mac = %02X:%02X:%02X:%02X:%02X:%02X\r\n",
-                mac[0],
-                mac[1],
-                mac[2],
-                mac[3],
-                mac[4],
-                mac[5]
-        );
-    }
     printf("[APP] [WIFI] [T] %lld\r\n"
            "[APP]    SSID %s\r\n"
            "[APP]    SSID len %d\r\n"
@@ -365,6 +386,11 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
         {
             printf("[APP] [EVT] MGMR DONE %lld, now %lums\r\n", aos_now_ms(), bl_timer_now_us()/1000);
             _connect_wifi();
+        }
+        break;
+        case CODE_WIFI_ON_MGMR_DENOISE:
+        {
+            printf("[APP] [EVT] Microwave Denoise is ON %lld\r\n", aos_now_ms());
         }
         break;
         case CODE_WIFI_ON_SCAN_DONE:
@@ -477,6 +503,12 @@ void aws_main_entry(void *arg);
 static void cmd_pka(char *buf, int len, int argc, char **argv)
 {
     bl_pka_test();
+}
+
+static void cmd_wifi(char *buf, int len, int argc, char **argv)
+{
+void mm_sec_keydump(void);
+    mm_sec_keydump();
 }
 
 static void cmd_sha(char *buf, int len, int argc, char **argv)
@@ -702,6 +734,7 @@ static void cmd_stack_wifi(char *buf, int len, int argc, char **argv)
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
+        { "wifi", "wifi", cmd_wifi},
         { "sha", "sha iot demo", cmd_sha},
         { "trng", "trng test", cmd_trng},
         { "aes", "trng test", cmd_aes},
@@ -725,6 +758,10 @@ int codex_debug_cli_init(void);
     codex_debug_cli_init();
     easyflash_cli_init();
     network_netutils_iperf_cli_register();
+    network_netutils_tcpserver_cli_register();
+    network_netutils_tcpclinet_cli_register();
+    network_netutils_netstat_cli_register();
+    network_netutils_ping_cli_register();
     sntp_cli_init();
     bl_sys_time_cli_init();
     bl_sys_ota_cli_init();

@@ -46,6 +46,8 @@ enum bt_buf_type {
 /** Data size neeed for HCI RX buffers */
 #define BT_BUF_RX_SIZE (BT_BUF_RESERVE + CONFIG_BT_RX_BUF_LEN)
 
+int bt_buf_get_rx_avail_cnt(void);
+
 /** Allocate a buffer for incoming data
  *
  *  This will set the buffer type so bt_buf_set_type() does not need to

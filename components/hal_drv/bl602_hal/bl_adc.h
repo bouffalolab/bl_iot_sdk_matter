@@ -34,4 +34,10 @@ int test_adc_init(void);
 int test_adc_get(int16_t *tmp);
 int test_adc_test(void);
 
+int start_adc_data_collect(void);
+int bl_adc_init(int gpio_num, int oneshot, int sampling_ms);
+int bl_adc_start(void);
+int bl_adc_stop(void);
+void bl_adc_int_enable(void);
+
 #endif

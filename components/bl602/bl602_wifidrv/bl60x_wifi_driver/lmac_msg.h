@@ -285,7 +285,7 @@ enum mm_msg_tag
     MM_SET_POWER_CFM,
     /// Request to the LMAC to trigger the embedded logic analyzer and forward the debug
     /// dump.
-    MM_DBG_TRIGGER_REQ,
+    MM_DENOISE_REQ,
     /// Set Power Save mode
     MM_SET_PS_MODE_REQ,
     /// Set Power Save mode confirmation
@@ -990,6 +990,11 @@ struct mm_set_ps_mode_req
 {
     /// Power Save is activated or deactivated
     u8_l  new_state;
+};
+
+struct mm_set_denoise_req
+{
+    u8_l  denoise_mode;
 };
 
 /// Structure containing the parameters of the @ref MM_BCN_CHANGE_REQ message.

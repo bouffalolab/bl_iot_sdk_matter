@@ -147,6 +147,16 @@ typedef struct {
 }Efuse_Ana_RC32K_Trim_Type;
 
 /**
+ *  @brief Efuse analog TSEN trim type definition
+ */
+typedef struct {
+    uint32_t tsenRefcodeCorner                       :  12;    /*!< TSEN refcode */
+    uint32_t tsenRefcodeCornerParity                 :  1;    /*!< TSEN refcode parity */
+    uint32_t tsenRefcodeCornerEn                     :  1;    /*!< TSEN refcode enable */
+    uint32_t reserved                                :  18;    /*!< TSEN analog trim:reserved */
+}Efuse_TSEN_Refcode_Corner_Type;
+
+/**
  *  @brief Efuse analog device info type definition
  */
 typedef struct {
@@ -257,6 +267,7 @@ void EF_Ctrl_Write_Ana_Trim(uint32_t index, uint32_t trim,uint8_t program);
 void EF_Ctrl_Read_Ana_Trim( uint32_t index, uint32_t *trim);
 void EF_Ctrl_Read_RC32M_Trim( Efuse_Ana_RC32M_Trim_Type *trim);
 void EF_Ctrl_Read_RC32K_Trim( Efuse_Ana_RC32K_Trim_Type *trim);
+void EF_Ctrl_Read_TSEN_Trim( Efuse_TSEN_Refcode_Corner_Type *trim);
 void EF_Ctrl_Write_Sw_Usage(uint32_t index, uint32_t usage,uint8_t program);
 void EF_Ctrl_Read_Sw_Usage( uint32_t index, uint32_t *usage);
 void EF_Ctrl_Writelock_Sw_Usage(uint32_t index, uint8_t program);

@@ -46,9 +46,20 @@
 /*please also change NVIC_SetPriority of DMA channel*/
 #define DMA_DEFAULT_CHANNEL_COPY        (DMA_CH0)
 
+struct dma_ctx {
+    utils_dlist_t *pstqueue;
+};
+
+struct dma_node {
+    utils_dlist_t dlist_item;
+    int channel;
+    void *tc_handler;
+    void *interr_handler;
+};
+
 static struct utils_list dma_copy_list;
 
-static int bl_dma_int_clear(int ch)
+int bl_dma_int_clear(int ch)
 {
     uint32_t tmpVal;
     uint32_t intClr;
@@ -152,8 +163,122 @@ void bl_dma_IRQHandler(void)
     }
 }
 
+static void bl_dma_int_process(void)
+{
+    int ch;
+    uint32_t intclr;
+    uint32_t tmpval;
+    uint32_t interr_val; 
+    struct dma_node *node;
+    struct dma_ctx *pstctx;
+    void (*handler)(void) = NULL; 
+    int tc_flag, interr_flag;
+   
+    tmpval = BL_RD_REG(DMA_BASE, DMA_INTTCSTATUS);
+    interr_val = BL_RD_REG(DMA_BASE, DMA_INTERRORSTATUS);
+    bl_irq_ctx_get(DMA_ALL_IRQn, (void **)&pstctx); 
+    for (ch = 0; ch < DMA_CH_MAX; ch++) {
+        tc_flag = BL_GET_REG_BITS_VAL(tmpval, DMA_INTTCSTATUS) & (1 << ch);
+        interr_flag = BL_GET_REG_BITS_VAL(interr_val, DMA_INTERRORSTATUS) & (1 << ch);
+        
+        if((tc_flag != 0) || (interr_flag != 0)) {
+            if (tc_flag != 0) {
+                /* tc int, clear interrupt */
+                tmpval = BL_RD_REG(DMA_BASE, DMA_INTTCCLEAR);
+                intclr = BL_GET_REG_BITS_VAL(tmpval, DMA_INTTCCLEAR);
+                intclr |= (1 << ch);
+                tmpval = BL_SET_REG_BITS_VAL(tmpval, DMA_INTTCCLEAR, intclr);
+                BL_WR_REG(DMA_BASE, DMA_INTTCCLEAR, tmpval);
+            }
+
+            if (interr_flag != 0) {
+                /* int error, clear interrupt */
+                tmpval = BL_RD_REG(DMA_BASE, DMA_INTERRCLR);
+                intclr = BL_GET_REG_BITS_VAL(tmpval, DMA_INTERRCLR);
+                intclr |= (1 << ch);
+                tmpval = BL_SET_REG_BITS_VAL(tmpval, DMA_INTERRCLR, intclr);
+                BL_WR_REG(DMA_BASE, DMA_INTERRCLR, tmpval);
+            }
+
+            utils_dlist_for_each_entry(pstctx->pstqueue, node, struct dma_node, dlist_item) {
+                if (ch == node->channel) {
+                    if (node->tc_handler != NULL && tc_flag != 0) {
+                        handler = (void(*)(void))node->tc_handler;
+                        handler();
+                    }
+
+                    if (node->interr_handler != NULL && interr_flag != 0) {
+                        handler = (void(*)(void))node->interr_handler;
+                        handler();
+                    }
+                }               
+            }
+        }        
+    }
+    
+    return;
+}
+
+int bl_dma_irq_register(int channel, void *tc_handler, void *interr_handler)
+{
+    struct dma_ctx *pstctx;
+    struct dma_node *node;
+    struct dma_node *pstnode;
+
+    if ((channel > DMA_CH_MAX || channel < 0) || tc_handler == NULL) {
+        blog_error("not valid para \r\n");
+
+        return -1;
+    }
+
+    bl_irq_ctx_get(DMA_ALL_IRQn, (void **)&pstctx);
+    utils_dlist_for_each_entry(pstctx->pstqueue, node, struct dma_node, dlist_item) {
+        if (channel == node->channel) {
+            blog_warn("channel %d already register \r\n", node->channel);
+            return -1;
+        }
+    }
+    
+    pstnode = pvPortMalloc(sizeof(struct dma_node)); 
+    pstnode->channel = channel;
+    pstnode->tc_handler = tc_handler;
+    pstnode->interr_handler = interr_handler;
+    utils_dlist_add(&(pstnode->dlist_item), pstctx->pstqueue);
+
+    return -1;
+}
+
+int bl_dma_irq_unregister(int channel)
+{
+    struct dma_ctx *pstctx;
+    struct dma_node *node;
+
+    if (channel > DMA_CH_MAX || channel < 0) {
+        blog_error("not valid para \r\n");
+
+        return -1;
+    }
+
+    bl_irq_ctx_get(DMA_ALL_IRQn, (void **)&pstctx);
+    utils_dlist_for_each_entry(pstctx->pstqueue, node, struct dma_node, dlist_item) {
+        if (channel == node->channel) {
+            utils_dlist_del(&(node->dlist_item));
+            vPortFree(node);
+            break;
+        }
+    }
+
+    if (&node->dlist_item == pstctx->pstqueue) {
+        blog_error("not find node \r\n");
+        return -1;
+    }
+    
+    return 0;
+}
+
 void bl_dma_init(void)
 {
+    struct dma_ctx *pstctx;
     //FIXME use DMA_CH4 as channel copy
     DMA_Chan_Type dmaCh = DMA_DEFAULT_CHANNEL_COPY;
     DMA_LLI_Cfg_Type lliCfg =
@@ -164,12 +289,28 @@ void bl_dma_init(void)
     };
     utils_list_init(&dma_copy_list);
 
+    pstctx = pvPortMalloc(sizeof(struct dma_ctx));
+    if (pstctx == NULL) {
+        blog_error("malloc dma ctx failed \r\n");
+
+        return;
+    }
+
+    pstctx->pstqueue = pvPortMalloc(sizeof(utils_dlist_t));
+    if (pstctx->pstqueue == NULL) {
+        blog_error("malloc dma pstqueue failed \r\n");
+
+        return;
+    }
+    INIT_UTILS_DLIST_HEAD(pstctx->pstqueue);
+
     DMA_Enable();
     DMA_IntMask(dmaCh, DMA_INT_ALL, MASK);
     DMA_IntMask(dmaCh, DMA_INT_TCOMPLETED, UNMASK);
     DMA_IntMask(dmaCh, DMA_INT_ERR, UNMASK);
     DMA_LLI_Init(dmaCh, &lliCfg);
-    bl_irq_register(DMA_ALL_IRQn, bl_dma_IRQHandler);
+    bl_irq_register_with_ctx(DMA_ALL_IRQn, bl_dma_int_process, pstctx);
+    bl_dma_irq_register(DMA_DEFAULT_CHANNEL_COPY, bl_dma_IRQHandler, NULL);
     bl_irq_enable(DMA_ALL_IRQn);
 }
 

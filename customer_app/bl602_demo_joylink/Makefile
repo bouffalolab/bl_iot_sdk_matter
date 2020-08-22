@@ -19,7 +19,7 @@ $(info ****** Trying SDK PATH [$(BL60X_SDK_PATH)])
 endif
 
 COMPONENTS_NETWORK := sntp
-COMPONENTS_BLSYS   := bltime blfdt blmtd blota bloop looprt loopset
+COMPONENTS_BLSYS   := bltime blfdt blmtd blota bloop loopadc looprt loopset
 COMPONENTS_VFS     := romfs
 
 INCLUDE_COMPONENTS += freertos_riscv_ram bl602 bl602_std bl602_wifi bl602_wifidrv hal_drv lwip lwip_dhcpd mbedtls vfs yloop utils cli httpc netutils blog blog_testc

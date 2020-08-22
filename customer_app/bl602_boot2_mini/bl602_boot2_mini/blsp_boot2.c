@@ -455,7 +455,9 @@ int main(void)
     if(0==entry){
         BLSP_Boot2_On_Error("No valid FW Entry\r\n");
     }
-
+    
+    HBN_Set_XCLK_CLK_Sel(HBN_XCLK_CLK_XTAL);
+    
     MSG("jump entry\r\n");
     BLSP_Boot2_Jump_Entry(entry);
 

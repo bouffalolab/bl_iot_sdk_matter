@@ -76,7 +76,7 @@ static void gpio_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pi
     }
 
     // clk
-    //GLB_Set_UART_CLK(1, HBN_UART_CLK_FCLK, 0);
+    //GLB_Set_UART_CLK(1, HBN_UART_CLK_160M, 0);
 
     GLB_UART_Fun_Sel(tx_pin%8, tx_sigfun);
     GLB_UART_Fun_Sel(rx_pin%8, rx_sigfun);
@@ -109,7 +109,7 @@ int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, ui
 
     /* enable clk */
     if (0 == uart_clk_init) {
-        GLB_Set_UART_CLK(1, HBN_UART_CLK_FCLK, uart_div);
+        GLB_Set_UART_CLK(1, HBN_UART_CLK_160M, uart_div);
         uart_clk_init = 1;
     }
 
@@ -219,7 +219,7 @@ void bl_uart_setconfig(uint8_t id, uint32_t baudrate, UART_Parity_Type parity)
 {
     UART_CFG_Type UartCfg =
     {
-        160*1000*1000,                                       /* UART clock */
+        40*1000*1000,                                       /* UART clock */
         115200,                                              /* UART Baudrate */
         UART_DATABITS_8,                                     /* UART data bits length */
         UART_STOPBITS_1,                                     /* UART data stop bits length */

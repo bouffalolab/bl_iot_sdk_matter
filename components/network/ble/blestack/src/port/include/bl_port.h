@@ -55,7 +55,7 @@ struct k_queue {
 #define _K_QUEUE_INITIALIZER(obj) { 0 }
 #define K_QUEUE_INITIALIZER DEPRECATED_MACRO _K_QUEUE_INITIALIZER
 
-void k_queue_init(struct k_queue *queue);
+void k_queue_init(struct k_queue *queue, int size);
 void k_queue_free(struct k_queue *queue);
 void k_queue_append(struct k_queue *queue, void *data);
 void k_queue_prepend(struct k_queue *queue, void *data);
@@ -63,6 +63,7 @@ void k_queue_insert(struct k_queue *queue, void *prev, void *data);
 void k_queue_append_list(struct k_queue *queue, void *head, void *tail);
 void *k_queue_get(struct k_queue *queue, s32_t timeout);
 int k_queue_is_empty(struct k_queue *queue);
+int k_queue_get_cnt(struct k_queue *queue);
 
 struct k_lifo {
     struct k_queue _queue;
@@ -75,8 +76,8 @@ struct k_lifo {
 
 #define K_LIFO_INITIALIZER DEPRECATED_MACRO _K_LIFO_INITIALIZER
 
-#define k_lifo_init(lifo) \
-        k_queue_init((struct k_queue *) lifo)
+#define k_lifo_init(lifo, size) \
+        k_queue_init((struct k_queue *) lifo, size)
 
 #define k_lifo_put(lifo, data) \
         k_queue_prepend((struct k_queue *) lifo, data)
@@ -99,8 +100,8 @@ struct k_fifo {
         }
 #define K_FIFO_INITIALIZER DEPRECATED_MACRO _K_FIFO_INITIALIZER
 
-#define k_fifo_init(fifo) \
-        k_queue_init((struct k_queue *) fifo)
+#define k_fifo_init(fifo, size) \
+        k_queue_init((struct k_queue *) fifo, size)
 
 #define k_fifo_put(fifo, data) \
         k_queue_append((struct k_queue *) fifo, data)
@@ -226,6 +227,7 @@ int k_thread_create(struct k_thread *new_thread, const char *name,
                     size_t stack_size, k_thread_entry_t entry,
                     int prio);
                
+void k_thread_delete(struct k_thread *new_thread);
 
 /**
  * @brief Yield the current thread.

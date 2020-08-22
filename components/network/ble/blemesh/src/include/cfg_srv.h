@@ -57,8 +57,8 @@ struct bt_mesh_cfg_srv {
 		u8_t  min_hops;
 		u8_t  max_hops;
 
-		/* Optional subscription tracking function */
-		void (*func)(u8_t hops, u16_t feat);
+		/* Optional subscription tracking function, Add src and dst addr*/
+		void (*func)(u16_t src, u16_t dst, u8_t hops, u16_t feat);
 	} hb_sub;
 };
 

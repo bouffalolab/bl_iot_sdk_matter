@@ -388,7 +388,7 @@ static struct bt_conn *conn_new(void)
 	return conn;
 }
 
-#if defined(CFG_SLEEP)
+#if defined(BFLB_BLE)
 bool le_check_valid_conn(void)
 {
     int i;
@@ -1647,7 +1647,7 @@ void bt_conn_set_state(struct bt_conn *conn, bt_conn_state_t state)
 			/* TODO: Notify sco connected */
 			break;
 		}
-		k_fifo_init(&conn->tx_queue);
+		k_fifo_init(&conn->tx_queue, 20);
 		k_poll_signal_raise(&conn_change, 0);
 
 		sys_slist_init(&conn->channels);
@@ -2566,13 +2566,15 @@ struct bt_conn *bt_conn_lookup_id(u8_t id)
 	return bt_conn_ref(conn);
 }
 
+extern bool queue_inited;
 int bt_conn_init(void)
 {
 	int err, i;
 
 #if defined(BFLB_BLE)
-    k_lifo_init(&acl_tx_pool.free);
-    k_fifo_init(&free_tx);
+    if(queue_inited == false)
+        k_lifo_init(&acl_tx_pool.free, CONFIG_BT_L2CAP_TX_BUF_COUNT);
+    k_fifo_init(&free_tx, 20);
 #endif
 	for (i = 0; i < ARRAY_SIZE(conn_tx); i++) {
 		k_fifo_put(&free_tx, &conn_tx[i]);

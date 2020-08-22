@@ -54,7 +54,6 @@ COMPONENT_ADD_INCLUDEDIRS += src/mesh_models \
 COMPONENT_SRCS += src/mesh_models/common/btc/core/btc_manage.c \
 				  src/mesh_models/common/btc/core/btc_task.c \
 				  src/mesh_models/bfl_ble_mesh/mesh_common/mesh_mutex.c \
-				  src/mesh_models/bfl_ble_mesh/mesh_common/mesh_atomic.c \
 				  src/mesh_models/bfl_ble_mesh/mesh_common/mesh_common.c \
 				  src/mesh_models/bfl_ble_mesh/api/core/bfl_ble_mesh_local_data_operation_api.c \
 				  src/mesh_models/bfl_ble_mesh/api/core/bfl_ble_mesh_networking_api.c \

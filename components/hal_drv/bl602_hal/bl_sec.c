@@ -50,6 +50,9 @@
 static uint32_t trng_buffer[TRNG_SIZE_IN_WORD];
 static unsigned int trng_idx = 0;
 
+static StaticSemaphore_t sha_mutex_buf;
+SemaphoreHandle_t g_bl_sec_sha_mutex = NULL;
+
 static inline void _trng_trigger()
 {
     uint32_t TRNGx = SEC_ENG_BASE + SEC_ENG_TRNG_OFFSET;
@@ -105,6 +108,20 @@ uint32_t bl_sec_get_random_word(void)
     return trng_buffer[trng_idx++];
 }
 
+void bl_rand_stream(uint8_t *buf, int len)
+{
+    int i = 0;
+
+    while (i < len) {
+        buf[i] = ((uint8_t*)&trng_buffer)[i % TRNG_SIZE_IN_BYTES];
+        i++;
+        if (i == (TRNG_SIZE_IN_BYTES >> 1)) {
+            /*we should trigger*/
+            _trng_trigger();
+        }
+    }
+}
+
 int bl_rand()
 {
     unsigned int val;
@@ -148,6 +165,7 @@ void sec_trng_IRQHandler(void)
 
 int bl_sec_init(void)
 {
+    g_bl_sec_sha_mutex = xSemaphoreCreateMutexStatic(&sha_mutex_buf);
     _trng_trigger();
     wait_trng4feed();
     /*Trigger again*/

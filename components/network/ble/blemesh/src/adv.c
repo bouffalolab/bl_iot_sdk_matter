@@ -329,8 +329,8 @@ static void bt_mesh_scan_cb(const bt_addr_le_t *addr, s8_t rssi,
 void bt_mesh_adv_init(void)
 {
 #if defined(BFLB_BLE)
-    k_lifo_init(&adv_buf_pool.free);
-    k_fifo_init(&adv_queue);
+    k_lifo_init(&adv_buf_pool.free, CONFIG_BT_MESH_ADV_BUF_COUNT);
+    k_fifo_init(&adv_queue, 20);
     k_thread_create(&adv_thread_data, "BT Mesh adv", CONFIG_MESH_ADV_STACK_SIZE,
         adv_thread, CONFIG_BT_MESH_ADV_PRIO);
 #else   

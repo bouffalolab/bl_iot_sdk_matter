@@ -15,6 +15,12 @@
 #define ARP_QUEUEING            0
 #define LWIP_NETIF_API          1
 
+#define LWIP_MDNS_RESPONDER     1
+#define LWIP_IGMP               1
+//#define LWIP_AUTOIP             1
+////#define LWIP_IPV6_MLD           1
+#define LWIP_NUM_NETIF_CLIENT_DATA      1
+
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
  * use lwIP facilities.
@@ -59,6 +65,9 @@ a lot of data that needs to be copied, this should be set high. */
 /* MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP
    segments. */
 #define MEMP_NUM_TCP_SEG        32
+
+/* NUM of sys_timeout pool*/
+#define MEMP_NUM_SYS_TIMEOUT            (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 8 + 3)
 
 #define MEMP_NUM_NETCONN    (MEMP_NUM_TCP_PCB + MEMP_NUM_UDP_PCB + MEMP_NUM_TCP_PCB_LISTEN) 
 
@@ -258,6 +267,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 #define PBUF_LINK_ENCAPSULATION_HLEN    128u
 
+#define LWIP_RAW                        1
 
 /*
    ---------------------------------

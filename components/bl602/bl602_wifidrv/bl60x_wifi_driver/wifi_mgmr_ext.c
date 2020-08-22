@@ -88,6 +88,7 @@ static void cb_scan_item_parse(wifi_mgmr_ap_item_t *env, uint32_t *param1, wifi_
     memcpy(ap_ary_ptr->ssid, item->ssid, sizeof(ap_ary_ptr->ssid));//XXX boundary attack, copy too much data from wifi manager internal?
     ap_ary_ptr->ssid_tail[0] = '\0';
     ap_ary_ptr->ssid_len = strlen((char *)ap_ary_ptr->ssid);
+    ap_ary_ptr->auth = item->auth;
 
     /*store back counter*/
     (*param1) = counter;
@@ -164,7 +165,7 @@ static void wifi_eth_sta_enable(struct netif *netif, uint8_t mac[6])
     netifapi_netif_add(netif, &ipaddr, &netmask, &gw, NULL, &bl606a0_wifi_netif_init, &tcpip_input);
     netif->name[0] = 's';
     netif->name[1] = 't';
-    netif->flags |= NETIF_FLAG_LINK_UP;
+    netif->flags |=  NETIF_FLAG_LINK_UP | NETIF_FLAG_IGMP;
     netif_set_default(netif);
     netif_set_up(netif);
 }

@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>&lt;no title&gt; &mdash; BL602 IoT SDK  文档</title>
+  <title>&lt;no title&gt; &mdash; BL602 IoT SDK release_bl_iot_sdk_1.5.20 文档</title>
   
 
   
@@ -61,6 +61,10 @@
           
             
             
+              <div class="version">
+                release_bl_iot_sdk_1.5.20
+              </div>
+            
           
 
           
@@ -105,6 +109,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Examples/demo_system_fdt/fdt.html">11. FDT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Examples/demo_wifi/wifi.html">12. WiFi</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Examples/demo_ble/ble.html">13. BLE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples/demo_blsync_ble/blsync_ble.html">14. BLSYNC-BLE</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul>
@@ -124,7 +129,12 @@
 <li class="toctree-l1"><a class="reference internal" href="Components/Network/tls/tls.html">14. TLS</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Components/BLE/provision_WiFi/provision_WiFi.html">15. Provision_WiFi</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Components/BLE/mesh/mesh.html">16. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Components/BLE/ble stack/ble stack.html">17. BLE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Components/BLE/ble_stack/ble_stack.html">17. BLE</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API/sys/cronalarms.html">1. cronalarms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="API/wifi/wifi_mgmr.html">2. Wi-Fi Manager</a></li>
 </ul>
 
             
@@ -194,8 +204,9 @@
 <p class="caption"><span class="caption-text">Developer_Environment</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Developer_Environment/Developer_Environment.html">1. Developer Environment</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Developer_Environment/Developer_Environment.html#id1">1.1. 编译下载</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Developer_Environment/Developer_Environment.html#debug">1.2. Debug</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Developer_Environment/Developer_Environment.html#id1">1.1. 编译</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Developer_Environment/Developer_Environment.html#id2">1.2. 下载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Developer_Environment/Developer_Environment.html#debug">1.3. Debug</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Developer_Environment/BLFlashEnv/BLFlashEnv.html">2. BLFlashEnv</a><ul>
@@ -280,7 +291,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Examples/demo_storage_romfs/romfs.html">9. Romfs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="Examples/demo_storage_romfs/romfs.html#id1">9.1. 概述</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Examples/demo_storage_romfs/romfs.html#id2">9.2. 准备和使用步骤</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Examples/demo_storage_romfs/romfs.html#id5">9.3. 应用实例</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Examples/demo_storage_romfs/romfs.html#id3">9.3. 应用实例</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Examples/demo_system_cli/cli.html">10. cli</a><ul>
@@ -304,6 +315,12 @@
 <li class="toctree-l1"><a class="reference internal" href="Examples/demo_ble/ble.html">13. BLE</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="Examples/demo_ble/ble.html#id1">13.1. 总览</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Examples/demo_ble/ble.html#id2">13.2. 使用步骤</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Examples/demo_blsync_ble/blsync_ble.html">14. BLSYNC-BLE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Examples/demo_blsync_ble/blsync_ble.html#id1">14.1. 总览</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Examples/demo_blsync_ble/blsync_ble.html#app">14.2. APP使用步骤</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Examples/demo_blsync_ble/blsync_ble.html#id2">14.3. 微信小程序使用步骤</a></li>
 </ul>
 </li>
 </ul>
@@ -375,10 +392,29 @@
 <li class="toctree-l1"><a class="reference internal" href="Components/Network/tls/tls.html">14. TLS</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Components/BLE/provision_WiFi/provision_WiFi.html">15. Provision_WiFi</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Components/BLE/mesh/mesh.html">16. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Components/BLE/ble stack/ble stack.html">17. BLE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Components/BLE/ble stack/ble stack.html#id1">17.1. 概述</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Components/BLE/ble stack/ble stack.html#api">17.2. API参考</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Components/BLE/ble stack/ble stack.html#id2">17.3. 数据结构参考</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Components/BLE/ble_stack/ble_stack.html">17. BLE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Components/BLE/ble_stack/ble_stack.html#id1">17.1. 概述</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Components/BLE/ble_stack/ble_stack.html#api">17.2. API参考</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Components/BLE/ble_stack/ble_stack.html#id2">17.3. 数据结构参考</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API/sys/cronalarms.html">1. cronalarms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API/sys/cronalarms.html#header-file">1.1. Header File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="API/sys/cronalarms.html#functions">1.2. Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="API/wifi/wifi_mgmr.html">2. Wi-Fi Manager</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API/wifi/wifi_mgmr.html#header-file">2.1. Header File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="API/wifi/wifi_mgmr.html#functions">2.2. Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="API/wifi/wifi_mgmr.html#structures">2.3. Structures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="API/wifi/wifi_mgmr.html#macros">2.4. Macros</a></li>
+<li class="toctree-l2"><a class="reference internal" href="API/wifi/wifi_mgmr.html#type-definitions">2.5. Type Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="API/wifi/wifi_mgmr.html#enumerations">2.6. Enumerations</a></li>
 </ul>
 </li>
 </ul>

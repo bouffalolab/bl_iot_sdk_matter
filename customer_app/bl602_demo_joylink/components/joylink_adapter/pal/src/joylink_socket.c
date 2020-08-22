@@ -309,12 +309,12 @@ int32_t jl_platform_send( int32_t fd, const void *buf, int32_t len, int32_t flag
 {
 #if 0 //CSRC
 #ifdef __LINUX_PAL__
-    return send(fd, buf, len, timeout_ms);
+    return send(fd, buf, len, flags);
 #else
     return -1;
 #endif
 #endif
-    return send(fd, buf, len, timeout_ms);
+    return send(fd, buf, len, flags);
 }
 
 /**
@@ -335,13 +335,71 @@ int32_t jl_platform_send( int32_t fd, const void *buf, int32_t len, int32_t flag
 int32_t jl_platform_recv( int32_t fd, void *buf, int32_t len, int32_t flags, uint32_t timeout_ms )
 {
 #if 0 //CSRC
-#ifdef __LINUX_PAL__
-    return recv(fd, buf, len, flags);
+#if defined (__LINUX_PAL__) || defined (__ESP_32_PAL__)
+    int32_t ret;
+    fd_set fds;
+    struct timeval tv;
+
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+    ret = select(fd+1, &fds, NULL, NULL, &tv);
+    if (ret < 0)
+    {
+        jl_platform_printf("[%s][%d] : ret = %s\n", __FUNCTION__, __LINE__, strerror(errno));
+    }
+    else if (ret == 0)
+    {
+        // 超时返回-1，防止跟断开连接无法区分。
+        ret = -1;
+        jl_platform_printf("[%s][%d] : timeout\n", __FUNCTION__, __LINE__);
+    }
+    else
+    {
+        ret = recv(fd, buf, len, flags);
+        if (ret <= 0)
+        {
+            // 返回值为0表示连接以断开
+            jl_platform_printf("[%s][%d] : ret = %d, errno = %s\n", __FUNCTION__, __LINE__, ret, strerror(errno));
+        }
+    }
+
+    return ret;
 #else
     return -1;
 #endif
 #endif
-    return recv(fd, buf, len, flags);
+    int32_t ret;
+    fd_set fds;
+    struct timeval tv;
+
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+    ret = select(fd+1, &fds, NULL, NULL, &tv);
+    if (ret < 0)
+    {
+        jl_platform_printf("[%s][%d] : ret = %s\n", __FUNCTION__, __LINE__, strerror(errno));
+    }
+    else if (ret == 0)
+    {
+        // 超时返回-1，防止跟断开连接无法区分。
+        ret = -1;
+        jl_platform_printf("[%s][%d] : timeout\n", __FUNCTION__, __LINE__);
+    }
+    else
+    {
+        ret = recv(fd, buf, len, flags);
+        if (ret <= 0)
+        {
+            // 返回值为0表示连接以断开
+            jl_platform_printf("[%s][%d] : ret = %d, errno = %s\n", __FUNCTION__, __LINE__, ret, strerror(errno));
+        }
+    }
+
+    return ret;
 }
 
 /**

@@ -50,7 +50,11 @@
 static K_SEM_DEFINE(sem_prio_recv, 0, UINT_MAX);
 #endif
 
-static K_FIFO_DEFINE(recv_fifo);
+K_FIFO_DEFINE(recv_fifo);
+#if (BFLB_BLE_CO_THREAD)
+extern struct k_sem g_poll_sem;
+static int recv_fifo_count = 0;
+#endif
 
 #if !defined(BFLB_BLE)
 struct k_thread prio_recv_thread_data;
@@ -287,6 +291,38 @@ static inline struct net_buf *process_hbuf(struct radio_pdu_node_rx *n)
 #endif
 #endif
 
+#if defined(BFLB_BLE)
+#if (BFLB_BLE_CO_THREAD)
+void co_rx_thread()
+{
+	struct net_buf *buf = NULL;
+	buf = net_buf_get(&recv_fifo, K_NO_WAIT);
+	if(buf){
+		BT_DBG("Calling bt_recv(%p)", buf);
+		bt_recv(buf);
+	}
+}
+
+void co_tx_rx_thread(void *p1)
+{
+	UNUSED(p1);
+	BT_DBG("using %s\n", __func__);
+	while (1) {
+		if (k_sem_count_get(&g_poll_sem) > 0) {
+			co_tx_thread();
+		}
+
+		if (recv_fifo_count > 0) {
+			recv_fifo_count--;
+			co_rx_thread();
+		}
+
+		k_sleep(portTICK_PERIOD_MS);
+		k_yield();
+	}
+}
+
+#else
 static void recv_thread(void *p1)
 {
     UNUSED(p1);
@@ -363,6 +399,8 @@ static void recv_thread(void *p1)
 #endif
 	}
 }
+#endif
+#endif
 
 #if !defined(BFLB_BLE)
 static int cmd_handle(struct net_buf *buf)
@@ -464,19 +502,26 @@ static int hci_driver_open(void)
 	hci_init(NULL);
 #endif
 #endif
-    k_fifo_init(&recv_fifo);
+    k_fifo_init(&recv_fifo, 20);
 
-#if !defined(BFLB_BLE)
-	k_thread_create(&prio_recv_thread_data, prio_recv_thread_stack,
+#if defined(BFLB_BLE)
+#if (BFLB_BLE_CO_THREAD)
+k_thread_create(&recv_thread_data, "co_tx_rx_thread",
+			CONFIG_BT_RX_STACK_SIZE,
+			co_tx_rx_thread,
+			K_PRIO_COOP(CONFIG_BT_RX_PRIO));
+#else
+    k_thread_create(&recv_thread_data, "recv_thread",
+			CONFIG_BT_RX_STACK_SIZE/*K_THREAD_STACK_SIZEOF(recv_thread_stack)*/,
+			recv_thread,
+			K_PRIO_COOP(CONFIG_BT_RX_PRIO));
+#endif
+#else
+        k_thread_create(&prio_recv_thread_data, prio_recv_thread_stack,
 			K_THREAD_STACK_SIZEOF(prio_recv_thread_stack),
 			prio_recv_thread, NULL, NULL, NULL,
 			K_PRIO_COOP(CONFIG_BT_CTLR_RX_PRIO), 0, K_NO_WAIT);
 #endif
-
-	k_thread_create(&recv_thread_data, "recv_thread",
-			CONFIG_BT_RX_STACK_SIZE/*K_THREAD_STACK_SIZEOF(recv_thread_stack)*/,
-			recv_thread,
-			K_PRIO_COOP(CONFIG_BT_RX_PRIO));
 
 	BT_DBG("Success.");
 
@@ -485,7 +530,10 @@ static int hci_driver_open(void)
 
 void hci_driver_enque_recvq(struct net_buf *buf)
 {
-    net_buf_put(&recv_fifo, buf);    
+    net_buf_put(&recv_fifo, buf);
+#if (BFLB_BLE_CO_THREAD)
+    recv_fifo_count++;
+#endif
 }
 
 static const struct bt_hci_driver drv = {

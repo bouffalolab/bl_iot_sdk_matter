@@ -26,11 +26,7 @@ struct bt_data ad_discov[2] = {
     #endif
 };
 
-#if defined(BL602) || (BL702)
 #define vOutputString(...)  printf(__VA_ARGS__)
-#else
-#define vOutputString(...)  bl_print(SYSTEM_UART_ID, PRINT_MODULE_BLE_STACK/*PRINT_MODULE_CLI*/, __VA_ARGS__)
-#endif
 
 static void ble_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_get_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -61,16 +57,13 @@ static void ble_subscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 static void ble_unsubscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_set_data_len(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_get_all_conn_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void ble_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #if defined(CONFIG_SET_TX_PWR)
 static void ble_set_tx_pwr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
-#if defined(BL602)||(BL702)
 const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
-#else
-const struct cli_command btStackCmdSet[] = {
-#endif
 #if 0
     /*1.The cmd string to type, 2.Cmd description, 3.The function to run, 4.Number of parameters*/
 
@@ -195,6 +188,9 @@ const struct cli_command btStackCmdSet[] = {
 
 #else
     {"ble_init", "", ble_init},
+#if defined(BFLB_DISABLE_BT)
+    {"ble_disable", "", ble_disable},
+#endif
     {"ble_get_device_name", "", ble_get_device_name},
     {"ble_set_device_name", "", ble_set_device_name},
 #if defined(CONFIG_BT_OBSERVER)
@@ -1333,6 +1329,19 @@ static void ble_set_tx_pwr(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 }
 #endif
 
+#if defined(BFLB_DISABLE_BT)
+static void ble_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int err;
+
+    err = bt_disable();
+    if(err){
+        vOutputString("Fail to disable bt, there is existed scan/adv/conn event \r\n");
+    }else{
+        vOutputString("Disable bt successfully\r\n");
+    }
+}
+#endif
 
 int ble_cli_register(void)
 {

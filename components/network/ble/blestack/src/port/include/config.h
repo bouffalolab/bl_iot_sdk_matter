@@ -88,6 +88,13 @@
 
 
 /**
+ * BL_BLE_CO_THREAD: combine tx rx thread
+ */
+ #ifndef BFLB_BLE_CO_THREAD
+ #define BFLB_BLE_CO_THREAD 0
+#endif
+
+/**
 * CONFIG_BT_HCI_CMD_COUNT: hci cmd buffer count,range 2 to 64
 */
 #ifndef CONFIG_BT_HCI_CMD_COUNT
@@ -105,6 +112,15 @@
 #else
 #define CONFIG_BT_RX_BUF_COUNT 5
 #endif //CONFIG_BT_MESH
+#endif
+
+/**
+* CONFIG_BT_RX_BUF_RSV_COUNT: number of buffer that HCI_LE_EVENT reserved
+* events,range 1 to CONFIG_BT_RX_BUF_COUNT
+*/
+#define CONFIG_BT_RX_BUF_RSV_COUNT (1)
+#if (CONFIG_BT_RX_BUF_RSV_COUNT >= CONFIG_BT_RX_BUF_COUNT)
+#error "CONFIG_BT_RX_BUF_RSV_COUNT config error"
 #endif
 
 /**
@@ -515,6 +531,7 @@
 //#define BFLB_BLE_DISABLE_STATIC_ATTR
 //#define BFLB_BLE_DISABLE_STATIC_BUF
 //#define BFLB_BLE_DISABLE_STATIC_CHANNEL
+#define BFLB_DISABLE_BT
 #endif //BFLB_BLE
 
 /*******************************BFLB_BLE Patch******************************/

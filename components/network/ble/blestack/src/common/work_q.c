@@ -16,11 +16,11 @@
 #include <log.h>
 #include "errno.h"
 
-static struct k_thread work_q_thread;
+struct k_thread work_q_thread;
 #if !defined(BFLB_BLE)
 static BT_STACK_NOINIT(work_q_stack, CONFIG_BT_WORK_QUEUE_STACK_SIZE);
 #endif
-static struct k_work_q g_work_queue_main;
+struct k_work_q g_work_queue_main;
 
 #if defined(BFLB_BLE)
 static timer_rec_d timer_records[CONFIG_MAX_TIMER_REC];
@@ -56,7 +56,7 @@ static void work_queue_main(void *p1)
 int k_work_q_start(void)
 {
     timer_rec_init();
-    k_fifo_init(&g_work_queue_main.fifo);
+    k_fifo_init(&g_work_queue_main.fifo, 20);
     return k_thread_create(&work_q_thread, "work_q_thread",
                            CONFIG_BT_WORK_QUEUE_STACK_SIZE,
                            work_queue_main, CONFIG_BT_WORK_QUEUE_PRIO);
@@ -197,6 +197,9 @@ s32_t k_delayed_work_remaining_get(struct k_delayed_work *work)
 
 void k_delayed_work_del_timer(struct k_delayed_work *work)
 {
+    if(NULL == work || NULL == work->timer.timer.hdl)
+        return;
+    
     k_timer_delete(&work->timer);
     work->timer.timer.hdl = NULL;
 }
@@ -301,7 +304,7 @@ static void work_q_main(void *work_q_ptr, void *p2, void *p3)
 void k_work_q_start(struct k_work_q *work_q, k_thread_stack_t *stack,
 		    size_t stack_size, int prio)
 {
-	k_queue_init(&work_q->queue);
+	k_queue_init(&work_q->queue, 20);
 	k_thread_create(&work_q->thread, stack, stack_size, work_q_main,
 			work_q, 0, 0, prio, 0, 0);
 	_k_object_init(work_q);

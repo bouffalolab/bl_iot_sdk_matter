@@ -686,6 +686,9 @@ int bt_br_discovery_start(const struct bt_br_discovery_param *param,
  */
 int bt_br_discovery_stop(void);
 
+int bt_disable(void);
+
+
 struct bt_br_oob {
 	/** BR/EDR address. */
 	bt_addr_t addr;

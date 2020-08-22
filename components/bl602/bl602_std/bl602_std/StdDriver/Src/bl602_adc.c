@@ -35,6 +35,7 @@
   */
 
 #include "bl602_adc.h"
+#include "bl602_ef_ctrl.h"
 
 /** @addtogroup  BL602_Peripheral_Driver
  *  @{
@@ -48,7 +49,7 @@
  *  @{
  */
 #define AON_CLK_SET_DUMMY_WAIT          {__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();__NOP();}
-#define ADC_RESTART_DUMMY_WAIT          BL602_Delay_US(1)
+#define ADC_RESTART_DUMMY_WAIT          BL602_Delay_US(100)
 #define FIX_ADC_FIRST_DATA_BUG
 
 /*@} end of group ADC_Private_Macros */
@@ -98,13 +99,13 @@ static intCallback_Type * adcIntCbfArra[ADC_INT_ALL]={NULL};
 *******************************************************************************/
 void ADC_Reset(void)
 {
-	uint32_t regCmd;
-	
-	/* reset ADC */
-	regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,BL_SET_REG_BIT(regCmd,AON_GPADC_SOFT_RST));
-	AON_CLK_SET_DUMMY_WAIT;
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,BL_CLR_REG_BIT(regCmd,AON_GPADC_SOFT_RST));
+    uint32_t regCmd;
+    
+    /* reset ADC */
+    regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,BL_SET_REG_BIT(regCmd,AON_GPADC_SOFT_RST));
+    AON_CLK_SET_DUMMY_WAIT;
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,BL_CLR_REG_BIT(regCmd,AON_GPADC_SOFT_RST));
 }
 
 /****************************************************************************//**
@@ -117,11 +118,11 @@ void ADC_Reset(void)
 *******************************************************************************/
 void ADC_Enable(void)
 {
-	uint32_t tmpVal;
-	
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_GLOBAL_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
+    uint32_t tmpVal;
+    
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_GLOBAL_EN);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
 }
 
 /****************************************************************************//**
@@ -134,27 +135,11 @@ void ADC_Enable(void)
 *******************************************************************************/
 void ADC_Disable(void)
 {
-	uint32_t tmpVal;
-	
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_GLOBAL_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
-}
-
-
-/****************************************************************************//**
- * @brief  ADC Calibration
- *
- * @param  None
- *
- * @return None
- *
-*******************************************************************************/
-void ADC_Calibration(void){
-    ADC_Start();        ADC_RESTART_DUMMY_WAIT;
-    ADC_Read_FIFO();    ADC_RESTART_DUMMY_WAIT;
-    ADC_Read_FIFO();    ADC_RESTART_DUMMY_WAIT;
-    ADC_Stop();
+    uint32_t tmpVal;
+    
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_GLOBAL_EN);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
 }
 
 
@@ -168,62 +153,66 @@ void ADC_Calibration(void){
 *******************************************************************************/
 void ADC_Init(ADC_CFG_Type* cfg)
 {
-	uint32_t regCfg1;
-	uint32_t regCfg2;
-	uint32_t regCalib;
+    uint32_t regCfg1;
+    uint32_t regCfg2;
+    uint32_t regCalib;
 
-	CHECK_PARAM(IS_ADC_V18_SEL_TYPE(cfg->v18Sel));
+    CHECK_PARAM(IS_ADC_V18_SEL_TYPE(cfg->v18Sel));
     CHECK_PARAM(IS_ADC_V11_SEL_TYPE(cfg->v11Sel));
-	CHECK_PARAM(IS_ADC_CLK_TYPE(cfg->clkDiv));
-	CHECK_PARAM(IS_ADC_PGA_GAIN_TYPE(cfg->gain1));
-	CHECK_PARAM(IS_ADC_PGA_GAIN_TYPE(cfg->gain2));
+    CHECK_PARAM(IS_ADC_CLK_TYPE(cfg->clkDiv));
+    CHECK_PARAM(IS_ADC_PGA_GAIN_TYPE(cfg->gain1));
+    CHECK_PARAM(IS_ADC_PGA_GAIN_TYPE(cfg->gain2));
     CHECK_PARAM(IS_ADC_CHOP_MOD_TYPE(cfg->chopMode));    
-	CHECK_PARAM(IS_ADC_BIAS_SEL_TYPE(cfg->biasSel));
+    CHECK_PARAM(IS_ADC_BIAS_SEL_TYPE(cfg->biasSel));
     CHECK_PARAM(IS_ADC_PGA_VCM_TYPE(cfg->vcm));
-	CHECK_PARAM(IS_ADC_VREF_TYPE(cfg->vref));
-	CHECK_PARAM(IS_ADC_SIG_INPUT_TYPE(cfg->inputMode));
-	CHECK_PARAM(IS_ADC_DATA_WIDTH_TYPE(cfg->resWidth));
-	
-	/* config 1 */
-	regCfg1=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG1);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_V18_SEL,cfg->v18Sel);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_V11_SEL,cfg->v11Sel);
-	regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_DITHER_EN);
-	regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_SCAN_EN);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_SCAN_LENGTH,0);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CLK_DIV_RATIO,cfg->clkDiv);
-	regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_CLK_ANA_INV);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CAL_OS_EN,cfg->offsetCalibEn);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_RES_SEL,cfg->resWidth);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,regCfg1);
-	AON_CLK_SET_DUMMY_WAIT;
-	
-	/* config 2 */
-	regCfg2=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_DLY_SEL,0);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA1_GAIN,cfg->gain1);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA2_GAIN,cfg->gain2);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_BIAS_SEL,cfg->biasSel);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_CHOP_MODE,cfg->chopMode);
+    CHECK_PARAM(IS_ADC_VREF_TYPE(cfg->vref));
+    CHECK_PARAM(IS_ADC_SIG_INPUT_TYPE(cfg->inputMode));
+    CHECK_PARAM(IS_ADC_DATA_WIDTH_TYPE(cfg->resWidth));
+    
+    /* config 1 */
+    regCfg1=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG1);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_V18_SEL,cfg->v18Sel);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_V11_SEL,cfg->v11Sel);
+    regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_DITHER_EN);
+    regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_SCAN_EN);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_SCAN_LENGTH,0);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CLK_DIV_RATIO,cfg->clkDiv);
+    regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_CLK_ANA_INV);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CAL_OS_EN,cfg->offsetCalibEn);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_RES_SEL,cfg->resWidth);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,regCfg1);
+    AON_CLK_SET_DUMMY_WAIT;
+    
+    /* config 2 */
+    regCfg2=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_DLY_SEL,0);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA1_GAIN,cfg->gain1);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA2_GAIN,cfg->gain2);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_BIAS_SEL,cfg->biasSel);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_CHOP_MODE,cfg->chopMode);
     /* pga_vcmi_en is for mic */
-	regCfg2=BL_CLR_REG_BIT(regCfg2,AON_GPADC_PGA_VCMI_EN);
-	if((cfg->gain1!=ADC_PGA_GAIN_NONE)||(cfg->gain2!=ADC_PGA_GAIN_NONE)){
-		regCfg2=BL_SET_REG_BIT(regCfg2,AON_GPADC_PGA_EN);
-	}else{
-		regCfg2=BL_CLR_REG_BIT(regCfg2,AON_GPADC_PGA_EN);
-	}
+    regCfg2=BL_CLR_REG_BIT(regCfg2,AON_GPADC_PGA_VCMI_EN);
+    if((cfg->gain1!=ADC_PGA_GAIN_NONE)||(cfg->gain2!=ADC_PGA_GAIN_NONE)){
+        regCfg2=BL_SET_REG_BIT(regCfg2,AON_GPADC_PGA_EN);
+    }else{
+        regCfg2=BL_CLR_REG_BIT(regCfg2,AON_GPADC_PGA_EN);
+    }
     /* pga_os_cal is for mic */
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA_OS_CAL,8);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA_VCM,cfg->vcm);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_VREF_SEL,cfg->vref);
-	regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_DIFF_MODE,cfg->inputMode);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA_OS_CAL,8);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_PGA_VCM,cfg->vcm);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_VREF_SEL,cfg->vref);
+    regCfg2=BL_SET_REG_BITS_VAL(regCfg2,AON_GPADC_DIFF_MODE,cfg->inputMode);
 
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,regCfg2);
-	
-	/* calibration offset */
-	regCalib=BL_RD_REG(AON_BASE,AON_GPADC_REG_DEFINE);
-	regCalib=BL_SET_REG_BITS_VAL(regCalib,AON_GPADC_OS_CAL_DATA,cfg->offsetCalibVal);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_DEFINE,regCalib);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,regCfg2);
+    
+    /* calibration offset */
+    regCalib=BL_RD_REG(AON_BASE,AON_GPADC_REG_DEFINE);
+    regCalib=BL_SET_REG_BITS_VAL(regCalib,AON_GPADC_OS_CAL_DATA,cfg->offsetCalibVal);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_DEFINE,regCalib);
+
+#ifndef BL602_USE_HAL_DRIVER
+    //Interrupt_Handler_Register(GPADC_DMA_IRQn,GPADC_DMA_IRQHandler);
+#endif
 }
 
 /****************************************************************************//**
@@ -238,25 +227,24 @@ void ADC_Init(ADC_CFG_Type* cfg)
 *******************************************************************************/
 void ADC_Channel_Config(ADC_Chan_Type posCh,ADC_Chan_Type negCh,BL_Fun_Type contEn)
 {
-	uint32_t regCmd;
-	uint32_t regCfg1;
-	
-	CHECK_PARAM(IS_AON_ADC_CHAN_TYPE(posCh));
-	CHECK_PARAM(IS_AON_ADC_CHAN_TYPE(negCh));
-	
-	/* set channel */
-	regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	regCmd=BL_SET_REG_BITS_VAL(regCmd,AON_GPADC_POS_SEL,posCh);
-	regCmd=BL_SET_REG_BITS_VAL(regCmd,AON_GPADC_NEG_SEL,negCh);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
+    uint32_t regCmd;
+    uint32_t regCfg1;
     
-	/* set continuous mode */
-	regCfg1=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG1);
-	regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CONT_CONV_EN,contEn);
+    CHECK_PARAM(IS_AON_ADC_CHAN_TYPE(posCh));
+    CHECK_PARAM(IS_AON_ADC_CHAN_TYPE(negCh));
+    
+    /* set channel */
+    regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    regCmd=BL_SET_REG_BITS_VAL(regCmd,AON_GPADC_POS_SEL,posCh);
+    regCmd=BL_SET_REG_BITS_VAL(regCmd,AON_GPADC_NEG_SEL,negCh);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
+    
+    /* set continuous mode */
+    regCfg1=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG1);
+    regCfg1=BL_SET_REG_BITS_VAL(regCfg1,AON_GPADC_CONT_CONV_EN,contEn);
     regCfg1=BL_CLR_REG_BIT(regCfg1,AON_GPADC_SCAN_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,regCfg1);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,regCfg1);
 
-    ADC_Calibration();
 }
 
 /****************************************************************************//**
@@ -274,8 +262,8 @@ void ADC_Scan_Channel_Config(ADC_Chan_Type posChList[],ADC_Chan_Type negChList[]
 {
     uint32_t tmpVal,i;
     uint32_t dealLen;
-	
-	CHECK_PARAM((scanLength<13));
+    
+    CHECK_PARAM((scanLength<13));
     
     /* Deal with the first 6 */
     dealLen=6;
@@ -321,8 +309,6 @@ void ADC_Scan_Channel_Config(ADC_Chan_Type posChList[],ADC_Chan_Type negChList[]
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_CLK_ANA_INV);
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_SCAN_EN);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,tmpVal);
-
-    ADC_Calibration();
 }
 
 /****************************************************************************//**
@@ -335,19 +321,19 @@ void ADC_Scan_Channel_Config(ADC_Chan_Type posChList[],ADC_Chan_Type negChList[]
 *******************************************************************************/
 void ADC_Start(void)
 {
-	uint32_t regCmd;
+    uint32_t regCmd;
 
-	/* disable convert start */
-	regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	regCmd=BL_CLR_REG_BIT(regCmd,AON_GPADC_CONV_START);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
+    /* disable convert start */
+    regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    regCmd=BL_CLR_REG_BIT(regCmd,AON_GPADC_CONV_START);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
 
-	ADC_RESTART_DUMMY_WAIT;
+    ADC_RESTART_DUMMY_WAIT;
 
-	/* enable convert start */
-	regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	regCmd=BL_SET_REG_BIT(regCmd,AON_GPADC_CONV_START);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
+    /* enable convert start */
+    regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    regCmd=BL_SET_REG_BIT(regCmd,AON_GPADC_CONV_START);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
 
 }
 
@@ -361,12 +347,12 @@ void ADC_Start(void)
 *******************************************************************************/
 void ADC_Stop(void)
 {
-	uint32_t regCmd;
-	
-	/* disable convert start */
-	regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
-	regCmd=BL_CLR_REG_BIT(regCmd,AON_GPADC_CONV_START);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
+    uint32_t regCmd;
+    
+    /* disable convert start */
+    regCmd=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    regCmd=BL_CLR_REG_BIT(regCmd,AON_GPADC_CONV_START);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,regCmd);
 }
 
 /****************************************************************************//**
@@ -845,7 +831,7 @@ void ADC_Int_Callback_Install(ADC_INT_Type intType,intCallback_Type* cbFun)
 {
     /* Check the parameters */
     CHECK_PARAM(IS_GPIP_ADC_INT_TYPE(intType));
-	
+    
     adcIntCbfArra[intType] = cbFun;
 }
 
@@ -858,7 +844,7 @@ void ADC_Int_Callback_Install(ADC_INT_Type intType,intCallback_Type* cbFun)
  *
 *******************************************************************************/
 #ifndef BL602_USE_HAL_DRIVER
-void __IRQ GPADC_DMA_IRQHandler(void)
+void GPADC_DMA_IRQHandler(void)
 {
     if( ADC_GetIntStatus(ADC_INT_POS_SATURATION)==SET ){
         ADC_IntClr(ADC_INT_POS_SATURATION);
@@ -906,11 +892,11 @@ void __IRQ GPADC_DMA_IRQHandler(void)
 *******************************************************************************/
 void ADC_Vbat_Enable(void)
 {
-	uint32_t tmpVal;
-	
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
-	tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_VBAT_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
+    uint32_t tmpVal;
+    
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_VBAT_EN);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
 }
 
 /****************************************************************************//**
@@ -923,11 +909,11 @@ void ADC_Vbat_Enable(void)
 *******************************************************************************/
 void ADC_Vbat_Disable(void)
 {
-	uint32_t tmpVal;
-	
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
-	tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_VBAT_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
+    uint32_t tmpVal;
+    
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_VBAT_EN);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
 }
 
 /****************************************************************************//**
@@ -940,23 +926,24 @@ void ADC_Vbat_Disable(void)
 *******************************************************************************/
 void ADC_Tsen_Init(ADC_TSEN_MOD_Type tsenMod)
 {
-	uint32_t tmpVal;
-	
+    uint32_t tmpVal;
+    
     CHECK_PARAM(IS_AON_ADC_TSEN_MOD_TYPE(type));
 
-	/* config gpadc_reg_cmd */
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    /* config gpadc_reg_cmd */
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
     /* enable sensor dc test mux*/
-	tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_SEN_TEST_EN);
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_SEN_TEST_EN);
     /*selected sen output current channel*/
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_SEN_SEL,0);
     /* enable chip sensor*/
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_CHIP_SEN_PU);
-
+    /*dwa_en */
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_DWA_EN,1);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
 
-	/* config 2 */
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
+    /* config 2 */
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
     /*tsvbe low=0*/
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TSVBE_LOW);
     /*dly_sel=2*/
@@ -966,11 +953,49 @@ void ADC_Tsen_Init(ADC_TSEN_MOD_Type tsenMod)
     /*test_en=0*/
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TEST_EN);
     /*ts_en*/
-	tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_TS_EN);
+    tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_TS_EN);
     /*select tsen ext or inner*/
-	tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_TSEXT_SEL,tsenMod);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_TSEXT_SEL,tsenMod);
+
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_PGA_VCM,2);
+    /*pga vcmi enable*/
+    tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_PGA_VCMI_EN);
+    /*0:512uS;1:16mS;2:32mS;3:64mS*/
+    tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_PGA_OS_CAL,0);
+
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
+    
+    /* config 3 */
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG1);
+    /* set gpadc_dither_en */
+    tmpVal = BL_SET_REG_BIT(tmpVal,AON_GPADC_DITHER_EN);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,tmpVal);
 }
+
+/****************************************************************************//**
+ * @brief  Trim TSEN
+ *
+ * @param  tsen_offset: None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type ATTR_CLOCK_SECTION ADC_Trim_TSEN(uint16_t * tsen_offset)
+{
+    Efuse_TSEN_Refcode_Corner_Type trim;
+    
+    EF_Ctrl_Read_TSEN_Trim(&trim);
+    
+    if(trim.tsenRefcodeCornerEn){
+        if(trim.tsenRefcodeCornerParity==EF_Ctrl_Get_Trim_Parity(trim.tsenRefcodeCorner,12)){
+            *tsen_offset = trim.tsenRefcodeCorner;
+            return SUCCESS;
+        }
+    }
+    
+    return ERROR;
+}
+
 
 /****************************************************************************//**
  * @brief  SET ADC TSEN TSVBE LOW/HIGH
@@ -982,7 +1007,7 @@ void ADC_Tsen_Init(ADC_TSEN_MOD_Type tsenMod)
 *******************************************************************************/
 void ADC_SET_TSVBE_LOW(void)
 {
-	uint32_t tmpVal;
+    uint32_t tmpVal;
     tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_TSVBE_LOW);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
@@ -998,10 +1023,67 @@ void ADC_SET_TSVBE_LOW(void)
 *******************************************************************************/
 void ADC_SET_TSVBE_HIGH(void)
 {
-	uint32_t tmpVal;
+    uint32_t tmpVal;
     tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_TSVBE_LOW);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG2,tmpVal);
+}
+
+/****************************************************************************//**
+ * @brief  SET ADC TSEN TSVBE LOW/HIGH
+ *
+ * @param  tsen_offset: tsen_offset form efuse trim data
+ *
+ * @return tempture
+ *
+*******************************************************************************/
+float TSEN_Get_Temp(uint32_t tsen_offset)
+{
+    uint32_t v0 = 0, v1 = 0;
+    float temp = 0;
+    uint32_t regVal = 0;
+    ADC_Result_Type result;
+    uint32_t tmpVal;
+
+    /* clear fifo by SET GPIP_GPADC_FIFO_CLR bit*/
+    tmpVal = BL_RD_REG(GPIP_BASE, GPIP_GPADC_CONFIG);
+    tmpVal = BL_SET_REG_BIT(tmpVal, GPIP_GPADC_FIFO_CLR);
+    BL_WR_REG(GPIP_BASE, GPIP_GPADC_CONFIG, tmpVal);
+
+    ADC_SET_TSVBE_LOW();
+
+    ADC_Start();
+    while (ADC_Get_FIFO_Count() == 0)
+        ;
+    regVal = ADC_Read_FIFO();
+    ADC_Parse_Result(&regVal, 1, &result);
+    v0 = result.value;
+
+    /* clear fifo by SET GPIP_GPADC_FIFO_CLR bit*/
+    tmpVal = BL_RD_REG(GPIP_BASE, GPIP_GPADC_CONFIG);
+    tmpVal = BL_SET_REG_BIT(tmpVal, GPIP_GPADC_FIFO_CLR);
+    BL_WR_REG(GPIP_BASE, GPIP_GPADC_CONFIG, tmpVal);
+
+
+    ADC_SET_TSVBE_HIGH();
+
+    ADC_Start();
+    while (ADC_Get_FIFO_Count() == 0)
+        ;
+    regVal = ADC_Read_FIFO();
+    ADC_Parse_Result(&regVal, 1, &result);
+    v1 = result.value;
+
+    if (v0 > v1)
+    {
+        temp = (((float)v0 - (float)v1) - (float)tsen_offset) / 7.753;
+    }
+    else
+    {
+        temp = (((float)v1 - (float)v0) - (float)tsen_offset) / 7.753;
+    }
+
+    return temp;
 }
 
 
@@ -1028,7 +1110,7 @@ BL_Err_Type ADC_Mic_Init(ADC_MIC_Type * adc_mic_config)
 
     tmpVal2 = BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG2);
 
-	tmpVal1=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    tmpVal1=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
     tmpVal1=BL_SET_REG_BITS_VAL(tmpVal1,AON_GPADC_MICBOOST_32DB_EN,adc_mic_config->micboostDb);
     tmpVal1=BL_SET_REG_BITS_VAL(tmpVal1,AON_GPADC_MIC_PGA2_GAIN,adc_mic_config->micPga2Gain);
     tmpVal1=BL_SET_REG_BITS_VAL(tmpVal1,AON_GPADC_MIC1_DIFF,adc_mic_config->mic1Mode);
@@ -1045,7 +1127,7 @@ BL_Err_Type ADC_Mic_Init(ADC_MIC_Type * adc_mic_config)
 
     tmpVal1=BL_SET_REG_BITS_VAL(tmpVal1,AON_GPADC_MICBIAS_EN,adc_mic_config->micBiasEn);
 
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal1);    
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal1);    
 
     return SUCCESS;
 
@@ -1064,9 +1146,9 @@ void ADC_MIC_Bias_Enable(void)
 {
     uint32_t tmpVal;
 
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_MICBIAS_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
 }
 
 
@@ -1082,9 +1164,9 @@ void ADC_MIC_Bias_Disable(void)
 {
     uint32_t tmpVal;
 
-	tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
+    tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CMD);
     tmpVal=BL_CLR_REG_BIT(tmpVal,AON_GPADC_MICBIAS_EN);
-	BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
+    BL_WR_REG(AON_BASE,AON_GPADC_REG_CMD,tmpVal);
 }
 
 /*@} end of group ADC_Public_Functions */

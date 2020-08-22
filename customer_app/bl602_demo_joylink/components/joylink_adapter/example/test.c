@@ -15,6 +15,43 @@
 #include <uart_txrx.h>
 #endif
 
+#include <bl602_timer.h>
+static void jl_wdt_init(int ms)
+{
+    WDT_Disable();
+    WDT_Set_Clock(TIMER_CLKSRC_32K,3);
+    WDT_SetCompValue(32 * ms / (3 + 1));
+    WDT_ResetCounterValue();
+    WDT_IntMask(WDT_INT, MASK);
+
+    WDT_Enable();
+}
+
+static void jl_wdt_feed(void)
+{
+    WDT_ResetCounterValue();
+}
+
+static void jl_wdt_task(void *arg)
+{
+    jl_wdt_init(5000);
+    while (1) {
+        jl_wdt_feed();
+        vTaskDelay(500);
+    }
+}
+
+static void start_watchdog()
+{
+    jl_thread_t task_id; 
+
+    task_id.thread_task = jl_wdt_task;
+    task_id.stackSize = 512;
+    task_id.priority = JL_THREAD_PRI_HIGHEST;
+    task_id.parameter = NULL;
+    jl_platform_thread_start(&task_id);
+}
+
 int 
 joylink_main()
 {
@@ -281,6 +318,7 @@ int start_joylink()
     // (1) if device is activated, connect to router and start joylink_main_start
     // (2) else, start AP and start jl_ap_net_config_mode_task
 
+    start_watchdog();
 #ifdef JOYLINK_SDK_EXAMPLE_MWO
     jl_start_uart_tasks();
 #endif

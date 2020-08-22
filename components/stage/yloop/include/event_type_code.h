@@ -422,4 +422,13 @@
 
 /** AT */
 #define EV_BLE 0x020E
+
+/** ADC */
+#define EV_ADC 0x020F
+#define CODE_ADC_DATA 1
+#define CODE_ADC_POS_SATURATION 2
+#define CODE_ADC_NEG_SATURATION 3
+#define CODE_ADC_FIFO_UNDERRUN 4
+#define CODE_ADC_FIFO_OVERRUN 5
+
 #endif /* AOS_EVENT_TYPE_CODE_API_H */

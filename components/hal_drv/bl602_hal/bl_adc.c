@@ -31,12 +31,18 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "bl602_aon.h"
-#include "bl602_common.h"
-#include "bl602_glb.h"
-#include "bl602_hbn.h"
-#include "bl602_dma.h"
-#include "bl602_adc.h"
+#include <bl602_aon.h>
+#include <bl602_hbn.h>
+#include <bl602_common.h>
+#include <bl602_glb.h>
+#include <bl602_hbn.h>
+#include <bl602_dma.h>
+#include <bl602_adc.h>
+#include <bl602.h>
+#include <bl_irq.h>
+#include <loopset_adc.h>
+#include <blog.h>
+#include <event_type_code.h>
 
 #include <blog.h>
 
@@ -210,4 +216,208 @@ int test_adc_test(void)
 {
     ADC_tsen_case();
     return 0;
+}
+
+//adc driver
+static uint32_t adc_get_data(void)
+{
+	ADC_Result_Type result;
+    uint32_t regval=0;
+
+    ADC_IntMask(ADC_INT_ADC_READY,MASK);
+
+    do{
+        regval = ADC_Read_FIFO();
+        if(regval){
+            ADC_Parse_Result(&regval,1,&result);
+        }
+    } while(ADC_Get_FIFO_Count()!=0);
+
+    return result.volt * 1000;
+}
+
+static void adc_clock_init(uint8_t div)
+{
+    GLB_Set_ADC_CLK(ENABLE,GLB_ADC_CLK_96M,div);
+    
+    return;
+}
+
+int start_adc_data_collect(void)
+{
+    ADC_Start();
+
+    return 0;
+}
+
+static void adc_interrupt_entry(void)
+{   
+    uint32_t data;
+
+    if(ADC_GetIntStatus(ADC_INT_ADC_READY) == SET) {
+        ADC_IntMask(ADC_INT_ALL, MASK);
+        ADC_IntClr(ADC_INT_ADC_READY);
+        data = adc_get_data();
+        loopapp_adc_trigger(data, CODE_ADC_DATA);
+    }
+
+    if(ADC_GetIntStatus(ADC_INT_POS_SATURATION) == SET) {
+        ADC_IntMask(ADC_INT_ALL, MASK);
+        ADC_IntClr(ADC_INT_POS_SATURATION); 
+        loopapp_adc_trigger(0, CODE_ADC_POS_SATURATION); 
+    }
+
+    if(ADC_GetIntStatus(ADC_INT_NEG_SATURATION) == SET) {
+        ADC_IntMask(ADC_INT_ALL, MASK);
+        ADC_IntClr(ADC_INT_NEG_SATURATION);
+        loopapp_adc_trigger(0, CODE_ADC_NEG_SATURATION);
+    }
+    
+    if(ADC_GetIntStatus(ADC_INT_FIFO_UNDERRUN) == SET) {
+        ADC_IntMask(ADC_INT_ALL, MASK);
+        ADC_IntClr(ADC_INT_FIFO_UNDERRUN);
+        loopapp_adc_trigger(0, CODE_ADC_FIFO_UNDERRUN);
+    }
+    
+    if(ADC_GetIntStatus(ADC_INT_FIFO_OVERRUN) == SET) { 
+        ADC_IntMask(ADC_INT_ALL, MASK);
+        ADC_IntClr(ADC_INT_FIFO_OVERRUN); 
+        data = adc_get_data();
+        loopapp_adc_trigger(data, CODE_ADC_FIFO_OVERRUN);
+    }
+
+    ADC_IntMask(ADC_INT_ALL, UNMASK);
+
+    return;
+}
+
+static int adc_gpio_init(int gpio_num)
+{
+    GLB_GPIO_Cfg_Type gpiocfg;
+    int channel;
+    
+    printf("gpio num = %d \r\n", gpio_num);
+    gpiocfg.gpioPin = gpio_num;
+    if (gpio_num == GLB_GPIO_PIN_4) {
+        gpiocfg.gpioFun = GPIO4_FUN_GPIP_CH1;
+        channel = 1;
+    } else if (gpio_num == GLB_GPIO_PIN_5) {    
+        gpiocfg.gpioFun = GPIO5_FUN_GPIP_CH4;
+        channel = 4;
+    } else if (gpio_num == GLB_GPIO_PIN_6) {
+        gpiocfg.gpioFun = GPIO6_FUN_GPIP_CH5;
+        channel = 5;
+    } else if (gpio_num == GLB_GPIO_PIN_9) {
+        gpiocfg.gpioFun = GPIO9_FUN_GPIP_CH6_GPIP_CH7;
+        channel = 7;
+    } else if (gpio_num == GLB_GPIO_PIN_10) {
+        gpiocfg.gpioFun = GPIO10_FUN_MICBIAS_GPIP_CH8_GPIP_CH9;
+        channel = 9;
+    } else if (gpio_num == GLB_GPIO_PIN_11) {
+        gpiocfg.gpioFun = GPIO11_FUN_IRLED_OUT_GPIP_CH10;
+        channel = 10;
+    } else if (gpio_num == GLB_GPIO_PIN_12) {
+        gpiocfg.gpioFun = GPIO12_FUN_GPIP_CH0_GPADC_VREF_EXT;
+        channel = 0;
+    } else if (gpio_num == GLB_GPIO_PIN_13) {
+        gpiocfg.gpioFun = GPIO13_FUN_GPIP_CH3;
+        channel = 3;
+    } else if (gpio_num == GLB_GPIO_PIN_14) {
+        gpiocfg.gpioFun = GPIO14_FUN_GPIP_CH2;
+        channel = 2;
+    } else if (gpio_num == GLB_GPIO_PIN_15) {
+        gpiocfg.gpioFun = GPIO15_FUN_PSW_IRRCV_OUT_GPIP_CH11;
+        channel = 11;
+    } else {
+        blog_error("not correct gpio. adc channel only support gpio: 3, 4, 5, 9, 10, 11, 12, 13 ,14 ,15");
+        return -1;
+    }
+
+    gpiocfg.gpioMode = GPIO_MODE_AF;
+    gpiocfg.pullType = GPIO_PULL_NONE;
+    gpiocfg.drive = 0;
+    gpiocfg.smtCtrl = 0; 
+    GLB_GPIO_Init(&gpiocfg);
+    
+    return channel;
+}
+
+static void adc_config(void)
+{
+    ADC_CFG_Type adccfg;
+
+    adccfg.v18Sel = ADC_V18_SEL_1P82V;                /*!< ADC 1.8V select */
+    adccfg.v11Sel = ADC_V11_SEL_1P1V;                 /*!< ADC 1.1V select */
+    adccfg.clkDiv = ADC_CLK_DIV_16;                   /*!< Clock divider */
+    adccfg.gain1 = ADC_PGA_GAIN_NONE;                 /*!< PGA gain 1 */
+    adccfg.gain2 = ADC_PGA_GAIN_NONE;                 /*!< PGA gain 2 */
+    adccfg.chopMode = ADC_CHOP_MOD_ALL_OFF;           /*!< ADC chop mode select */
+    adccfg.biasSel = ADC_BIAS_SEL_MAIN_BANDGAP;       /*!< ADC current form main bandgap or aon bandgap */
+    adccfg.vcm = ADC_PGA_VCM_1V;                      /*!< ADC VCM value */
+    adccfg.vref = ADC_VREF_3P3V;                      /*!< ADC voltage reference */
+    adccfg.inputMode = ADC_INPUT_SINGLE_END;          /*!< ADC input signal type */
+    adccfg.resWidth = ADC_DATA_WIDTH_12;              /*!< ADC resolution and oversample rate */
+    adccfg.offsetCalibEn = 0;                         /*!< Offset calibration enable */
+    adccfg.offsetCalibVal = 0;                        /*!< Offset calibration value */        
+ 
+    ADC_Init(&adccfg);
+}
+
+static void adc_fifocfg(void)
+{
+    ADC_FIFO_Cfg_Type adc_fifocfg;
+
+    adc_fifocfg.fifoThreshold = ADC_FIFO_THRESHOLD_1;
+    adc_fifocfg.dmaEn = DISABLE;
+    
+    ADC_FIFO_Cfg(&adc_fifocfg);
+
+    return;
+}
+
+int bl_adc_init(int gpio_num, int oneshot, int sampling_ms)
+{
+    int channel;
+
+    channel = adc_gpio_init(gpio_num);
+    adc_clock_init(2);
+    ADC_Reset();
+    ADC_IntMask(ADC_INT_ALL,MASK);
+    ADC_Disable();
+    ADC_Enable();
+    adc_config();
+    ADC_Channel_Config(channel, ADC_CHAN_GND, 0);
+    adc_fifocfg();
+
+    ADC_IntMask(ADC_INT_ALL, MASK);
+
+    bl_irq_register_with_ctx(GPADC_DMA_IRQn, adc_interrupt_entry, NULL);
+    ADC_IntClr(ADC_INT_ALL);
+    bl_irq_enable(GPADC_DMA_IRQn);
+
+    return 0;
+}
+
+int bl_adc_start(void)
+{
+    ADC_IntMask(ADC_INT_POS_SATURATION, UNMASK);
+    ADC_IntMask(ADC_INT_NEG_SATURATION, UNMASK);
+    ADC_IntMask(ADC_INT_FIFO_UNDERRUN, UNMASK);
+    ADC_IntMask(ADC_INT_FIFO_OVERRUN, UNMASK);
+    ADC_IntMask(ADC_INT_ADC_READY, UNMASK);
+
+    ADC_Start();
+    return 0;
+}
+
+int bl_adc_stop(void)
+{
+    ADC_Stop();
+    ADC_IntMask(ADC_INT_ALL, MASK);
+
+    return 0;
+}
+void bl_adc_int_enable(void) 
+{
+    bl_irq_enable(GPADC_DMA_IRQn);
 }

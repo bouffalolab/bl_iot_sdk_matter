@@ -58,6 +58,7 @@
 #include <bl_ir.h>
 #include <hal_ir.h>
 #include <bl_ir.h>
+#include "demo.h"
 
 extern uint8_t _heap_start;
 extern uint8_t _heap_size; // @suppress("Type cannot be resolved")
@@ -173,7 +174,8 @@ static void aos_loop_proc(void *pvParameters)
     if (0 == get_dts_addr("ir", &fdt, &offset)) {
         hal_ir_init_from_dts(fdt, offset);
     }
-
+    
+    irled_cli_init();
     aos_loop_init();
 
     fd_console = aos_open("/dev/ttyS0", 0);

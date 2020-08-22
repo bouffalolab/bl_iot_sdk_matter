@@ -50,6 +50,7 @@
 
 #include <bl602_glb.h>
 #include <bl602_hbn.h>
+#include "bl602_adc.h"
 
 #include <bl_sys.h>
 #include <bl_uart.h>
@@ -905,6 +906,102 @@ static void cmd_align(char *buf, int len, int argc, char **argv)
     log_info("align test end.\r\n");
 }
 
+#define TSEN_RELOAD_MS          (1000)
+TimerHandle_t tsen_timer_hdr = NULL;
+
+int tsen_adc_get(int16_t *temp, uint8_t log_flag)
+{
+    static uint16_t tsen_offset = 0xFFFF;
+    float val = 0.0;
+
+    if (0xFFFF == tsen_offset) {
+        tsen_offset = 0;
+        ADC_CFG_Type adcCfg = {
+            .v18Sel=ADC_V18_SEL_1P82V,                /*!< ADC 1.8V select */
+            .v11Sel=ADC_V11_SEL_1P1V,                 /*!< ADC 1.1V select */
+            .clkDiv=ADC_CLK_DIV_32,                   /*!< Clock divider */
+            .gain1=ADC_PGA_GAIN_1,                 /*!< PGA gain 1 */
+            .gain2=ADC_PGA_GAIN_1,                 /*!< PGA gain 2 */
+            .chopMode=ADC_CHOP_MOD_AZ_PGA_ON,           /*!< ADC chop mode select */
+            .biasSel=ADC_BIAS_SEL_MAIN_BANDGAP,       /*!< ADC current form main bandgap or aon bandgap */
+            .vcm=ADC_PGA_VCM_1V,                      /*!< ADC VCM value */
+            .vref=ADC_VREF_2V,                      /*!< ADC voltage reference */
+            .inputMode=ADC_INPUT_SINGLE_END,          /*!< ADC input signal type */
+            .resWidth=ADC_DATA_WIDTH_16_WITH_256_AVERAGE,              /*!< ADC resolution and oversample rate */
+            .offsetCalibEn=0,                         /*!< Offset calibration enable */
+            .offsetCalibVal=0,                        /*!< Offset calibration value */
+        };
+
+
+        ADC_FIFO_Cfg_Type adcFifoCfg = {
+            .fifoThreshold = ADC_FIFO_THRESHOLD_1,
+            .dmaEn = DISABLE,
+        };
+
+        GLB_Set_ADC_CLK(ENABLE,GLB_ADC_CLK_96M, 7);
+
+        ADC_Disable();
+        ADC_Enable();
+
+        ADC_Reset();
+
+        ADC_Init(&adcCfg);
+        ADC_Channel_Config(ADC_CHAN_TSEN_P, ADC_CHAN_GND, 0);
+        ADC_Tsen_Init(ADC_TSEN_MOD_INTERNAL_DIODE);
+
+        ADC_FIFO_Cfg(&adcFifoCfg);
+
+        if (ADC_Trim_TSEN(&tsen_offset) == ERROR) {
+            log_error("read efuse data failed\r\n");
+        } else {
+            log_info("offset = %d\r\n", tsen_offset);
+        }
+    }
+    val = TSEN_Get_Temp(tsen_offset);
+    if (log_flag) {
+        printf("temperature = %f Celsius\r\n", val);
+    }
+
+    if (temp) {
+        *temp = (int16_t)(val);
+    }
+
+    return 0;
+}
+
+static void reload_tsen_cb(TimerHandle_t xTimer)
+{
+    int16_t temp = 0;
+
+    extern void phy_tcal_callback(int16_t temperature);
+    if (!tsen_timer_hdr) {
+        log_assert("you must init timer at start.\r\n");
+        return;
+    }
+    tsen_adc_get(&temp, 0);
+    phy_tcal_callback(temp);
+}
+
+int tsen_adc_init(void)
+{
+    if (!tsen_timer_hdr) {
+        tsen_timer_hdr = xTimerCreate(
+            "tsen", pdMS_TO_TICKS(TSEN_RELOAD_MS), 1, 0, reload_tsen_cb);
+        xTimerStart(tsen_timer_hdr, 0);
+    }
+    if (!tsen_timer_hdr) {
+        log_assert("assert hal_timer_init error.\r\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+void cmd_tsen(char *buf, int len, int argc, char **argv)
+{
+    tsen_adc_get(NULL, 1);
+}
+
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
@@ -928,6 +1025,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         {"logdis", "logdis", cmd_logdis},
         {"load0w", "load word from 0", cmd_load0w},
         {"aligntc", "align case test", cmd_align},
+        {"tsen", "tsen test", cmd_tsen},
 };
 
 static void _cli_init()
@@ -938,7 +1036,9 @@ int codex_debug_cli_init(void);
 //    easyflash_cli_init();
     network_netutils_iperf_cli_register();
     network_netutils_tcpclinet_cli_register();
+    network_netutils_tcpserver_cli_register();
     network_netutils_netstat_cli_register();
+    network_netutils_ping_cli_register();
     sntp_cli_init();
     bl_sys_time_cli_init();
     bl_sys_ota_cli_init();
@@ -1048,6 +1148,8 @@ static void aos_loop_proc(void *pvParameters)
 
     aos_register_event_filter(EV_WIFI, event_cb_wifi_event, NULL);
     aos_register_event_filter(EV_KEY, event_cb_key_event, NULL);
+
+    tsen_adc_init();
 
     aos_loop_run();
 

@@ -66,7 +66,7 @@
 #include <hal_gpio.h>
 #include <hal_boot2.h>
 #include <hal_board.h>
-#ifdef JOYLINK_SDK_EXAMPLE_BUTTON
+#if defined(JOYLINK_SDK_EXAMPLE_BUTTON) || defined(JOYLINK_SDK_EXAMPLE_TEST)
 #include <hal_button.h>
 #endif
 #include <looprt.h>
@@ -760,16 +760,31 @@ static void __opt_feature_init(void)
 #endif
 }
 
-#ifdef JOYLINK_SDK_EXAMPLE_BUTTON
+#if defined(JOYLINK_SDK_EXAMPLE_BUTTON) || defined(JOYLINK_SDK_EXAMPLE_TEST)
 static void event_cb_key_event(input_event_t *event, void *private_data)
 {
     switch (event->code) {
         case KEY_1:
         {
             printf("[KEY_1] [EVT] INIT DONE %lld\r\n", aos_now_ms());
+#ifdef JOYLINK_SDK_EXAMPLE_BUTTON
             printf("short press ->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->-> INC SNAPSHOT POWER VALUE\r\n");
 void inc_snapshot_power();
             inc_snapshot_power();
+#endif
+
+#ifdef JOYLINK_SDK_EXAMPLE_TEST
+int get_led_state();
+void set_led_on();
+void set_led_off();
+int joylink_server_upload_req();
+            if (get_led_state()) {
+                set_led_off();
+            } else {
+                set_led_on();
+            }
+            joylink_server_upload_req();
+#endif
         }
         break;
         case KEY_2:
@@ -818,7 +833,7 @@ static void aos_loop_proc(void *pvParameters)
 #endif
     if (0 == get_dts_addr("gpio", &fdt, &offset)) {
         hal_gpio_init_from_dts(fdt, offset);
-#ifdef JOYLINK_SDK_EXAMPLE_BUTTON
+#if defined(JOYLINK_SDK_EXAMPLE_BUTTON) || defined(JOYLINK_SDK_EXAMPLE_TEST)
         fdt_button_module_init((const void *)fdt, (int)offset);
 #endif
     }
@@ -835,7 +850,7 @@ static void aos_loop_proc(void *pvParameters)
     }
 
     aos_register_event_filter(EV_WIFI, event_cb_wifi_event, NULL);
-#ifdef JOYLINK_SDK_EXAMPLE_BUTTON
+#if defined(JOYLINK_SDK_EXAMPLE_BUTTON) || defined(JOYLINK_SDK_EXAMPLE_TEST)
     aos_register_event_filter(EV_KEY, event_cb_key_event, NULL);
 #endif
     cmd_stack_wifi(NULL, 0, 0, NULL);

@@ -46,7 +46,7 @@ typedef struct wifi_mgmr_sta_connect_ind_stat_info {
     /*mgmr recv ind event from fw when connect or disconnect  */
     uint8_t type_ind;
     char ssid[32];
-    char psk[32];
+    char psk[65];
     char pmk[64];
     uint8_t bssid[6];
     uint16_t chan_freq;

@@ -50,6 +50,7 @@
 #elif defined(BL702)
 #include "bl702_hbn.h"
 #endif
+#include "work_q.h"
 #endif
 
 /* Peripheral timeout to initialize Connection Parameter Update procedure */
@@ -63,7 +64,9 @@
 static struct k_thread rx_thread_data;
 static K_THREAD_STACK_DEFINE(rx_thread_stack, CONFIG_BT_RX_STACK_SIZE);
 #endif
+#if (!BFLB_BLE_CO_THREAD)
 static struct k_thread tx_thread_data;
+#endif
 #if !defined(BFLB_BLE)
 static K_THREAD_STACK_DEFINE(tx_thread_stack, CONFIG_BT_HCI_TX_STACK_SIZE);
 #endif
@@ -86,7 +89,7 @@ struct bt_dev bt_dev = {
 #if !defined(CONFIG_BT_RECV_IS_RX_THREAD)
 	.rx_queue      = Z_FIFO_INITIALIZER(bt_dev.rx_queue),
 #endif
-#else
+#else //BFLB_BLE
 #if !defined(CONFIG_BT_WAIT_NOP)
 	.ncmd_sem      = Z_SEM_INITIALIZER(bt_dev.ncmd_sem, 1, 1),
 #else
@@ -100,6 +103,7 @@ struct bt_dev bt_dev = {
 };
 
 static bt_ready_cb_t ready_cb;
+
 static bt_le_scan_cb_t *scan_dev_found_cb;
 
 u8_t adv_ch_map = 0x7;
@@ -4191,6 +4195,31 @@ static void process_events(struct k_poll_event *ev, int count)
 #endif
 
 #if defined(BFLB_BLE)
+#if (BFLB_BLE_CO_THREAD)
+void co_tx_thread()
+{
+	static struct k_poll_event events[EV_COUNT] = {
+		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_FIFO_DATA_AVAILABLE,
+						K_POLL_MODE_NOTIFY_ONLY,
+						&bt_dev.cmd_tx_queue,
+						BT_EVENT_CMD_TX),
+	};
+
+	if (k_sem_count_get(&g_poll_sem) > 0) {
+		int ev_count, err;
+		events[0].state = K_POLL_STATE_NOT_READY;
+		ev_count = 1;
+
+		if (IS_ENABLED(CONFIG_BT_CONN)) {
+			ev_count += bt_conn_prepare_events(&events[1]);
+		}
+
+		err = k_poll(events, ev_count, K_NO_WAIT);
+		process_events(events, ev_count);
+	}
+}
+#endif
+
 static void hci_tx_thread(void *p1)
 #else
 static void hci_tx_thread(void *p1, void *p2, void *p3)
@@ -5429,6 +5458,10 @@ static void hci_rx_thread(void)
 }
 #endif /* !CONFIG_BT_RECV_IS_RX_THREAD */
 
+#if defined(BFLB_DISABLE_BT)
+bool queue_inited = false;
+#endif
+
 int bt_enable(bt_ready_cb_t cb)
 {
 	int err;
@@ -5450,12 +5483,15 @@ int bt_enable(bt_ready_cb_t cb)
 #else
         k_sem_init(&bt_dev.ncmd_sem, 0, 1);
 #endif
-        k_fifo_init(&bt_dev.cmd_tx_queue);
+        k_fifo_init(&bt_dev.cmd_tx_queue, 20);
 #if !defined(CONFIG_BT_RECV_IS_RX_THREAD)
-        k_fifo_init(&bt_dev.rx_queue);
+        k_fifo_init(&bt_dev.rx_queue, 20);
 #endif
-        k_lifo_init(&hci_cmd_pool.free);
-        k_lifo_init(&hci_rx_pool.free);
+        if(queue_inited == false)
+        {
+            k_lifo_init(&hci_cmd_pool.free, CONFIG_BT_HCI_CMD_COUNT);
+            k_lifo_init(&hci_rx_pool.free, CONFIG_BT_RX_BUF_COUNT);
+        }
        
         k_sem_init(&g_poll_sem, 0, 1);
 #endif
@@ -5482,10 +5518,12 @@ int bt_enable(bt_ready_cb_t cb)
 
 	/* TX thread */
 #if defined(BFLB_BLE)
-	k_thread_create(&tx_thread_data, "hci_tx_thread",
+#if (!BFLB_BLE_CO_THREAD)
+k_thread_create(&tx_thread_data, "hci_tx_thread",
 			CONFIG_BT_HCI_TX_STACK_SIZE,
 			hci_tx_thread,
 			CONFIG_BT_HCI_TX_PRIO);
+#endif
 #else
     k_thread_create(&tx_thread_data, tx_thread_stack,
 			K_THREAD_STACK_SIZEOF(tx_thread_stack),
@@ -5536,6 +5574,79 @@ struct bt_ad {
 	const struct bt_data *data;
 	size_t len;
 };
+
+#if defined(BFLB_DISABLE_BT)
+extern struct k_thread recv_thread_data;
+extern struct k_thread work_q_thread;
+extern struct net_buf_pool hci_cmd_pool;
+extern struct net_buf_pool hci_rx_pool;
+extern struct net_buf_pool acl_tx_pool;
+extern struct k_fifo recv_fifo;
+extern struct k_fifo free_tx;
+extern struct k_work_q g_work_queue_main;
+#if defined(CONFIG_BT_SMP)
+extern struct k_sem sc_local_pkey_ready;
+#endif
+
+void bt_delete_queue(struct k_fifo * queue_to_del)
+{
+    struct net_buf *buf = NULL;
+    buf = net_buf_get(queue_to_del, K_NO_WAIT);
+    while(buf){
+        net_buf_unref(buf);
+        buf = net_buf_get(queue_to_del, K_NO_WAIT);
+    }
+
+    k_queue_free(&(queue_to_del->_queue));
+}
+
+int bt_disable_action(void)
+{
+    #if defined(CONFIG_BT_PRIVACY)
+    k_delayed_work_del_timer(&bt_dev.rpa_update);
+    #endif
+    
+    bt_gatt_deinit();
+  
+    //delete task
+    k_thread_delete(&tx_thread_data);
+    k_thread_delete(&recv_thread_data);
+    k_thread_delete(&work_q_thread);
+
+    //delete queue, not delete hci_cmd_pool.free/hci_rx_pool.free/acl_tx_pool.free which store released buffers.
+    bt_delete_queue(&recv_fifo);
+    bt_delete_queue(&g_work_queue_main.fifo);
+    bt_delete_queue(&bt_dev.cmd_tx_queue);
+    
+    k_queue_free((struct k_queue *)&free_tx);
+    
+    //delete sem
+    k_sem_delete(&bt_dev.ncmd_sem);
+    k_sem_delete(&g_poll_sem);
+    #if defined(CONFIG_BT_SMP)
+    k_sem_delete(&sc_local_pkey_ready);
+    #endif
+    k_sem_delete(&bt_dev.le.pkts);
+
+    queue_inited = true;
+    atomic_clear_bit(bt_dev.flags, BT_DEV_ENABLE);
+
+    extern void ble_controller_deinit(void);
+    ble_controller_deinit();
+
+    return 0;
+}
+
+int bt_disable(void)
+{   
+    if(le_check_valid_conn() || atomic_test_bit(bt_dev.flags, BT_DEV_EXPLICIT_SCAN)
+      || atomic_test_bit(bt_dev.flags, BT_DEV_ADVERTISING)){
+        return -1;
+    }
+    else
+        return bt_disable_action();
+}
+#endif
 
 #if defined(CFG_SLEEP)
 struct bt_dev* bt_get_dev_info(void)
@@ -6843,6 +6954,12 @@ int bt_set_tx_pwr(int8_t power)
 	return 0;
 }
 #endif
+
+int bt_buf_get_rx_avail_cnt(void)
+{
+	return (k_queue_get_cnt(&hci_rx_pool.free._queue) \
+		+ hci_rx_pool.uninit_count);
+}
 
 struct net_buf *bt_buf_get_rx(enum bt_buf_type type, s32_t timeout)
 {
