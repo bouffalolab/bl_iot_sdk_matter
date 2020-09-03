@@ -54,6 +54,7 @@
 #include <bl_uart.h>
 #include <bl_chip.h>
 #include <bl_wifi.h>
+#include <hal_wifi.h>
 #include <bl_sec.h>
 #include <bl_cks.h>
 #include <bl_irq.h>
@@ -555,8 +556,6 @@ err_t cb_httpc_headers_done_fn(httpc_state_t *connection, void *arg, struct pbuf
 static void stack_wifi(void)
 {
     /*wifi fw stack and thread stuff*/
-    static StackType_t wifi_fw_stack[1024];
-    static StaticTask_t wifi_fw_task;
     static uint8_t stack_wifi_init  = 0;
 
 
@@ -566,7 +565,7 @@ static void stack_wifi(void)
     }
     stack_wifi_init = 1;
 
-    xTaskCreateStatic(wifi_main, (char*)"fw", 1024, NULL, TASK_PRIORITY_FW, wifi_fw_stack, &wifi_fw_task);
+    hal_wifi_start_firmware_task();
     /*Trigger to start Wi-Fi*/
     aos_post_event(EV_WIFI, CODE_WIFI_ON_INIT_DONE, 0);
 

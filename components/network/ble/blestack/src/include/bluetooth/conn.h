@@ -523,6 +523,7 @@ typedef enum{
 	SMP_AUTH_NO_BONDING_MITM_IO_DISPLAY_ONLY = 4,
 	SMP_IO_KEYBOARD_ONLY = 5,
 	SMP_IO_NO_INPUT_OUTPUT = 6,
+	SMP_PARING_INVALID_PUBLIC_KEY = 7,
 }smp_test_id;
 
 void bt_set_mitm(bool enable);

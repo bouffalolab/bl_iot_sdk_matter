@@ -109,6 +109,11 @@ int bl_flash_config_update(void)
     return 0;
 }
 
+void* bl_flash_get_flashCfg(void)
+{
+    return &boot2_flashCfg.flashCfg;
+}
+
 int bl_flash_read_byxip(uint32_t addr, uint8_t *dst, int len)
 {
     uint32_t offset;

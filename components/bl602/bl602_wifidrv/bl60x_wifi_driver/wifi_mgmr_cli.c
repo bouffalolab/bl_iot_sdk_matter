@@ -344,18 +344,21 @@ static void wifi_scan_filter_cmd(char *buf, int len, int argc, char **argv)
 
 static void wifi_sta_ip_info(char *buf, int len, int argc, char **argv)
 {
-    ip4_addr_t ip, gw, mask;
+    ip4_addr_t ip, gw, mask, dns1, dns2;
     int rssi;
     int8_t power_rate_table[38];
 
 
     wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
+    wifi_mgmr_sta_dns_get(&dns1.addr, &dns2.addr);
     wifi_mgmr_rssi_get(&rssi);
     bl_tpc_power_table_get(power_rate_table);
     printf("RSSI:   %ddbm\r\n", rssi);
     printf("IP  :   %s \r\n", ip4addr_ntoa(&ip) );
     printf("MASK:   %s \r\n", ip4addr_ntoa(&mask));
     printf("GW  :   %s \r\n", ip4addr_ntoa(&gw));
+    printf("DNS1:   %s \r\n", ip4addr_ntoa(&dns1));
+    printf("DNS2:   %s \r\n", ip4addr_ntoa(&dns2));
     puts(  "Power Table (dbm):\r\n");
     puts(  "--------------------------------\r\n");
     printf("  11b: %u %u %u %u             (1Mbps 2Mbps 5.5Mbps 11Mbps)\r\n",
@@ -545,18 +548,28 @@ static void wifi_enable_autoreconnect_cmd(char *buf, int len, int argc, char **a
 
 static void wifi_rc_fixed_enable(char *buf, int len, int argc, char **argv)
 {
+    uint8_t mode = 0;
     uint8_t mcs = 0;
     uint8_t gi = 0;
-    uint16_t rc = 0x1000; //format mode is HT_MF only
+    uint16_t rc = 0x0000; //format mode is HT_MF only
 
-    if (argc != 3) {
-        printf("rc_fix_en [MCS] [GI]");
+    if (argc != 4) {
+        printf("rc_fix_en [b/g/n] [MCS] [GI]");
         return;
     }
-    mcs = atoi(argv[1]);
-    gi = atoi(argv[2]);
+    mode = atoi(argv[1]);
+    mcs = atoi(argv[2]);
+    gi = atoi(argv[3]);
 
-    rc |= gi << 9 | mcs;
+    printf("wifi set mode:%s, mcs:%d, gi:%d\r\n", (mode == 1?"n mode":"b/g mdoe"), mcs, gi);
+
+    if (mode == 1) {
+        rc |= mode << 12 | gi << 9 | mcs;
+    } else if(mode == 0) {
+        rc |= (1 << 9) | (1 << 10) | mcs;
+    }
+
+    printf("wifi rc:0x%x\r\n", rc);
 
     wifi_mgmr_rate_config(rc);
 }

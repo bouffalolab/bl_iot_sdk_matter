@@ -30,8 +30,8 @@
 #ifndef __HAL_ADC_H__
 #define __HAL_ADC_H__
 
-int hal_adc_init(int gpio_num, int oneshot, int samping_ms);
-int hal_adc_start(void);
-int hal_adc_stop(void);
+int hal_adc_init(int sampling_ms);
+int hal_adc_add_channel(int gpio_num);
+int32_t hal_adc_get_data(int gpio_num);
 
 #endif

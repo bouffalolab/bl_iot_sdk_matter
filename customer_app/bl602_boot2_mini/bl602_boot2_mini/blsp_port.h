@@ -67,7 +67,7 @@
 #define BFLB_BOOT2_CPU1_APP_PC_ADDR             (0)
 #define BFLB_BOOT2_CPU1_APP_MSP_ADDR            (0)
 #define BFLB_BOOT2_CPU1_DBG_INFO_ADDR           (0)
-#define MFG_START_REQUEST_OFFSET                (64*1024-4096)
+#define MFG_START_REQUEST_OFFSET                ((4+184)*1024)
 #define BLSP_BOOT2_XIP_BASE                     BL602_FLASH_XIP_BASE
 #define ARCH_Delay_MS                           BL602_Delay_MS
 

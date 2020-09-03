@@ -30,14 +30,25 @@
 #ifndef __BL_ADC_H__
 #define __BL_ADC_H__
 
+#define ADC_DMA_CHANNEL    1
+#define ADC_CHANNEL_MAX    12
+
+typedef struct adc_ctx {
+    uint32_t *channel_data;
+    void *adc_lli;
+    int lli_flag;
+    uint32_t chan_init_table;
+}adc_ctx_t;
+
 int test_adc_init(void);
 int test_adc_get(int16_t *tmp);
 int test_adc_test(void);
 
-int start_adc_data_collect(void);
-int bl_adc_init(int gpio_num, int oneshot, int sampling_ms);
+int bl_adc_clock_init(int sampling_ms);
+int bl_adc_init(void);
+int bl_adc_dma_init(void);
 int bl_adc_start(void);
-int bl_adc_stop(void);
-void bl_adc_int_enable(void);
+int bl_adc_gpio_init(int gpio_num);
+int32_t bl_adc_parse_data(uint32_t *parr, int data_num, int channel);
 
 #endif

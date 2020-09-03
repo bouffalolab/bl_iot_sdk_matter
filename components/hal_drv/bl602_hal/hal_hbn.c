@@ -90,7 +90,7 @@ int hal_hbn_init(uint8_t *pinbuf, uint8_t pinbuf_size)
     hbn->active = 1;
     hbn->buflen = pinbuf_size;
     memcpy(hbn->buf, pinbuf, pinbuf_size);
-
+    
     if (!hbn_list) {
         ntf_init();
     }
@@ -100,9 +100,9 @@ int hal_hbn_init(uint8_t *pinbuf, uint8_t pinbuf_size)
     return 0;
 }
 
-int hal_hbn_enter(void)
+int hal_hbn_enter(uint32_t time)
 {
-    utils_notifier_chain_call(hbn_list);
+    utils_notifier_chain_call(hbn_list, &time);
 
     return -1;
 }

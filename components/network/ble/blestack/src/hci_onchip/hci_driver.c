@@ -47,7 +47,7 @@
 				    hdr.onion.node)
 
 #if !defined(BFLB_BLE)
-static K_SEM_DEFINE(sem_prio_recv, 0, UINT_MAX);
+static K_SEM_DEFINE(sem_prio_recv, 0, BT_UINT_MAX);
 #endif
 
 K_FIFO_DEFINE(recv_fifo);
@@ -485,8 +485,8 @@ static int hci_driver_open(void)
 	u32_t err;
 
 	DEBUG_INIT();
-    k_sem_init(&sem_prio_recv, 0, UINT_MAX);
- 
+	k_sem_init(&sem_prio_recv, 0, BT_UINT_MAX);
+
 	err = ll_init(&sem_prio_recv);
 
 	if (err) {

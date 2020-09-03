@@ -532,6 +532,11 @@ void net_buf_put(struct k_fifo *fifo, struct net_buf *buf)
 	k_fifo_put_list(fifo, buf, tail);
 }
 
+#if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)
+extern struct net_buf_pool hci_rx_pool;
+extern void bl_handle_queued_msg(void);
+#endif
+
 #if defined(CONFIG_NET_BUF_LOG)
 void net_buf_unref_debug(struct net_buf *buf, const char *func, int line)
 #else
@@ -566,7 +571,7 @@ void net_buf_unref(struct net_buf *buf)
 		buf->data = NULL;
 		buf->frags = NULL;
 
-		pool = net_buf_pool_get(buf->pool_id);
+		pool = net_buf_pool_get(buf->pool_id); 
 
 #if defined(CONFIG_NET_BUF_POOL_USAGE)
 		pool->avail_count++;
@@ -580,6 +585,13 @@ void net_buf_unref(struct net_buf *buf)
 		}
 
 		buf = frags;
+
+        #if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)
+        if(pool == &hci_rx_pool){
+            bl_handle_queued_msg();
+            return;
+        }
+        #endif  
 	}
 }
 

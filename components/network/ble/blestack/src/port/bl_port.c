@@ -328,3 +328,13 @@ void k_get_random_byte_array(uint8_t *buf, size_t len)
         *(buf + i) = (uint8_t)(bl_rand() & 0xFF);
     }
 }
+
+void *k_malloc(size_t size)
+{
+    return pvPortMalloc(size);
+}
+
+void k_free(void *buf)
+{
+    return vPortFree(buf);
+}

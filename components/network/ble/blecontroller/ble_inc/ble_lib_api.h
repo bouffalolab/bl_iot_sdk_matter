@@ -48,6 +48,11 @@ int le_set_tx_pwr_handler(uint8_t power);
 int32_t ble_controller_sleep(void);
 
 void ble_controller_wakeup(void);
+//#if (SLEEP_TEST_DEBUG)
+int32_t rwip_get_sw_wakup_cnt(void);
+int32_t rwip_get_sleep_dur_cnt(void);
+int32_t rwip_get_sleep_stat_cnt(void);
+//#endif
 
 uint8_t ble_get_deep_sleep_stat(void);
 

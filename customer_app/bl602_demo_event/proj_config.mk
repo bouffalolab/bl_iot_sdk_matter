@@ -36,4 +36,4 @@ CONFIG_BT:=1
 LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop blestack
 
 CONFIG_BL602_USE_ROM_DRIVER:=1
-
+CONFIG_BT_STACK_PTS:=0

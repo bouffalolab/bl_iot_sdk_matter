@@ -372,6 +372,36 @@ static void BLSP_Boot2_Get_MFG_StartReq(PtTable_ID_Type activeID,PtTable_Stuff_C
     }
 }
 
+/****************************************************************************//**
+ * @brief  Boot2 get mfg start up request and return startup address
+ *
+ * @param  activeID: Active partition table ID
+ * @param  ptStuff: Pointer of partition table stuff
+ * @param  ptEntry: Pointer of startup address
+ *
+ * @return 0 for partition table changed,need re-parse,1 for partition table or entry parsed successfully
+ *
+*******************************************************************************/
+static void BLSP_Boot2_Get_MFG_StartReq_By_Addr(PtTable_ID_Type activeID,PtTable_Stuff_Config *ptStuff,PtTable_Entry_Config *ptEntry,uint32_t *startAddr)
+{
+    uint32_t ret;
+    uint32_t len=0;
+    uint8_t tmp[16+1]={0};
+
+    ret=PtTable_Get_Active_Entries_By_Name(ptStuff,(uint8_t*)"mfg",ptEntry);
+
+    if(PT_ERROR_SUCCESS==ret){
+        MSG_DBG("XIP_SFlash_Read_Need_Lock");
+        XIP_SFlash_Read_Need_Lock(&flashCfg,ptEntry->Address[0]+MFG_START_REQUEST_OFFSET,tmp,sizeof(tmp)-1);
+        MSG_DBG("%s",tmp);
+        if(memcmp(tmp,"0mfg",4)==0){
+            *startAddr=ptEntry->Address[0];
+        }
+    }else{
+        MSG_DBG("MFG not found");
+    }
+}
+
 /*@} end of group BLSP_BOOT2_Private_Functions */
 
 /** @defgroup  BLSP_BOOT2_Public_Functions
@@ -445,11 +475,18 @@ int main(void)
     BLSP_Boot2_Pass_Parameter(flashCfgBuf,sizeof(flashCfgBuf));
 
     uint32_t entry = 0;
-    for(uint16_t i=0;i<ptTableStuff[activeID].ptTable.entryCnt;i++){
-        if(0==ptTableStuff[activeID].ptEntries[i].type){
-            entry = ptTableStuff[activeID].ptEntries[i].Address[0] + BFLB_FW_IMG_OFFSET_AFTER_HEADER;
-            MSG_DBG("Active FW Entry:0x%08x\r\n",entry);
-            break;
+    uint32_t mfgentry=0;
+
+    BLSP_Boot2_Get_MFG_StartReq_By_Addr(activeID,&ptTableStuff[activeID],&ptEntry[0],&mfgentry);
+    if(mfgentry!=0){
+        entry=mfgentry + BFLB_FW_IMG_OFFSET_AFTER_HEADER;
+    }else{
+        for(uint16_t i=0;i<ptTableStuff[activeID].ptTable.entryCnt;i++){
+            if(0==ptTableStuff[activeID].ptEntries[i].type){
+                entry = ptTableStuff[activeID].ptEntries[i].Address[0] + BFLB_FW_IMG_OFFSET_AFTER_HEADER;
+                MSG_DBG("Active FW Entry:0x%08x\r\n",entry);
+                break;
+            }
         }
     }
     if(0==entry){
@@ -458,7 +495,7 @@ int main(void)
     
     HBN_Set_XCLK_CLK_Sel(HBN_XCLK_CLK_XTAL);
     
-    MSG("jump entry\r\n");
+    MSG("jump entry:%08x\r\n",(unsigned int)entry);
     BLSP_Boot2_Jump_Entry(entry);
 
     return ;

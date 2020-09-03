@@ -205,7 +205,9 @@ typedef enum __packed{
 	gatt_cancel_write_req	= 0x0b,
 	att_read_by_group_type_ind = 0x0c, /* CASE : GATT/SR/GAD/BV-01-C. Indicate PTS sends a GATT discover all primary services request to iut */ 
 	att_find_by_type_value_ind = 0x0d, /* CASE : GATT/SR/GAD/BV-02-C. Indicate PTS sends a request to iut for discover it contains Primary Services by Service UUID */ 
-	att_read_by_type_ind = 0x0e /* CASE : GATT/SR/GAD/BV-04-C. Indicate PTS sends a request to iut for discover all characteristics of a specified service.*/ 
+	att_read_by_type_ind = 0x0e, /* CASE : GATT/SR/GAD/BV-04-C. Indicate PTS sends a request to iut for discover all characteristics of a specified service.*/ 
+
+	own_addr_type_random = 0x0f
 }event_id;
 
 #endif 

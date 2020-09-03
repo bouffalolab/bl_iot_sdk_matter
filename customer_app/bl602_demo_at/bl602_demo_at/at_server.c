@@ -157,6 +157,90 @@ int at_wifimode_get(int *p_mode)
     return 0;
 }
 
+int at_wifi_ssid_set(char *ssid)
+{
+    char buf[33] = {0};
+
+    sprintf(buf, "%s", ssid);
+    ef_set_env(SAVE_KEY_WIFI_SSID, buf);
+
+    return 0;
+}
+
+int at_wifi_ssid_get(char *ssid)
+{
+    char *val = NULL;
+
+    if (ssid == NULL) {
+        return -1;
+    }
+    if ((val = ef_get_env(SAVE_KEY_WIFI_SSID)) == NULL) {
+        strcpy(ssid, val);
+    } else {
+        ssid[0] = '\0';
+    }
+    return 0;
+}
+
+int at_wifi_pask_set(char *pask)
+{
+    char buf[65] = {0};
+
+    sprintf(buf, "%s", pask);
+    ef_set_env(SAVE_KEY_WIFI_pask, buf);
+
+    return 0;
+}
+
+int at_wifi_pask_get(char *pask)
+{
+    char *val = NULL;
+
+    if (pask == NULL) {
+        return -1;
+    }
+    if ((val = ef_get_env(SAVE_KEY_WIFI_pask)) == NULL) {
+        strcpy(pask, val);
+    } else {
+        pask[0] = '\0';
+    }
+    return 0;
+}
+
+int at_wifi_auto_set(int is_auto)
+{
+extern int wifi_mgmr_sta_autoconnect_enable(void);
+extern int wifi_mgmr_sta_autoconnect_disable(void);
+
+    char buf[10] = {0};
+
+    sprintf(buf, "%d", is_auto);
+    ef_set_env(SAVE_KEY_WIFI_AUTO, buf);
+
+    if (is_auto) {
+        wifi_mgmr_sta_autoconnect_enable();
+    } else {
+        wifi_mgmr_sta_autoconnect_disable();
+    }
+
+    return 0;
+}
+
+int at_wifi_auto_get(int *p_auto)
+{
+    char *val = NULL;
+
+    if (p_auto == NULL) {
+        return -1;
+    }
+    if ((val = ef_get_env(SAVE_KEY_WIFI_AUTO)) == NULL) {
+        *p_auto = 0;
+    } else {
+        *p_auto = atoi(val);
+    }
+    return 0;
+}
+
 int at_serial_baud_set(uint32_t baud)
 {
     char buf[20] = {0};
@@ -231,10 +315,8 @@ void at_async_event(void *param) {
       at_dump("\r\n+EVT:1:data in\r\n");
     } else if (event & AT_ASYNC_PASK_ERROR) {
       at_dump("\r\n+EVT:2:wifi pask error\r\n");
-      wifi_mgmr_sta_autoconnect_disable();
     } else if (event & AT_ASYNC_NO_AP_FOUND) {
       at_dump("\r\n+EVT:3:wifi no ap found\r\n");
-      wifi_mgmr_sta_autoconnect_disable();
     } else {
       printf("[AT]:Unknow event!\r\n");
     }

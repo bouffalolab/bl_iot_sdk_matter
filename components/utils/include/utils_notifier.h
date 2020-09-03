@@ -34,7 +34,7 @@
 #include <utils_list.h>
 
 typedef struct utils_list ntf_list_t;
-typedef int (*utils_notifier_fn_t)(void *cb_arg);
+typedef int (*utils_notifier_fn_t)(void *cb_arg, void *env);
 
 typedef struct utils_notifier {
     struct utils_list_hdr node;
@@ -45,7 +45,7 @@ typedef struct utils_notifier {
 
 int utils_notifier_chain_init(ntf_list_t *nl);
 int utils_notifier_chain_register(ntf_list_t *nl, utils_notifier_t *node);
-int utils_notifier_chain_call(ntf_list_t *nl);
+int utils_notifier_chain_call(ntf_list_t *nl, void *env);
 
 #endif
 

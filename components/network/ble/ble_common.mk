@@ -21,6 +21,7 @@ endif
 CFLAGS   += -DBFLB_BLE
 CFLAGS   += -DCFG_BLE
 CFLAGS   += -DCFG_SLEEP
+CFLAGS   += -DOPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER
 
 CONFIG_BT_CONN?=2
 CFLAGS += -DCFG_CON=$(CONFIG_BT_CONN)
@@ -55,7 +56,7 @@ endif
 
 CONFIG_DISABLE_BT_SMP ?= 0
 CONFIG_DISABLE_BT_HOST_PRIVACY ?= 1
-
+CONFIG_BTSOONP_PRINT?=0
 ##########################################
 ############## BLE STACK #################
 ##########################################
@@ -133,6 +134,9 @@ endif
 ifeq ($(CONFIG_BLE_STACK_DBG_PRINT),1)
 CFLAGS += -DCFG_BLE_STACK_DBG_PRINT
 endif
+ifeq ($(CONFIG_BTSOONP_PRINT),1)
+CFLAGS += -DCONFIG_BTSOONP_PRINT
+endif
 ifeq ($(CONFIG_BT_OAD_SERVER),1)
 CFLAGS += -DCONFIG_BT_OAD_SERVER
 endif
@@ -155,6 +159,7 @@ endif
 
 ifeq ($(CONFIG_BLE_TP_SERVER),1)
 CFLAGS += -DCONFIG_BLE_TP_SERVER
+
 endif
 
 ifeq ($(CONFIG_BT_STACK_PTS),1)

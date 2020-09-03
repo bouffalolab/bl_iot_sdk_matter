@@ -506,6 +506,9 @@ struct bt_uuid_128 {
 #if defined(CONFIG_BT_STACK_PTS) && defined(PTS_TEST_CASE_INSUFFICIENT_KEY)
 #define BT_UUID_PTS_ENC_KEY	  		  	  BT_UUID_DECLARE_16(0x2b3a)
 #endif
+#if defined(CONFIG_BT_STACK_PTS) && defined(PTS_CHARC_LEN_EQUAL_MTU_SIZE)
+#define BT_UUID_PTS_READ_MTU_SIZE_CHAR	  BT_UUID_DECLARE_16(0x2b3b)
+#endif
 
 #if defined(CONFIG_BT_STACK_PTS)
 #define BT_UUID_PTS_AUTH_CHAR	  		  BT_UUID_DECLARE_16(0x2b39)

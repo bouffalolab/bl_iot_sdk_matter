@@ -57,6 +57,7 @@
 #define HAL_SPI_HARDCS      (1)
 
 #define SPI_NUM_MAX         1 /* only support spi0 */
+#define LLI_BUFF_SIZE       2048
 
 #define EVT_GROUP_SPI_DMA_TX    (1<<0)
 #define EVT_GROUP_SPI_DMA_RX    (1<<1)
@@ -67,6 +68,7 @@ typedef struct _spi_hw {
     SPI_ID_Type ssp_id;
     uint8_t mode;
     uint32_t freq;
+    uint8_t polar_phase;
     uint8_t tx_dma_ch;
     uint8_t rx_dma_ch;
     uint8_t pin_clk;
@@ -100,8 +102,93 @@ static void hal_gpio_init(spi_hw_t *arg)
     gpiopins[3] = arg->pin_miso;
     
     GLB_GPIO_Func_Init(GPIO_FUN_SPI,gpiopins,sizeof(gpiopins)/sizeof(gpiopins[0]));
-    GLB_Set_SPI_0_ACT_MOD_Sel(GLB_SPI_PAD_ACT_AS_MASTER);
+
+    if (arg->mode == 0) {
+        GLB_Set_SPI_0_ACT_MOD_Sel(GLB_SPI_PAD_ACT_AS_MASTER);
+    } else {
+        GLB_Set_SPI_0_ACT_MOD_Sel(GLB_SPI_PAD_ACT_AS_SLAVE);
+    }
+
     return;
+}
+
+static int lli_list_init(DMA_LLI_Ctrl_Type **pptxlli, DMA_LLI_Ctrl_Type **pprxlli, uint8_t *ptx_data, uint8_t *prx_data, uint32_t length)
+{
+    uint32_t i = 0;
+    uint32_t count;
+    uint32_t remainder;
+    struct DMA_Control_Reg dmactrl;
+
+
+    count = length / LLI_BUFF_SIZE;
+    remainder = length % LLI_BUFF_SIZE;
+
+    if (remainder != 0) {
+        count = count + 1;
+    }
+
+    dmactrl.SBSize = DMA_BURST_SIZE_1;
+    dmactrl.DBSize = DMA_BURST_SIZE_1;
+    dmactrl.SWidth = DMA_TRNS_WIDTH_8BITS;
+    dmactrl.DWidth = DMA_TRNS_WIDTH_8BITS;
+    dmactrl.Prot = 0;
+    dmactrl.SLargerD = 0;
+
+    *pptxlli = pvPortMalloc(sizeof(DMA_LLI_Ctrl_Type) * count);
+    if (*pptxlli == NULL) {
+        blog_error("malloc lli failed. \r\n");
+
+        return -1;
+    }
+
+    *pprxlli = pvPortMalloc(sizeof(DMA_LLI_Ctrl_Type) * count);
+    if (*pprxlli == NULL) {
+        blog_error("malloc lli failed.");
+        vPortFree(*pptxlli);
+
+        return -1;
+    }
+
+    for (i = 0; i < count; i++) {
+        if (remainder == 0) {
+            dmactrl.TransferSize = LLI_BUFF_SIZE;
+        } else {
+            if (i == count - 1) {
+                dmactrl.TransferSize = remainder;
+            } else {
+                dmactrl.TransferSize = LLI_BUFF_SIZE;
+            }
+        }
+
+        dmactrl.SI = DMA_MINC_ENABLE;
+        dmactrl.DI = DMA_MINC_DISABLE;
+            
+        if (i == count - 1) {
+            dmactrl.I = 1;
+        } else {
+            dmactrl.I = 0;
+        }
+
+        (*pptxlli)[i].srcDmaAddr = (uint32_t)(ptx_data + i * LLI_BUFF_SIZE);
+        (*pptxlli)[i].destDmaAddr = (uint32_t)(SPI_BASE+SPI_FIFO_WDATA_OFFSET);
+        (*pptxlli)[i].dmaCtrl = dmactrl;
+
+        dmactrl.SI = DMA_MINC_DISABLE;
+        dmactrl.DI = DMA_MINC_ENABLE;
+        (*pprxlli)[i].srcDmaAddr = (uint32_t)(SPI_BASE+SPI_FIFO_RDATA_OFFSET);
+        (*pprxlli)[i].destDmaAddr = (uint32_t)(prx_data + i * LLI_BUFF_SIZE);
+        (*pprxlli)[i].dmaCtrl = dmactrl;
+
+        if (i != 0) {
+            (*pptxlli)[i-1].nextLLI = (uint32_t)&(*pptxlli)[i];
+            (*pprxlli)[i-1].nextLLI = (uint32_t)&(*pprxlli)[i];
+        }
+
+        (*pptxlli)[i].nextLLI = 0;
+        (*pprxlli)[i].nextLLI = 0;
+    }
+
+    return 0;
 }
 
 static void hal_spi_dma_init(spi_hw_t *arg)
@@ -110,8 +197,6 @@ static void hal_spi_dma_init(spi_hw_t *arg)
     SPI_CFG_Type spicfg;
     SPI_ClockCfg_Type clockcfg;
     SPI_FifoCfg_Type fifocfg;
-    DMA_Channel_Cfg_Type dmatxcfg;
-    DMA_Channel_Cfg_Type dmarxcfg;
     SPI_ID_Type spi_id;
     uint8_t clk_div;
     
@@ -133,32 +218,37 @@ static void hal_spi_dma_init(spi_hw_t *arg)
     clockcfg.intervalLen = clk_div;
     SPI_ClockConfig(spi_id, &clockcfg);
 
-    /* spi */
-    SPI_Disable(spi_id, SPI_WORK_MODE_MASTER);
+    /* spi config */
     spicfg.deglitchEnable = DISABLE;
     spicfg.continuousEnable = ENABLE;
     spicfg.byteSequence = SPI_BYTE_INVERSE_BYTE0_FIRST,
     spicfg.bitSequence = SPI_BIT_INVERSE_MSB_FIRST,
-    spicfg.frameSize = SPI_FRAME_SIZE_32;
+    spicfg.frameSize = SPI_FRAME_SIZE_8;
 
-    if (hw_arg->mode == 0) {
+    if (hw_arg->polar_phase == 0) {
         spicfg.clkPhaseInv = SPI_CLK_PHASE_INVERSE_0;
         spicfg.clkPolarity = SPI_CLK_POLARITY_LOW;
-    } else if (hw_arg->mode == 1) {
+    } else if (hw_arg->polar_phase == 1) {
         spicfg.clkPhaseInv = SPI_CLK_PHASE_INVERSE_1;
         spicfg.clkPolarity = SPI_CLK_POLARITY_LOW;
-    } else if (hw_arg->mode == 2) {
+    } else if (hw_arg->polar_phase == 2) {
         spicfg.clkPhaseInv = SPI_CLK_PHASE_INVERSE_0;
         spicfg.clkPolarity = SPI_CLK_POLARITY_HIGH;
-    } else if (hw_arg->mode == 3) {
+    } else if (hw_arg->polar_phase == 3) {
         spicfg.clkPhaseInv = SPI_CLK_PHASE_INVERSE_1;
         spicfg.clkPolarity = SPI_CLK_POLARITY_HIGH;
     } else {
-        blog_error("node support mode \r\n");
+        blog_error("node support polar_phase \r\n");
     }
     SPI_Init(0,&spicfg);
 
-    SPI_Disable(spi_id,SPI_WORK_MODE_MASTER);
+    if (hw_arg->mode == 0)
+    {
+        SPI_Disable(spi_id, SPI_WORK_MODE_MASTER);
+    } else {
+        SPI_Disable(spi_id, SPI_WORK_MODE_SLAVE);
+    }
+
     SPI_IntMask(spi_id,SPI_INT_ALL,MASK);
 
     /* fifo */
@@ -167,52 +257,19 @@ static void hal_spi_dma_init(spi_hw_t *arg)
     fifocfg.txFifoDmaEnable = ENABLE;
     fifocfg.rxFifoDmaEnable = ENABLE;
     SPI_FifoConfig(spi_id,&fifocfg);
-    
-    /* dma */
-    dmatxcfg.srcDmaAddr = 0;
-    dmatxcfg.destDmaAddr = SPI_BASE+SPI_FIFO_WDATA_OFFSET;
-    dmatxcfg.transfLength = 0;
-    dmatxcfg.dir = DMA_TRNS_M2P;
-    dmatxcfg.ch = hw_arg->tx_dma_ch;
-    dmatxcfg.srcTransfWidth = DMA_TRNS_WIDTH_32BITS;
-    dmatxcfg.dstTransfWidth = DMA_TRNS_WIDTH_32BITS;
-    dmatxcfg.srcBurstSzie = DMA_BURST_SIZE_4;
-    dmatxcfg.dstBurstSzie = DMA_BURST_SIZE_4;
-    dmatxcfg.srcAddrInc = 1;
-    dmatxcfg.destAddrInc = 0;
-    dmatxcfg.srcPeriph = DMA_REQ_NONE;
-    dmatxcfg.dstPeriph = DMA_REQ_SPI_TX;
-
-    dmarxcfg.srcDmaAddr = SPI_BASE+SPI_FIFO_RDATA_OFFSET;
-    dmarxcfg.destDmaAddr = 0;
-    dmarxcfg.transfLength = 0;
-    dmarxcfg.dir = DMA_TRNS_P2M;
-    dmarxcfg.ch = hw_arg->rx_dma_ch;
-    dmarxcfg.srcTransfWidth = DMA_TRNS_WIDTH_32BITS;
-    dmarxcfg.dstTransfWidth = DMA_TRNS_WIDTH_32BITS;
-    dmarxcfg.srcBurstSzie = DMA_BURST_SIZE_4;
-    dmarxcfg.dstBurstSzie = DMA_BURST_SIZE_4;
-    dmarxcfg.srcAddrInc = 0;
-    dmarxcfg.destAddrInc = 1;
-    dmarxcfg.srcPeriph = DMA_REQ_SPI_RX;
-    dmarxcfg.dstPeriph = DMA_REQ_NONE;
 
     DMA_Disable();
-    DMA_Channel_Init(&dmatxcfg);
-    DMA_Channel_Init(&dmarxcfg);
-    DMA_IntMask(dmatxcfg.ch, DMA_INT_ALL, MASK);
-    DMA_IntMask(dmatxcfg.ch, DMA_INT_TCOMPLETED, UNMASK);
-    DMA_IntMask(dmatxcfg.ch, DMA_INT_ERR, UNMASK);
+    DMA_IntMask(hw_arg->tx_dma_ch, DMA_INT_ALL, MASK);
+    DMA_IntMask(hw_arg->tx_dma_ch, DMA_INT_TCOMPLETED, UNMASK);
+    DMA_IntMask(hw_arg->tx_dma_ch, DMA_INT_ERR, UNMASK);
 
-    DMA_IntMask(dmarxcfg.ch, DMA_INT_ALL, MASK);
-    DMA_IntMask(dmarxcfg.ch, DMA_INT_TCOMPLETED, UNMASK); 
-    DMA_IntMask(dmarxcfg.ch, DMA_INT_ERR, UNMASK);
+    DMA_IntMask(hw_arg->rx_dma_ch, DMA_INT_ALL, MASK);
+    DMA_IntMask(hw_arg->rx_dma_ch, DMA_INT_TCOMPLETED, UNMASK); 
+    DMA_IntMask(hw_arg->rx_dma_ch, DMA_INT_ERR, UNMASK);
 
     bl_irq_enable(DMA_ALL_IRQn);
-    DMA_Channel_Enable(dmatxcfg.ch);
-    DMA_Channel_Enable(dmarxcfg.ch);
-    bl_dma_irq_register(dmatxcfg.ch, bl_spi0_dma_int_handler_tx, NULL);
-    bl_dma_irq_register(dmarxcfg.ch, bl_spi0_dma_int_handler_rx, NULL);
+    bl_dma_irq_register(hw_arg->tx_dma_ch, bl_spi0_dma_int_handler_tx, NULL, NULL);
+    bl_dma_irq_register(hw_arg->rx_dma_ch, bl_spi0_dma_int_handler_rx, NULL, NULL);
 
     return;
 }
@@ -220,11 +277,25 @@ static void hal_spi_dma_init(spi_hw_t *arg)
 static void hal_spi_dma_trans(spi_hw_t *arg, uint8_t *TxData, uint8_t *RxData, uint32_t Len)
 {
     EventBits_t uxBits;
+    DMA_LLI_Cfg_Type txllicfg;
+    DMA_LLI_Cfg_Type rxllicfg;
+    DMA_LLI_Ctrl_Type *ptxlli;
+    DMA_LLI_Ctrl_Type *prxlli;
+    int ret;
 
     if (!arg) {
         blog_error("arg err.\r\n");
         return;
     }
+
+    txllicfg.dir = DMA_TRNS_M2P;
+    txllicfg.srcPeriph = DMA_REQ_NONE; 
+    txllicfg.dstPeriph = DMA_REQ_SPI_TX;
+
+    rxllicfg.dir = DMA_TRNS_P2M;
+    rxllicfg.srcPeriph = DMA_REQ_SPI_RX;
+    rxllicfg.dstPeriph = DMA_REQ_NONE;
+
 
     xEventGroupClearBits(arg->spi_dma_event_group, EVT_GROUP_SPI_DMA_TR);
 
@@ -232,10 +303,25 @@ static void hal_spi_dma_trans(spi_hw_t *arg, uint8_t *TxData, uint8_t *RxData, u
     DMA_Channel_Disable(arg->rx_dma_ch);
     bl_dma_int_clear(arg->tx_dma_ch);
     bl_dma_int_clear(arg->rx_dma_ch);
-    bl_dma_update_memsrc(arg->tx_dma_ch, (uint32_t)TxData, Len);
-    bl_dma_update_memdst(arg->rx_dma_ch, (uint32_t)RxData, Len);
     DMA_Enable();
-    SPI_Enable(0, SPI_WORK_MODE_MASTER);
+
+    if (arg->mode == 0) {
+        SPI_Enable(arg->ssp_id, SPI_WORK_MODE_MASTER);
+    } else {
+        SPI_Enable(arg->ssp_id, SPI_WORK_MODE_SLAVE);
+    }
+
+    ret = lli_list_init(&ptxlli, &prxlli, TxData, RxData, Len);
+    if (ret < 0) {
+        blog_error("init lli failed. \r\n");
+
+        return;
+    }
+
+    DMA_LLI_Init(arg->tx_dma_ch, &txllicfg);
+    DMA_LLI_Init(arg->rx_dma_ch, &rxllicfg);
+    DMA_LLI_Update(arg->tx_dma_ch,(uint32_t)ptxlli);
+    DMA_LLI_Update(arg->rx_dma_ch,(uint32_t)prxlli);
     DMA_Channel_Enable(arg->tx_dma_ch);
     DMA_Channel_Enable(arg->rx_dma_ch);
 
@@ -246,10 +332,11 @@ static void hal_spi_dma_trans(spi_hw_t *arg, uint8_t *TxData, uint8_t *RxData, u
                                      portMAX_DELAY);
 
     if ((uxBits & EVT_GROUP_SPI_DMA_TR) == EVT_GROUP_SPI_DMA_TR) {
-#if (HAL_SPI_DEBUG)
         blog_info("recv all event group.\r\n");
-#endif
     }
+
+    vPortFree(ptxlli);
+    vPortFree(prxlli);
 }
 
 int32_t hal_spi_init(spi_dev_t *spi)
@@ -415,7 +502,7 @@ int hal_spi_transfer(spi_dev_t *spi_dev, void *xfer, uint8_t size)
 }
 
 int vfs_spi_init_fullname(const char *fullname, uint8_t port,
-                            uint8_t mode, uint32_t freq, uint8_t tx_dma_ch, uint8_t rx_dma_ch,
+                            uint8_t mode, uint8_t polar_phase, uint32_t freq, uint8_t tx_dma_ch, uint8_t rx_dma_ch,
                             uint8_t pin_clk, uint8_t pin_cs, uint8_t pin_mosi, uint8_t pin_miso)
 {
     int ret, len;
@@ -459,6 +546,7 @@ int vfs_spi_init_fullname(const char *fullname, uint8_t port,
     spi->config.freq = freq;
     g_hal_buf->hwspi[port].ssp_id = port;
     g_hal_buf->hwspi[port].mode = mode;
+    g_hal_buf->hwspi[port].polar_phase = polar_phase;
     g_hal_buf->hwspi[port].freq = freq;
     g_hal_buf->hwspi[port].tx_dma_ch = tx_dma_ch;
     g_hal_buf->hwspi[port].rx_dma_ch = rx_dma_ch;
@@ -468,8 +556,8 @@ int vfs_spi_init_fullname(const char *fullname, uint8_t port,
     g_hal_buf->hwspi[port].pin_miso = pin_miso;
     spi->priv = g_hal_buf;
 
-    blog_info("[HAL] [SPI] Register Under %s for :\r\nport=%d, mode=%d, freq=%ld, tx_dma_ch=%d, rx_dma_ch=%d, pin_clk=%d, pin_cs=%d, pin_mosi=%d, pin_miso=%d\r\n",
-        fullname, port, mode, freq, tx_dma_ch, rx_dma_ch, pin_clk, pin_cs, pin_mosi, pin_miso);
+    blog_info("[HAL] [SPI] Register Under %s for :\r\nport=%d, mode=%d, polar_phase = %d, freq=%ld, tx_dma_ch=%d, rx_dma_ch=%d, pin_clk=%d, pin_cs=%d, pin_mosi=%d, pin_miso=%d\r\n",
+        fullname, port, mode, polar_phase, freq, tx_dma_ch, rx_dma_ch, pin_clk, pin_cs, pin_mosi, pin_miso);
 
     ret = aos_register_driver(fullname, &spi_ops, spi);
     if (ret != VFS_SUCCESS) {
@@ -491,6 +579,7 @@ int spi_arg_set_fdt2(const void * fdt, uint32_t dtb_spi_offset)
     #define SPI_MODULE_MAX 1
     uint8_t port;
     uint8_t mode;
+    uint8_t polar_phase;
     uint32_t freq;
     uint8_t tx_dma_ch;
     uint8_t rx_dma_ch;
@@ -528,6 +617,18 @@ int spi_arg_set_fdt2(const void * fdt, uint32_t dtb_spi_offset)
             continue;
         }
 
+        result = fdt_stringlist_get(fdt, offset1, "mode", 0, &lentmp);
+        if ((lentmp != 6 && lentmp != 5) || ((memcmp("master", result, 6) != 0) && (memcmp("slave", result, 5)))) {
+            blog_info("spi[%d] mode != master or slave\r\n", i);
+            continue;
+        }
+
+        if (memcmp("master", result, 6) == 0) {
+            mode = 0;
+        } else {
+            mode = 1;
+        }
+
         /* set path */
         countindex = fdt_stringlist_count(fdt, offset1, "path");
         if (countindex != 1) {
@@ -552,13 +653,13 @@ int spi_arg_set_fdt2(const void * fdt, uint32_t dtb_spi_offset)
             continue;
         }
 
-        /* get mode */
-        addr_prop = fdt_getprop(fdt, offset1, "mode", &lentmp);
+        /* get polar_phase */
+        addr_prop = fdt_getprop(fdt, offset1, "polar_phase", &lentmp);
         if (addr_prop == NULL) {
-            blog_info("spi[%d] mode NULL.\r\n", i);
+            blog_info("spi[%d] polar_phase NULL.\r\n", i);
             continue;
         }
-        mode = BL_FDT32_TO_U8(addr_prop, 0);
+        polar_phase = BL_FDT32_TO_U8(addr_prop, 0);
 
         /* get freq */
         addr_prop = fdt_getprop(fdt, offset1, "freq", &lentmp);
@@ -628,7 +729,7 @@ int spi_arg_set_fdt2(const void * fdt, uint32_t dtb_spi_offset)
         }
         rx_dma_ch = BL_FDT32_TO_U8(addr_prop, 0);
 
-        ret = vfs_spi_init_fullname((const char *)path, port, mode, freq, tx_dma_ch, rx_dma_ch,           pin_clk, pin_cs, pin_mosi, pin_miso);
+        ret = vfs_spi_init_fullname((const char *)path, port, mode, polar_phase, freq, tx_dma_ch, rx_dma_ch,           pin_clk, pin_cs, pin_mosi, pin_miso);
         if (ret == 0) {
             blog_info("init ok and read %08lx\r\n", (uint32_t)g_hal_buf->hwspi[0].spi_dma_event_group);
         } else {

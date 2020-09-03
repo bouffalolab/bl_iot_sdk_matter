@@ -726,7 +726,7 @@ static void l2cap_chan_rx_init(struct bt_l2cap_le_chan *chan)
 	 * be used.
 	 */
 	chan->rx.mps = MIN(chan->rx.mtu + 2, L2CAP_MAX_LE_MPS);
-	k_sem_init(&chan->rx.credits, 0, UINT_MAX);
+	k_sem_init(&chan->rx.credits, 0, BT_UINT_MAX);
 
 	if (BT_DBG_ENABLED &&
 	    chan->rx.init_credits * chan->rx.mps < chan->rx.mtu + 2) {
@@ -739,7 +739,7 @@ static void l2cap_chan_tx_init(struct bt_l2cap_le_chan *chan)
 	BT_DBG("chan %p", chan);
 
 	(void)memset(&chan->tx, 0, sizeof(chan->tx));
-	k_sem_init(&chan->tx.credits, 0, UINT_MAX);
+	k_sem_init(&chan->tx.credits, 0, BT_UINT_MAX);
 	k_fifo_init(&chan->tx_queue, 20);
 }
 

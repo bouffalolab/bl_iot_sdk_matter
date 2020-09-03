@@ -40,14 +40,17 @@
 #include <bl602_adc.h>
 #include <bl602.h>
 #include <bl_irq.h>
-#include <loopset_adc.h>
 #include <blog.h>
-#include <event_type_code.h>
+
 
 #include <blog.h>
+#include <bl_dma.h>
+#include <bl_adc.h>
+#include <bl_timer.h>
 
 //#define TEMP_OFFSET_X   22791
-#define TEMP_OFFSET_X 2318
+#define TEMP_OFFSET_X     2318
+#define ADC_CLOCK_FREQ    40000000  
 
 ADC_CFG_Type adcCfg = {
     .v18Sel=ADC_V18_SEL_1P82V,                /*!< ADC 1.8V select */
@@ -218,206 +221,188 @@ int test_adc_test(void)
     return 0;
 }
 
-//adc driver
-static uint32_t adc_get_data(void)
+/* adc driver */
+static void adc_data_update(void)
 {
-	ADC_Result_Type result;
-    uint32_t regval=0;
+    adc_ctx_t *pstctx;
 
-    ADC_IntMask(ADC_INT_ADC_READY,MASK);
+    pstctx =  bl_dma_find_ctx_by_channel(ADC_DMA_CHANNEL);
+    if (pstctx == NULL) {
+        blog_error("get ctx error \r\n");
+        return;
+    }
 
-    do{
-        regval = ADC_Read_FIFO();
-        if(regval){
-            ADC_Parse_Result(&regval,1,&result);
-        }
-    } while(ADC_Get_FIFO_Count()!=0);
+    if (pstctx->lli_flag == 0) {
+        pstctx->channel_data = (uint32_t *)((DMA_LLI_Ctrl_Type *)(pstctx->adc_lli))[0].destDmaAddr;
+        pstctx->lli_flag = 1;
+    } else {
+        pstctx->channel_data = (uint32_t *)((DMA_LLI_Ctrl_Type *)(pstctx->adc_lli))[1].destDmaAddr;
+        pstctx->lli_flag = 0;
+    }
 
-    return result.volt * 1000;
-}
-
-static void adc_clock_init(uint8_t div)
-{
-    GLB_Set_ADC_CLK(ENABLE,GLB_ADC_CLK_96M,div);
-    
     return;
 }
 
-int start_adc_data_collect(void)
+
+int bl_adc_clock_init(int sampling_ms)
 {
-    ADC_Start();
+    int div;
+
+    div = (ADC_CLOCK_FREQ / (32 * 256 * 12)) * sampling_ms / 1000;
+    GLB_Set_ADC_CLK(ENABLE, GLB_ADC_CLK_XCLK, div - 1);
+    
+    return 0;
+}
+
+int bl_adc_init(void)
+{
+    int i;
+    ADC_CFG_Type adccfg;
+    ADC_Chan_Type pos_chlist_single[ADC_CHANNEL_MAX];
+    ADC_Chan_Type neg_chlist_single[ADC_CHANNEL_MAX];
+    ADC_FIFO_Cfg_Type adc_fifo_cfg;
+
+    adccfg.v18Sel=ADC_V18_SEL_1P82V;
+    adccfg.v11Sel=ADC_V11_SEL_1P1V;
+    adccfg.clkDiv=ADC_CLK_DIV_32;
+    adccfg.gain1=ADC_PGA_GAIN_NONE;
+    adccfg.gain2=ADC_PGA_GAIN_NONE;
+    adccfg.chopMode=ADC_CHOP_MOD_ALL_OFF;
+    adccfg.biasSel=ADC_BIAS_SEL_MAIN_BANDGAP;
+    adccfg.vcm=ADC_PGA_VCM_1V;
+    adccfg.vref=ADC_VREF_3P3V;
+    adccfg.inputMode=ADC_INPUT_SINGLE_END;
+    adccfg.resWidth=ADC_DATA_WIDTH_16_WITH_256_AVERAGE;
+    adccfg.offsetCalibEn=0;
+    adccfg.offsetCalibVal=0;
+
+    ADC_Disable();
+    ADC_Enable();
+    ADC_Reset();
+
+    ADC_Init(&adccfg);
+
+    for (i = 0; i < ADC_CHANNEL_MAX; i++) {
+        pos_chlist_single[i] = i;
+        neg_chlist_single[i] = ADC_CHAN_GND;
+    }
+    ADC_Scan_Channel_Config(pos_chlist_single, neg_chlist_single, ADC_CHANNEL_MAX, ENABLE);
+
+    adc_fifo_cfg.fifoThreshold = ADC_FIFO_THRESHOLD_4;
+    adc_fifo_cfg.dmaEn = ENABLE;
+    ADC_FIFO_Cfg(&adc_fifo_cfg);
 
     return 0;
 }
 
-static void adc_interrupt_entry(void)
-{   
-    uint32_t data;
+static void adc_dma_lli_init(DMA_LLI_Ctrl_Type *pstlli, uint32_t *buf)
+{ 
+    struct DMA_Control_Reg dma_ctrl_reg;
 
-    if(ADC_GetIntStatus(ADC_INT_ADC_READY) == SET) {
-        ADC_IntMask(ADC_INT_ALL, MASK);
-        ADC_IntClr(ADC_INT_ADC_READY);
-        data = adc_get_data();
-        loopapp_adc_trigger(data, CODE_ADC_DATA);
-    }
+    dma_ctrl_reg.TransferSize = 12;
+    dma_ctrl_reg.SBSize=DMA_BURST_SIZE_4;
+    dma_ctrl_reg.DBSize=DMA_BURST_SIZE_4;
+    dma_ctrl_reg.SWidth=DMA_TRNS_WIDTH_32BITS;
+    dma_ctrl_reg.DWidth=DMA_TRNS_WIDTH_32BITS;
+    dma_ctrl_reg.SI=DMA_MINC_DISABLE;
+    dma_ctrl_reg.DI=DMA_MINC_ENABLE;
+    dma_ctrl_reg.I = 1;
+    dma_ctrl_reg.SLargerD = 0;
+    dma_ctrl_reg.Prot = 0;
 
-    if(ADC_GetIntStatus(ADC_INT_POS_SATURATION) == SET) {
-        ADC_IntMask(ADC_INT_ALL, MASK);
-        ADC_IntClr(ADC_INT_POS_SATURATION); 
-        loopapp_adc_trigger(0, CODE_ADC_POS_SATURATION); 
-    }
+    pstlli[0].srcDmaAddr = 0x40002000+0x4;
+    pstlli[0].destDmaAddr = (uint32_t)&buf[0];
+    pstlli[0].nextLLI = (uint32_t)&pstlli[1]; 
+    pstlli[0].dmaCtrl= dma_ctrl_reg;
 
-    if(ADC_GetIntStatus(ADC_INT_NEG_SATURATION) == SET) {
-        ADC_IntMask(ADC_INT_ALL, MASK);
-        ADC_IntClr(ADC_INT_NEG_SATURATION);
-        loopapp_adc_trigger(0, CODE_ADC_NEG_SATURATION);
-    }
-    
-    if(ADC_GetIntStatus(ADC_INT_FIFO_UNDERRUN) == SET) {
-        ADC_IntMask(ADC_INT_ALL, MASK);
-        ADC_IntClr(ADC_INT_FIFO_UNDERRUN);
-        loopapp_adc_trigger(0, CODE_ADC_FIFO_UNDERRUN);
-    }
-    
-    if(ADC_GetIntStatus(ADC_INT_FIFO_OVERRUN) == SET) { 
-        ADC_IntMask(ADC_INT_ALL, MASK);
-        ADC_IntClr(ADC_INT_FIFO_OVERRUN); 
-        data = adc_get_data();
-        loopapp_adc_trigger(data, CODE_ADC_FIFO_OVERRUN);
-    }
-
-    ADC_IntMask(ADC_INT_ALL, UNMASK);
-
-    return;
+    pstlli[1].srcDmaAddr = 0x40002000+0x4;
+    pstlli[1].destDmaAddr = (uint32_t)&buf[ADC_CHANNEL_MAX];
+    pstlli[1].nextLLI = (uint32_t)&pstlli[0];
+    pstlli[1].dmaCtrl= dma_ctrl_reg;
+ 
+    return; 
 }
 
-static int adc_gpio_init(int gpio_num)
+int bl_adc_dma_init(void)
 {
-    GLB_GPIO_Cfg_Type gpiocfg;
-    int channel;
-    
-    printf("gpio num = %d \r\n", gpio_num);
-    gpiocfg.gpioPin = gpio_num;
-    if (gpio_num == GLB_GPIO_PIN_4) {
-        gpiocfg.gpioFun = GPIO4_FUN_GPIP_CH1;
-        channel = 1;
-    } else if (gpio_num == GLB_GPIO_PIN_5) {    
-        gpiocfg.gpioFun = GPIO5_FUN_GPIP_CH4;
-        channel = 4;
-    } else if (gpio_num == GLB_GPIO_PIN_6) {
-        gpiocfg.gpioFun = GPIO6_FUN_GPIP_CH5;
-        channel = 5;
-    } else if (gpio_num == GLB_GPIO_PIN_9) {
-        gpiocfg.gpioFun = GPIO9_FUN_GPIP_CH6_GPIP_CH7;
-        channel = 7;
-    } else if (gpio_num == GLB_GPIO_PIN_10) {
-        gpiocfg.gpioFun = GPIO10_FUN_MICBIAS_GPIP_CH8_GPIP_CH9;
-        channel = 9;
-    } else if (gpio_num == GLB_GPIO_PIN_11) {
-        gpiocfg.gpioFun = GPIO11_FUN_IRLED_OUT_GPIP_CH10;
-        channel = 10;
-    } else if (gpio_num == GLB_GPIO_PIN_12) {
-        gpiocfg.gpioFun = GPIO12_FUN_GPIP_CH0_GPADC_VREF_EXT;
-        channel = 0;
-    } else if (gpio_num == GLB_GPIO_PIN_13) {
-        gpiocfg.gpioFun = GPIO13_FUN_GPIP_CH3;
-        channel = 3;
-    } else if (gpio_num == GLB_GPIO_PIN_14) {
-        gpiocfg.gpioFun = GPIO14_FUN_GPIP_CH2;
-        channel = 2;
-    } else if (gpio_num == GLB_GPIO_PIN_15) {
-        gpiocfg.gpioFun = GPIO15_FUN_PSW_IRRCV_OUT_GPIP_CH11;
-        channel = 11;
-    } else {
-        blog_error("not correct gpio. adc channel only support gpio: 3, 4, 5, 9, 10, 11, 12, 13 ,14 ,15");
+    DMA_LLI_Ctrl_Type *pstlli;
+    uint32_t *llibuf;
+    DMA_LLI_Cfg_Type llicfg;
+    adc_ctx_t *pstctx;
+
+    pstctx = pvPortMalloc(sizeof(adc_ctx_t));
+    if (pstctx == NULL) {
+        blog_error("malloc adc_ctx failed \r\n");
+
+        return -1;
+    }
+ 
+    pstlli = pvPortMalloc(sizeof(DMA_LLI_Ctrl_Type) * 2);
+    if (pstlli == NULL) {
+        blog_error("malloc lli failed. \r\n");
+
         return -1;
     }
 
-    gpiocfg.gpioMode = GPIO_MODE_AF;
-    gpiocfg.pullType = GPIO_PULL_NONE;
-    gpiocfg.drive = 0;
-    gpiocfg.smtCtrl = 0; 
-    GLB_GPIO_Init(&gpiocfg);
-    
-    return channel;
-}
+    llibuf = pvPortMalloc(sizeof(uint32_t) * ADC_CHANNEL_MAX * 2);
 
-static void adc_config(void)
-{
-    ADC_CFG_Type adccfg;
+    if (llibuf == NULL) {
+        blog_error("malloc lli buf failed. \r\n");
 
-    adccfg.v18Sel = ADC_V18_SEL_1P82V;                /*!< ADC 1.8V select */
-    adccfg.v11Sel = ADC_V11_SEL_1P1V;                 /*!< ADC 1.1V select */
-    adccfg.clkDiv = ADC_CLK_DIV_16;                   /*!< Clock divider */
-    adccfg.gain1 = ADC_PGA_GAIN_NONE;                 /*!< PGA gain 1 */
-    adccfg.gain2 = ADC_PGA_GAIN_NONE;                 /*!< PGA gain 2 */
-    adccfg.chopMode = ADC_CHOP_MOD_ALL_OFF;           /*!< ADC chop mode select */
-    adccfg.biasSel = ADC_BIAS_SEL_MAIN_BANDGAP;       /*!< ADC current form main bandgap or aon bandgap */
-    adccfg.vcm = ADC_PGA_VCM_1V;                      /*!< ADC VCM value */
-    adccfg.vref = ADC_VREF_3P3V;                      /*!< ADC voltage reference */
-    adccfg.inputMode = ADC_INPUT_SINGLE_END;          /*!< ADC input signal type */
-    adccfg.resWidth = ADC_DATA_WIDTH_12;              /*!< ADC resolution and oversample rate */
-    adccfg.offsetCalibEn = 0;                         /*!< Offset calibration enable */
-    adccfg.offsetCalibVal = 0;                        /*!< Offset calibration value */        
- 
-    ADC_Init(&adccfg);
-}
+        return -1;
+    }
+   
+    llicfg.dir = DMA_TRNS_P2M;
+    llicfg.srcPeriph = DMA_REQ_GPADC0;
+    llicfg.dstPeriph = DMA_REQ_NONE;
+    DMA_Channel_Disable(ADC_DMA_CHANNEL);
 
-static void adc_fifocfg(void)
-{
-    ADC_FIFO_Cfg_Type adc_fifocfg;
+    adc_dma_lli_init(pstlli, llibuf);
+    DMA_LLI_Init(ADC_DMA_CHANNEL, &llicfg);
+    DMA_LLI_Update(ADC_DMA_CHANNEL, (uint32_t)&(pstlli[0]));
 
-    adc_fifocfg.fifoThreshold = ADC_FIFO_THRESHOLD_1;
-    adc_fifocfg.dmaEn = DISABLE;
-    
-    ADC_FIFO_Cfg(&adc_fifocfg);
-
-    return;
-}
-
-int bl_adc_init(int gpio_num, int oneshot, int sampling_ms)
-{
-    int channel;
-
-    channel = adc_gpio_init(gpio_num);
-    adc_clock_init(2);
-    ADC_Reset();
-    ADC_IntMask(ADC_INT_ALL,MASK);
-    ADC_Disable();
-    ADC_Enable();
-    adc_config();
-    ADC_Channel_Config(channel, ADC_CHAN_GND, 0);
-    adc_fifocfg();
-
-    ADC_IntMask(ADC_INT_ALL, MASK);
-
-    bl_irq_register_with_ctx(GPADC_DMA_IRQn, adc_interrupt_entry, NULL);
-    ADC_IntClr(ADC_INT_ALL);
-    bl_irq_enable(GPADC_DMA_IRQn);
+    pstctx->adc_lli = pstlli;
+    pstctx->lli_flag = 0;
+    pstctx->chan_init_table = 0;
+    bl_dma_irq_register(ADC_DMA_CHANNEL, adc_data_update, NULL, pstctx);
 
     return 0;
 }
 
 int bl_adc_start(void)
 {
-    ADC_IntMask(ADC_INT_POS_SATURATION, UNMASK);
-    ADC_IntMask(ADC_INT_NEG_SATURATION, UNMASK);
-    ADC_IntMask(ADC_INT_FIFO_UNDERRUN, UNMASK);
-    ADC_IntMask(ADC_INT_FIFO_OVERRUN, UNMASK);
-    ADC_IntMask(ADC_INT_ADC_READY, UNMASK);
+    DMA_IntMask(ADC_DMA_CHANNEL, DMA_INT_ALL, MASK);
+    DMA_IntMask(ADC_DMA_CHANNEL, DMA_INT_TCOMPLETED, UNMASK);
+    DMA_IntMask(ADC_DMA_CHANNEL, DMA_INT_ERR, UNMASK);
 
     ADC_Start();
+    DMA_Enable();
+    DMA_Channel_Enable(ADC_DMA_CHANNEL);
+    
     return 0;
 }
 
-int bl_adc_stop(void)
+int bl_adc_gpio_init(int gpio_num)
 {
-    ADC_Stop();
-    ADC_IntMask(ADC_INT_ALL, MASK);
+    uint8_t adc_pin = gpio_num;
+     
+    GLB_GPIO_Func_Init(GPIO_FUN_ANALOG, &adc_pin, 1);
 
     return 0;
 }
-void bl_adc_int_enable(void) 
+
+int32_t bl_adc_parse_data(uint32_t *parr, int data_num, int channel)
 {
-    bl_irq_enable(GPADC_DMA_IRQn);
+    int i;
+    ADC_Result_Type result;
+
+    for (i = 0; i < ADC_CHANNEL_MAX; i++) {
+        ADC_Parse_Result(&parr[i], 1, &result);
+        if (result.posChan == channel) {
+            return (int32_t)(result.volt * 1000);
+        }
+    }
+
+    return -1;
 }
+

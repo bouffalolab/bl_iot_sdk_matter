@@ -88,7 +88,7 @@ static inline void wait_trng4feed()
     val = BL_CLR_REG_BIT(val, SEC_ENG_SE_TRNG_TRIG_1T);
     BL_WR_REG(TRNGx, SEC_ENG_SE_TRNG_CTRL_0, val);
 
-    blog_info("Feed random number is %08lx\r\n", trng_buffer[0]);
+    blog_debug("Feed random number is %08lx\r\n", trng_buffer[0]);
     trng_buffer[0] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_0);
     trng_buffer[1] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_1);
     trng_buffer[2] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_2);
@@ -110,16 +110,32 @@ uint32_t bl_sec_get_random_word(void)
 
 void bl_rand_stream(uint8_t *buf, int len)
 {
-    int i = 0;
+    int pos, copysize;
 
-    while (i < len) {
-        buf[i] = ((uint8_t*)&trng_buffer)[i % TRNG_SIZE_IN_BYTES];
-        i++;
-        if (i == (TRNG_SIZE_IN_BYTES >> 1)) {
-            /*we should trigger*/
-            _trng_trigger();
-        }
+    pos = 0;
+    if (trng_idx) {
+        /*reset trng_buffer*/
+        _trng_trigger();
+        wait_trng4feed();
+        trng_idx = 0;
     }
+
+    while (len > 0) {
+        if (trng_idx) {
+            /*reset trng_buffer*/
+            _trng_trigger();
+            wait_trng4feed();
+            trng_idx = 0;
+        }
+        copysize = len > TRNG_SIZE_IN_BYTES ? TRNG_SIZE_IN_BYTES : len;
+        memcpy(buf + pos, trng_buffer, copysize);
+        pos += copysize;
+        len -= copysize;
+        trng_idx = TRNG_SIZE_IN_BYTES - 1;
+    }
+    _trng_trigger();
+    wait_trng4feed();
+    trng_idx = 0;
 }
 
 int bl_rand()
@@ -152,7 +168,7 @@ void sec_trng_IRQHandler(void)
     val = BL_CLR_REG_BIT(val, SEC_ENG_SE_TRNG_TRIG_1T);
     BL_WR_REG(TRNGx, SEC_ENG_SE_TRNG_CTRL_0, val);
 
-    blog_info("random number is %08lx\r\n", trng_buffer[0]);
+    blog_debug("random number is %08lx\r\n", trng_buffer[0]);
     trng_buffer[0] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_0);
     trng_buffer[1] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_1);
     trng_buffer[2] = BL_RD_REG(TRNGx, SEC_ENG_SE_TRNG_DOUT_2);

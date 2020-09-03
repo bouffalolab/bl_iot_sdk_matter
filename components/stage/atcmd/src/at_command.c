@@ -1921,7 +1921,7 @@ static AT_ERROR_CODE join_ap_handler(at_para_t *at_para) {
     }
 
     else {
-      at_dump("\r\n+CWJAP_CUR:%d \r\n", at_get_errorcode());
+      at_dump("+CWJAP_CUR:%d \r\n", at_get_errorcode());
       return AEC_CMD_FAIL;
     }
   }
@@ -1949,21 +1949,26 @@ static AT_ERROR_CODE setautoconnect_handler(at_para_t *at_para) {
       {APT_DI, &autoParam.autoconnectSwitch,
        AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(autoParam.autoconnectSwitch))},
   };
+extern int at_wifi_auto_set(int is_auto);
+extern int at_wifi_auto_get(int *p_auto);
 
   s32 paracnt;
   int res;
 
-  if (*at_para->ptr != AT_EQU) {
-    return AEC_PARA_ERROR;
+  if (*at_para->ptr == AT_QUE) {
+    at_wifi_auto_get(&res);
+    at_dump("+CWAUTOCONN:%d\r\n", res);
+    return AEC_OK;
 
-  } else {
+  } else if (*at_para->ptr == AT_EQU) {
     at_para->ptr++; /* skip '=' */
 
     res = at_get_parameters(&at_para->ptr, cmd_para_list,
                             TABLE_SIZE(cmd_para_list), &paracnt);
 
     if (res != AEC_OK) {
-      return AEC_PARA_ERROR;
+
+      return AEC_OK;
     }
 
     if (paracnt < 1) {
@@ -1973,19 +1978,17 @@ static AT_ERROR_CODE setautoconnect_handler(at_para_t *at_para) {
 
     if (autoParam.autoconnectSwitch == 1) {
       //set_reconnect_enable();
-      int wifi_mgmr_sta_autoconnect_enable(void);
-      wifi_mgmr_sta_autoconnect_enable();
+      at_wifi_auto_set(1);
     } else if (autoParam.autoconnectSwitch == 0) {
       //set_reconnect_disable();
-    int wifi_mgmr_sta_autoconnect_disable(void);
-      wifi_mgmr_sta_autoconnect_disable();
+      at_wifi_auto_set(0);
     } else {
       return AEC_PARA_ERROR;
     }
     return AEC_OK;
   }
 
-  return AEC_OK;
+  return AEC_PARA_ERROR;
 }
 #if 0
 static AT_ERROR_CODE set_dhcp_handler(at_para_t *at_para) {

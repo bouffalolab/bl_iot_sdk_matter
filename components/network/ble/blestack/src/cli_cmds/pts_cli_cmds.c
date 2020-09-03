@@ -9,6 +9,7 @@
 #include "ble_cli_cmds.h"
 #include "keys.h"
 #include "rpa.h"
+#include "log.h"
 
 #define  LIM_ADV_TIME    	30720
 #define  LIM_SCAN_TIME   	10240
@@ -16,13 +17,15 @@
 #define  NAME_LEN 			30
 #define  CHAR_SIZE_MAX      512
 
-const u8_t peer_irk[16] = {
+u8_t peer_irk[16] = {
 	0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,
 	0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef
 };
 			    
-const u8_t pts_address[6] = {
-	0xE9,0x20,0xF2,0xDC,0x1b,0x00
+u8_t pts_address[6] = {
+	//0xE9,0x20,0xF2,0xDC,0x1b,0x00
+	//0xCA,0x97,0xDE,0x05,0xB9,0x18
+	0x18,0xB9,0x05,0xDE,0x97,0xCA
 };		
 
 const u8_t discover_mode[] = {
@@ -51,10 +54,26 @@ static const u8_t data_appearance[2]= {0x80, 0x01};
 static const u8_t name[] = "BL702-BLE-DEV";		
 extern volatile u8_t event_flag;
 extern struct bt_conn *default_conn;
-extern struct bt_data ad_discov[2];
+//extern struct bt_data ad_discov[2];
+
+static struct bt_data ad_discov[2] = {
+	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+    #if defined(BL602)
+    BT_DATA(BT_DATA_NAME_COMPLETE, "BL602-BLE-DEV-PTS", 17),
+    #else
+    BT_DATA(BT_DATA_NAME_COMPLETE, "BL702-BLE-DEV", 13),
+    #endif
+};
+
+static struct bt_data ad_non_discov[] = {
+	BT_DATA(BT_DATA_NAME_COMPLETE, "BL602-BLE-DEV-PTS", 17),
+};
+
 static u8_t selected_id = BT_ID_DEFAULT;
 
 #define vOutputString(...)  printf(__VA_ARGS__)
+
+static void pts_ble_add_peer_irk(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 static void pts_ble_start_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void pts_ble_start_scan_rpa(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -74,6 +93,7 @@ static void pts_ble_read_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc
 static void  pts_ble_mread(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv); 
 static void pts_ble_discover_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void pts_ble_read_uuid_128(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
 #if defined(PTS_TEST_CASE_INSUFFICIENT_KEY)
 static void pts_set_enc_key_size(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
@@ -110,6 +130,8 @@ const struct cli_command PtsCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
     [Conn Interval Max,0x0006-0C80,e.g.0030]\r\n\
     [Conn Latency,0x0000-01f3,e.g.0004]\r\n\
     [Supervision Timeout,0x000A-0C80,e.g.0010]\r\n", pts_ble_conn_update},
+    {"pts_ble_add_peer_irk", "\r\npts_ble_add_peer_irk:[Set peer irk]\r\n\
+    [peer irk]\r\n", pts_ble_add_peer_irk},
     #if defined(PTS_TEST_CASE_INSUFFICIENT_KEY)
     {"pts_set_enc_key_size", "\r\npts_set_enc_key_size:[Set key size]\r\n\
     [size,  e.g.0,1]\r\n\
@@ -138,7 +160,7 @@ const struct cli_command PtsCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 
 #if defined(CONFIG_BT_PERIPHERAL)
     {"pts_ble_start_adv", "\r\npts_ble_start_adv:\r\n\
-    [Adv type,0:adv_ind,1:adv_scan_ind,2:adv_nonconn_ind 3: adv_direct_ind]\r\n\
+    [Adv type,0:adv_ind,1:adv_scan_ind,2:adv_nonconn_ind 3: adv_direct_ind 4:adv_direct_ind_low_duty]\r\n\
     [Mode, 0:discov, 1:non-discov,2:limit discoverable]\r\n\
     [Addr_type, 0:non-rpa,1:rpa,2:public]\r\n\
     [Adv Interval Min,0x0020-4000,e.g.0030]\r\n\
@@ -159,8 +181,9 @@ const struct cli_command PtsCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 #if defined(CONFIG_BT_CENTRAL)
 
     {"pts_ble_connect_le", "\r\npts_ble_connect_le:[Connect remote device]\r\n\
-    [Address type,0:ADDR_RAND, 1:ADDR_RPA_OR_PUBLIC,2:ADDR_PUBLIC, 3:ADDR_RPA_OR_RAND]\r\n\
-    [Address value, e.g.112233AABBCC]\r\n", pts_ble_connect_le},
+    [Perr Address type,0:ADDR_RAND, 1:ADDR_RPA_OR_PUBLIC,2:ADDR_PUBLIC, 3:ADDR_RPA_OR_RAND]\r\n\
+    [Address value, e.g.112233AABBCC]\r\n\
+    [Own Address type,0:ADDR_RAND, 1:ADDR_RPA_OR_PUBLIC,2:ADDR_PUBLIC, 3:ADDR_RPA_OR_RAND]\r\n", pts_ble_connect_le},
 
 #if defined(CONFIG_BT_WHITELIST)
     {"pts_ble_wl_connect", "\r\npts_ble_wl_connect:[Autoconnect whilt list device]\r\n[Enable, 0x01:enable, 0x02:disable]\r\n\
@@ -251,7 +274,7 @@ static ssize_t pts_read_report(
 #define 	TEST_SVAL_MAX   	4
 
 static u16_t test_len = 0;
-static u16_t test_slen = 0;
+//static u16_t test_slen = 0;
 
 static u8_t short_buf[TEST_SVAL_MAX]= 
 {
@@ -280,13 +303,10 @@ static ssize_t pts_write_short_value(struct bt_conn *conn,const struct bt_gatt_a
 		vOutputString("data[%d]->[0x%x]\r\n",i,data[i]);
 
 	/*The rest of space is enough.*/
-	if(TEST_SVAL_MAX - test_slen >= tlen)
-	{
-		(void)memcpy(&short_buf[test_slen],data,tlen);
-		test_slen += tlen;
+	if(TEST_SVAL_MAX >= tlen){
+		(void)memcpy(short_buf,data,tlen);
 	}
-	else
-	{
+	else{
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
 	}
 	
@@ -303,7 +323,7 @@ static ssize_t pts_read_value(struct bt_conn *conn, const struct bt_gatt_attr *a
 	u8_t *data 		= short_buf;
 	u16_t data_len 	= sizeof(short_buf)/sizeof(u8_t);
 
-	if(test_len)
+	if(/*test_len8*/0)
 	{
 		data_len = test_len;
 		data = long_buf;
@@ -408,12 +428,23 @@ static ssize_t pts_read_chara_value(
 			const struct bt_gatt_attr *bt_attr, 
 			void *buf,u16_t len, u16_t offset,u8_t flags)
 {
-	const char *data 	= "PTS_NAME";
+	const char *data 	= "PTS_NAME0123456789abcde";
 	u16_t length 		= strlen(data);
 
 	return bt_gatt_attr_read(conn, bt_attr, buf, len, offset, data,length);
 }
+#if defined(PTS_CHARC_LEN_EQUAL_MTU_SIZE)
+static ssize_t pts_read_mtu_size(
+			struct bt_conn *conn,	
+			const struct bt_gatt_attr *bt_attr, 
+			void *buf,u16_t len, u16_t offset,u8_t flags)
+{
+	const char *data 	= "876543210123456789abcde";
+	u16_t length 		= strlen(data);
 
+	return bt_gatt_attr_read(conn, bt_attr, buf, len, offset, data,length);
+}
+#endif
 #if defined(PTS_TEST_CASE_INSUFFICIENT_KEY)
 static ssize_t pts_read_value_with_key(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset,u8_t flags)
@@ -484,6 +515,7 @@ static struct bt_gatt_attr pts_attr[] = {
 	        pts_write_short_value, 
 	        NULL
 	),
+
 
 	/* Case : GATT/SR/GAR/BV-01-C
 	 * Verify that a Generic Attribute Profile server can support a write to a 
@@ -666,6 +698,17 @@ static struct bt_gatt_attr pts_attr[] = {
 			BT_GATT_PERM_READ | BT_GATT_PERM_WRITE
 	),
 	#endif
+	#if defined(PTS_CHARC_LEN_EQUAL_MTU_SIZE)
+	BT_GATT_CHARACTERISTIC
+	(		
+			BT_UUID_PTS_READ_MTU_SIZE_CHAR, 
+			BT_GATT_CHRC_READ,
+			BT_GATT_PERM_READ,
+			pts_read_mtu_size, 
+			NULL, 
+			NULL
+	),
+	#endif
 
 };
 
@@ -694,8 +737,8 @@ static void pts_ble_notify(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 	memset(&params, 0, sizeof(params));
 
-	params.uuid = pts_attr[0].uuid;
-	params.attr = &pts_attr[0];
+	params.uuid = pts_attr[1].uuid;
+	params.attr = &pts_attr[1];
 	params.data = &data;
 	params.len 	= len;
 	params.func = notify_cb;
@@ -743,7 +786,7 @@ static void pts_ble_indicate(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 
 	memset(&params, 0, sizeof(params));
 
-	params.attr = &pts_attr[0];
+	params.attr = &pts_attr[1];
 	params.data = data;
 	params.len 	= len;
 	params.func = indicate_cb;
@@ -909,18 +952,29 @@ static void pts_ble_start_scan_rpa(char *pcWriteBuffer, int xWriteBufferLen, int
     }
 }
 
+static void pts_ble_add_peer_irk(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	u8_t peer_key[16];
+	
+	memset(peer_key,0,16);
+	
+	get_bytearray_from_string(&argv[1], peer_key,16);
+	reverse_bytearray(peer_key, peer_irk, 16);
+	vOutputString("peer_irk=[%s]\r\n",bt_hex(peer_irk, 16));
+}
 
 static void pts_ble_add_dev_to_resolve_list(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	struct bt_keys key;
 	bt_addr_le_t addr;
 	u8_t type = 0;
+	u8_t val[6];
 
 	memset(&key,0,sizeof(struct bt_keys));
 	
 	get_uint8_from_string(&argv[1], &type);	
-	get_bytearray_from_string(&argv[2], (uint8_t *)addr.a.val,6);
-
+	get_bytearray_from_string(&argv[2], val/*(uint8_t *)addr.a.val*/,6);
+	reverse_bytearray(val, addr.a.val, 6);
 	if(type == 0)
 		addr.type = BT_ADDR_LE_PUBLIC;
    	else if(type == 1)
@@ -1017,11 +1071,13 @@ static void pts_ble_wl_connect(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		if(err){
 			vOutputString("Auto connect failed (err = [%d])\r\n",err);
 			return;
+		}else{
+			vOutputString("Auto connection is succeed\r\n");
 		}
 	}else if(enable == 0x02){
 		err = bt_conn_create_auto_stop();
 		if(err){
-			vOutputString("Auto connect stop (err = [%d])\r\n",err);
+			vOutputString("Auto connection stop (err = [%d])\r\n",err);
 			return ;
 		}
 	}
@@ -1099,6 +1155,8 @@ static void pts_ble_address_register(char *pcWriteBuffer, int xWriteBufferLen, i
 
 	bt_addr_le_to_str(&pts_addr, le_addr, sizeof(le_addr));
 	
+	memcpy(pts_address,pts_addr.a.val,6);
+
 	vOutputString("Pts address %s \r\n",le_addr);	
 }
 
@@ -1154,7 +1212,7 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
 {
     struct bt_le_adv_param param;
 	const struct bt_data *ad;
-	size_t ad_len;
+	size_t ad_len=0;
 	int err = 0;
     uint8_t adv_type, tmp;
     struct bt_data pts_ad ;
@@ -1239,26 +1297,38 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
         param.options = 0;
 	}else if(adv_type == 3){
 		param.options = (BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME);
-    }else{
+    }else if(adv_type == 4){
+		param.options = (BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_DIR_MODE_LOW_DUTY | BT_LE_ADV_OPT_ONE_TIME);
+    }
+    else{
         vOutputString("Arg1 is invalid\r\n");
         return;
     }
+
+    ad = ad_discov;
+    ad_len = ARRAY_SIZE(ad_discov);
 
     /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
     get_uint8_from_string(&argv[2], &tmp);
 
     if(tmp == 0 || tmp == 1 || tmp == 2){
-        if(tmp == 1)
-            ad_discov[0].data = 0;
-		else if(tmp == 2)
+        if(tmp == 1){
+            //ad_discov[0].data = 0;
+            ad = ad_non_discov;
+            ad_len = 1;
+        }
+		else if(tmp == 2){
 			ad_discov[0].data = &discover_mode[0];
+			ad = ad_discov;
+        	ad_len = ARRAY_SIZE(ad_discov);
+		}
 		if(is_ad == 1){
 			ad = &pts_ad;
 			ad_len = 1;	
-		}else{
+		}/*else{
 	        ad = ad_discov;
 	        ad_len = ARRAY_SIZE(ad_discov);
-		}
+		}*/
 		
     }else{
         vOutputString("Arg2 is invalid\r\n");
@@ -1288,12 +1358,11 @@ static void pts_ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, in
 		param.interval_max = 0;
 	}
 	
-    
     if(adv_type == 1){
         err = bt_le_adv_start(&param, ad, ad_len, &ad_discov[0], 1);	
-    }else if(adv_type == 3){
+    }else if(adv_type == 3 || adv_type == 4){
     	pts.type = BT_ADDR_LE_PUBLIC;
-		memcpy(pts.a.val,pts_address,6);
+		memcpy(pts.a.val,pts_address,6);   
 		conn = bt_conn_create_slave_le(&pts,&param);
 		if(!conn){
         	err = 1; 
@@ -1340,10 +1409,13 @@ static void pts_ble_connect_le(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 	};
 
-    if(argc != 3){
+    if(argc != 4){
         vOutputString("Number of Parameters is not correct\r\n");
         return;
     }
+	if(event_flag == own_addr_type_random){
+		param.own_address_type = BT_ADDR_LE_RANDOM_ID;
+	}
        
     get_uint8_from_string(&argv[1], (u8_t *)&type);
 
@@ -1362,6 +1434,19 @@ static void pts_ble_connect_le(char *pcWriteBuffer, int xWriteBufferLen, int arg
     get_bytearray_from_string(&argv[2], addr_val,6);
 
     reverse_bytearray(addr_val, addr.a.val, 6);
+
+    get_uint8_from_string(&argv[3], (u8_t *)&type);
+
+    if(type == 0)
+		param.own_address_type = 1; /*ADDR_RAND*/
+	else if(type == 1)
+		param.own_address_type = 2; /*ADDR_RPA_OR_PUBLIC*/
+	else if(type == 2)
+		param.own_address_type = 0; /*ADDR_PUBLIC*/
+	else if(type == 3)
+		param.own_address_type = 3; /*ADDR_RPA_OR_RAND*/
+	else 
+		vOutputString("adderss type is unknow [0x%x]\r\n",type);
     
     conn = bt_conn_create_le(&addr, /*BT_LE_CONN_PARAM_DEFAULT*/&param);
 
@@ -1425,6 +1510,11 @@ static void pts_ble_conn_update(char *pcWriteBuffer, int xWriteBufferLen, int ar
         vOutputString("Number of Parameters is not correct\r\n");
         return;
     }
+	if(default_conn == NULL){
+		vOutputString("Connection is NULL\r\n");
+        return;
+	}
+	memset(&param,0,sizeof(struct bt_le_conn_param));
     get_uint16_from_string(&argv[1], &param.interval_min);
     get_uint16_from_string(&argv[2], &param.interval_max);
     get_uint16_from_string(&argv[3], &param.latency);

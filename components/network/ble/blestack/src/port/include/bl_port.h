@@ -8,7 +8,7 @@
 #include <string.h>
 #include "types.h"
 
-#define UINT_MAX 0xffffffff
+#define BT_UINT_MAX        0xffffffff
 #define BL_WAIT_FOREVER    0xffffffffu
 #define BL_NO_WAIT         0x0
 #define ms2tick(ms) (((ms)+portTICK_PERIOD_MS-1)/portTICK_PERIOD_MS)
@@ -255,5 +255,7 @@ int k_is_in_isr(void);
 #define BIT(n)  (1UL << (n))
 long long k_now_ms(void);
 void k_get_random_byte_array(uint8_t *buf, size_t len);
+void *k_malloc(size_t size);
+void k_free(void *buf);
 #endif /* BL_PORT_H */
 

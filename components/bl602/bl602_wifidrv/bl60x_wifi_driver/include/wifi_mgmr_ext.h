@@ -122,6 +122,7 @@ int wifi_mgmr_sta_mac_set(uint8_t mac[6]);
 int wifi_mgmr_sta_mac_get(uint8_t mac[6]);
 int wifi_mgmr_sta_ip_get(uint32_t *ip, uint32_t *gw, uint32_t *mask);
 int wifi_mgmr_sta_ip_set(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns1, uint32_t dns2);
+int wifi_mgmr_sta_dns_get(uint32_t *dns1, uint32_t *dns2);
 int wifi_mgmr_sta_ip_unset(void);
 int wifi_mgmr_sta_connect(wifi_interface_t *wifi_interface, char *ssid, char *psk, char *pmk, uint8_t *mac, uint8_t band, uint16_t freq);
 int wifi_mgmr_sta_disconnect(void);

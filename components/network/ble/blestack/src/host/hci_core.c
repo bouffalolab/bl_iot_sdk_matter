@@ -924,9 +924,9 @@ static int hci_le_create_conn(const struct bt_conn *conn)
 	int err;
 
 #if defined(CONFIG_BT_STACK_PTS)
-	if(conn->le.own_adder_type == BT_ADDR_LE_PUBLIC_ID)
+	if(conn->le.own_adder_type == BT_ADDR_LE_PUBLIC || conn->le.own_adder_type == BT_ADDR_LE_PUBLIC_ID)
 	{
-		own_addr_type = BT_ADDR_LE_PUBLIC;
+		own_addr_type = conn->le.own_adder_type;
 		goto start_connect;
 	}
 		
@@ -940,6 +940,11 @@ static int hci_le_create_conn(const struct bt_conn *conn)
         #if defined(BFLB_BLE)
         /*Use random type at the first time*/
         own_addr_type = BT_ADDR_LE_RANDOM;
+		#if defined(CONFIG_BT_STACK_PTS)
+		if(conn->le.own_adder_type == BT_ADDR_LE_RANDOM_ID){
+			own_addr_type = BT_HCI_OWN_ADDR_RPA_OR_RANDOM;
+		}
+		#endif
         #else
 		if (BT_FEAT_LE_PRIVACY(bt_dev.le.features)) {
 			own_addr_type = BT_HCI_OWN_ADDR_RPA_OR_RANDOM;
@@ -5297,15 +5302,19 @@ int bt_hci_driver_register(const struct bt_hci_driver *drv)
 
 #if defined(CONFIG_BT_PRIVACY)
 static int irk_init(void)
-{
+{ 
+    #if (BFLB_FIXED_IRK)
+    //use fixed irk
+    memset(&bt_dev.irk[0], 0x11, 16);
+    return 0;
+    #endif
 #if defined(BFLB_BLE_PATCH_SETTINGS_LOAD)
     u8_t empty_irk[16];
     int err;
-
     /*local irk has been loaded from flash in bt_enable, check if irk is null*/
     memset(empty_irk, 0, 16);
     if (memcmp(bt_dev.irk[0], empty_irk, 16) != 0)
-        return 0;    
+        return 0;
 
     err = bt_rand(&bt_dev.irk[0], 16);
 
@@ -5630,6 +5639,10 @@ int bt_disable_action(void)
 
     queue_inited = true;
     atomic_clear_bit(bt_dev.flags, BT_DEV_ENABLE);
+
+    #if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)
+    bl_onchiphci_interface_deinit();
+    #endif
 
     extern void ble_controller_deinit(void);
     ble_controller_deinit();

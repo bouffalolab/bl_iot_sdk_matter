@@ -46,6 +46,11 @@
 /*please also change NVIC_SetPriority of DMA channel*/
 #define DMA_DEFAULT_CHANNEL_COPY        (DMA_CH0)
 
+#define MEM_UNIT_SIZE            1024
+
+#define DTCM_ADDR_START     0X2014000
+#define DTCM_ADDR_END       (DTCM_ADDR_START + (48 * 1024))
+
 struct dma_ctx {
     utils_dlist_t *pstqueue;
 };
@@ -55,6 +60,7 @@ struct dma_node {
     int channel;
     void *tc_handler;
     void *interr_handler;
+    void *ctx;
 };
 
 static struct utils_list dma_copy_list;
@@ -163,6 +169,55 @@ void bl_dma_IRQHandler(void)
     }
 }
 
+void *bl_dma_mem_malloc(uint32_t size)
+{
+    void *ptr;
+    uint32_t counts, piece, ptr_piece_num;
+    uint32_t *p_heap_addr;
+    uint32_t addr_start, addr_end;
+
+    addr_start = DTCM_ADDR_START;
+    addr_end = DTCM_ADDR_END;
+   
+    ptr_piece_num = xPortGetFreeHeapSize() / MEM_UNIT_SIZE + 1;
+    p_heap_addr = pvPortMalloc(ptr_piece_num * 4);
+    memset(p_heap_addr, 0, ptr_piece_num * 4);
+    if (p_heap_addr == NULL) {
+        return NULL;
+    }
+    
+    ptr = NULL;
+    counts = 0;
+    while (1) {
+        ptr = pvPortMalloc(MEM_UNIT_SIZE);
+
+        if (ptr == NULL) {
+            goto __exit;
+        }
+
+        p_heap_addr[counts++] = (uint32_t)ptr;
+
+        if ((uint32_t)((uint32_t)ptr & 0x0fffffff) >= addr_start) {
+            if ((uint32_t)((uint32_t)ptr & 0x0fffffff) <= addr_end) {
+                ptr = pvPortMalloc(size);
+                break;
+            }
+        }
+    }
+    for (piece = 0; piece < counts; piece++) {
+        vPortFree((uint32_t *)p_heap_addr[piece]);
+    }
+
+__exit:
+    vPortFree(p_heap_addr);
+    return ptr;
+}
+
+void bl_dma_mem_free(void *ptr)
+{
+    vPortFree(ptr);
+}
+
 static void bl_dma_int_process(void)
 {
     int ch;
@@ -219,7 +274,7 @@ static void bl_dma_int_process(void)
     return;
 }
 
-int bl_dma_irq_register(int channel, void *tc_handler, void *interr_handler)
+int bl_dma_irq_register(int channel, void *tc_handler, void *interr_handler, void *ctx)
 {
     struct dma_ctx *pstctx;
     struct dma_node *node;
@@ -238,14 +293,49 @@ int bl_dma_irq_register(int channel, void *tc_handler, void *interr_handler)
             return -1;
         }
     }
-    
     pstnode = pvPortMalloc(sizeof(struct dma_node)); 
+    if (pstnode == NULL) {
+        blog_error("malloc dma node failed. \r\n");
+    }
     pstnode->channel = channel;
     pstnode->tc_handler = tc_handler;
     pstnode->interr_handler = interr_handler;
+    pstnode->ctx = ctx;
     utils_dlist_add(&(pstnode->dlist_item), pstctx->pstqueue);
 
     return -1;
+}
+
+void *bl_dma_find_node_by_channel(int channel)
+{
+    struct dma_ctx *pstctx;
+    struct dma_node *node;
+
+    bl_irq_ctx_get(DMA_ALL_IRQn, (void **)&pstctx);
+    utils_dlist_for_each_entry(pstctx->pstqueue, node, struct dma_node, dlist_item) {
+        if (node->channel == channel) {
+            break;
+        }
+    }
+    
+    if (&(node->dlist_item) == pstctx->pstqueue) {
+        blog_error("not find channel register. \r\n");
+
+        return NULL;
+    }
+    
+    return node;
+}
+
+void *bl_dma_find_ctx_by_channel(int channel)
+{
+    struct dma_node *node;
+    void *ctx;
+
+    node = bl_dma_find_node_by_channel(channel);
+    ctx = node->ctx;
+
+    return ctx;
 }
 
 int bl_dma_irq_unregister(int channel)
@@ -310,7 +400,7 @@ void bl_dma_init(void)
     DMA_IntMask(dmaCh, DMA_INT_ERR, UNMASK);
     DMA_LLI_Init(dmaCh, &lliCfg);
     bl_irq_register_with_ctx(DMA_ALL_IRQn, bl_dma_int_process, pstctx);
-    bl_dma_irq_register(DMA_DEFAULT_CHANNEL_COPY, bl_dma_IRQHandler, NULL);
+    bl_dma_irq_register(DMA_DEFAULT_CHANNEL_COPY, bl_dma_IRQHandler, NULL, NULL);
     bl_irq_enable(DMA_ALL_IRQn);
 }
 

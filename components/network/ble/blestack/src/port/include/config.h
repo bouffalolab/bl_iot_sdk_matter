@@ -19,6 +19,11 @@
 
 #if defined(CONFIG_BT_STACK_PTS)
 
+#ifndef  PTS_CHARC_LEN_EQUAL_MTU_SIZE
+#define  PTS_CHARC_LEN_EQUAL_MTU_SIZE	
+#endif
+
+
 //#ifndef  CONFIG_BT_STACK_PTS_SM_SLA_KDU_BI_01
 //#define  CONFIG_BT_STACK_PTS_SM_SLA_KDU_BI_01	
 //#endif
@@ -165,7 +170,7 @@
 #ifdef CONFIG_BT_CONN 
 
 #ifndef CONFIG_BT_CREATE_CONN_TIMEOUT
-#define CONFIG_BT_CREATE_CONN_TIMEOUT 3
+#define CONFIG_BT_CREATE_CONN_TIMEOUT 3 
 #endif
 
 #if defined(BFLB_BLE)
@@ -288,7 +293,7 @@
 */
 #ifndef CONFIG_BT_RPA_TIMEOUT
 #if defined(CONFIG_BT_STACK_PTS)
-#define CONFIG_BT_RPA_TIMEOUT 5
+#define CONFIG_BT_RPA_TIMEOUT 900
 #else
 #define CONFIG_BT_RPA_TIMEOUT 900
 #endif
@@ -511,6 +516,8 @@
 #define CONFIG_BT_ID_MAX 1
 #endif
 
+//#define PTS_GAP_SLAVER_CONFIG_NOTIFY_CHARC 1
+
 #ifndef CONFIG_BT_L2CAP_TX_FRAG_COUNT
 #define CONFIG_BT_L2CAP_TX_FRAG_COUNT 0
 #endif
@@ -532,6 +539,7 @@
 //#define BFLB_BLE_DISABLE_STATIC_BUF
 //#define BFLB_BLE_DISABLE_STATIC_CHANNEL
 #define BFLB_DISABLE_BT
+#define BFLB_FIXED_IRK 0
 #endif //BFLB_BLE
 
 /*******************************BFLB_BLE Patch******************************/

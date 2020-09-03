@@ -47,7 +47,7 @@ int utils_notifier_chain_register(ntf_list_t *nl, utils_notifier_t *node)
     return 0;
 }
 
-int utils_notifier_chain_call(ntf_list_t *nl)
+int utils_notifier_chain_call(ntf_list_t *nl, void *env)
 {
     utils_notifier_t *raw;
 
@@ -59,7 +59,7 @@ int utils_notifier_chain_call(ntf_list_t *nl)
 
     while (raw) {
         if (raw->cb) {
-            raw->cb(raw->cb_arg);
+            raw->cb(raw->cb_arg, env);
         }
         raw = (utils_notifier_t *)raw->node.next;
     }

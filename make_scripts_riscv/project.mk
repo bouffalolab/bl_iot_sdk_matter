@@ -190,13 +190,17 @@ all:
 # If we have `version.txt` then prefer that for extracting BL60x_SP_SDK version
 ifeq ("$(wildcard ${BL60X_SDK_PATH}/version.txt)","")
 BL_SDK_VER := $(shell cd ${BL60X_SDK_PATH} && git describe --always --tags --dirty)
+ifeq ("$(CONFIG_CHIP_NAME)", "BL602")
 BL_SDK_PHY_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_wifi/plf/refip/src/driver/phy/bl602_phy_rf/ && git describe --always --tags --dirty)
 BL_SDK_RF_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_wifi/plf/refip/src/driver/phy/bl602_phy_rf/rf && git describe --always --tags --dirty)
+endif
 $(info use git describe to generate version.txt)
 else
 BL_SDK_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n1`
+ifeq ("$(CONFIG_CHIP_NAME)", "BL602")
 BL_SDK_PHY_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n2|tail -n1`
 BL_SDK_RF_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n3|tail -n1`
+endif
 $(info use exsting version.txt file)
 endif
 BL_CHIP_NAME := ${CONFIG_CHIP_NAME}
@@ -205,7 +209,7 @@ BL_CHIP_NAME := ${CONFIG_CHIP_NAME}
 # -nostdlib
 # --specs=nosys.specs 
 EXTRA_LDFLAGS ?= -Wl,--cref -nostartfiles
-ifeq ($(CONFIG_ZB_ENABLE), 1)
+ifeq ($(CONFIG_ZIGBEE), 1)
 EXTRA_LDFLAGS += --specs=nosys.specs
 endif
 
@@ -407,7 +411,7 @@ $(foreach componentpath,$(COMPONENT_PATHS), \
 COMPONENT_LINKER_DEPS ?=
 $(APP_ELF): $(foreach libcomp,$(COMPONENT_LIBRARIES),$(BUILD_DIR_BASE)/$(libcomp)/lib$(libcomp).a) $(COMPONENT_LINKER_DEPS) $(COMPONENT_PROJECT_VARS)
 	$(summary) LD $(patsubst $(PWD)/%,%,$@)
-ifeq ($(CONFIG_ZB_ENABLE), 1)
+ifeq ($(CONFIG_ZIGBEE), 1)
 	$(CXX) -o $@ $(LDFLAGS) -Wl,-Map=$(APP_MAP)
 else
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map=$(APP_MAP)

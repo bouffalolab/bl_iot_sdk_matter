@@ -526,7 +526,7 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
     }
  
     if(err){
-        vOutputString("Failed to start advertising\r\n");
+        vOutputString("Failed to start advertising (err %d) \r\n", err);
     }else{
         vOutputString("Advertising started\r\n");
     }
@@ -622,6 +622,9 @@ static void ble_disconnect(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
     }else{
         vOutputString("Disconnect successfully\r\n");
     }
+
+    /*Notice:Because conn is got via bt_conn_lookup_addr_le in which bt_conn_ref(increase conn_ref by 1)
+      this conn, we need to bt_conn_unref(decrease conn_ref by 1) this conn.*/
     bt_conn_unref(conn);
 }
 
@@ -1049,12 +1052,16 @@ static u8_t read_func(struct bt_conn *conn, u8_t err, struct bt_gatt_read_params
 
 	char str[22]; 
 	u8_t *buf = (u8_t *)data;
+    int i=0;
 
 	memset(str,0,15);
 	
 	if(length > 0 && length <= sizeof(str)){
 		memcpy(str,buf,length);
 		vOutputString("device name : %s \r\n",str);
+        for(i=0;i<length;i++){
+            vOutputString("buf=[0x%x]\r\n",buf[i]);
+        }
 	}
 
 	if (!data) {
@@ -1177,74 +1184,60 @@ static u8_t notify_func(struct bt_conn *conn,
 			struct bt_gatt_subscribe_params *params,
 			const void *data, u16_t length)
 {
-	if (!params->value) {
-		vOutputString("Unsubscribed\r\n");
-		params->value_handle = 0U;
-		return BT_GATT_ITER_STOP;
-	}
+    if (!params->value) {
+        vOutputString("Unsubscribed\r\n");
+        params->value_handle = 0U;
+        return BT_GATT_ITER_STOP;
+    }
 
-	vOutputString("Notification: data %p length %u\r\n", data, length);
-
-	return BT_GATT_ITER_CONTINUE;
+    vOutputString("Notification: data length %u\r\n", length);
+    return BT_GATT_ITER_CONTINUE;
 }
 
 static void ble_subscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	int err;
-
-    (void)err;
-
     if(argc != 4){
         vOutputString("Number of Parameters is not correct\r\n");
         return;
     }
-    
-	if (subscribe_params.value_handle) {
-		vOutputString( "Cannot subscribe: subscription to %x already exists\r\n", subscribe_params.value_handle);
-		return;
-	}
 
-	if (!default_conn) {
-		vOutputString("Not connected\r\n");
-		return;
-	}
+    if (!default_conn) {
+        vOutputString("Not connected\r\n");
+        return;
+    }
 
     get_uint16_from_string(&argv[1], &subscribe_params.ccc_handle);
     get_uint16_from_string(&argv[2], &subscribe_params.value_handle);
     get_uint16_from_string(&argv[3], &subscribe_params.value);
-	subscribe_params.notify = notify_func;
+    subscribe_params.notify = notify_func;
 
-	err = bt_gatt_subscribe(default_conn, &subscribe_params);
-	if (err) {
-		vOutputString("Subscribe failed (err %d)\r\n", err);
-	} else {
-		vOutputString("Subscribed\r\n");
-	}
+    int err = bt_gatt_subscribe(default_conn, &subscribe_params);
+    if (err) {
+        vOutputString("Subscribe failed (err %d)\r\n", err);
+    } else {
+        vOutputString("Subscribed\r\n");
+    }
 
 }
 
 static void ble_unsubscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	int err;
+    if (!default_conn) {
+        vOutputString("Not connected\r\n");
+        return;
+    }
 
-    (void)err;
-    
-	if (!default_conn) {
-		vOutputString("Not connected\r\n");
-		return;
-	}
+    if (!subscribe_params.value_handle) {
+        vOutputString("No subscription found\r\n");
+        return;
+    }
 
-	if (!subscribe_params.value_handle) {
-		vOutputString("No subscription found\r\n");
-		return;
-	}
-
-	err = bt_gatt_unsubscribe(default_conn, &subscribe_params);
-	if (err) {
-		vOutputString("Unsubscribe failed (err %d)\r\n", err);
-	} else {
-		vOutputString("Unsubscribe success\r\n");
-	}
+    int err = bt_gatt_unsubscribe(default_conn, &subscribe_params);
+    if (err) {
+        vOutputString("Unsubscribe failed (err %d)\r\n", err);
+    } else {
+        vOutputString("Unsubscribe success\r\n");
+    }
 }
 #endif /* CONFIG_BT_GATT_CLIENT */
 

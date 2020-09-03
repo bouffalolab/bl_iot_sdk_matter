@@ -3862,7 +3862,12 @@ static u8_t smp_public_key_slave(struct bt_smp *smp)
 	if (err) {
 		return err;
 	}
-
+	#if defined(CONFIG_BT_STACK_PTS)
+	if(atomic_test_bit(&smp_test_flag, SMP_PARING_INVALID_PUBLIC_KEY)){
+		return 1;
+	}
+	#endif
+	
 	switch (smp->method) {
 	case PASSKEY_CONFIRM:
 	case JUST_WORKS:
@@ -3922,6 +3927,11 @@ static u8_t smp_public_key(struct bt_smp *smp, struct net_buf *buf)
 
 	if (IS_ENABLED(CONFIG_BT_CENTRAL) &&
 	    smp->chan.chan.conn->role == BT_HCI_ROLE_MASTER) {
+		#if defined(CONFIG_BT_STACK_PTS) 	
+		if(atomic_test_bit(&smp_test_flag, SMP_PARING_INVALID_PUBLIC_KEY)){
+			return 1;
+		}	
+		#endif
 		switch (smp->method) {
 		case PASSKEY_CONFIRM:
 		case JUST_WORKS:

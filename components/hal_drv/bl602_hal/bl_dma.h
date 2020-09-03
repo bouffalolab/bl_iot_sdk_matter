@@ -72,7 +72,11 @@ void bl_dma_test(void);
 int bl_dma_int_clear(int ch);
 void bl_dma_update_memsrc(uint8_t ch, uint32_t src, uint32_t len);
 void bl_dma_update_memdst(uint8_t ch, uint32_t dst, uint32_t len);
-int bl_dma_irq_register(int channel, void *tc_handler, void *interr_handler);
+int bl_dma_irq_register(int channel, void *tc_handler, void *interr_handler, void *ctx);
 int bl_dma_irq_unregister(int channel);
+void *bl_dma_find_node_by_channel(int channel);
+void *bl_dma_find_ctx_by_channel(int channel);
+void *bl_dma_mem_malloc(uint32_t size);
+void bl_dma_mem_free(void *ptr);
 
 #endif

@@ -36,10 +36,12 @@
 #include <bl602_glb.h>
 #include <bl_hbn.h>
 #include <bl_gpio.h>
+#include <bl_flash.h>
 #include <utils_log.h>
 
-int bl_hbn_enter(hbn_type_t *hbn)
+int bl_hbn_enter(hbn_type_t *hbn, uint32_t *time)
 {
+#if 0
     SPI_Flash_Cfg_Type Gd_Q80E_Q16E = {
             .resetCreadCmd=0xff,
             .resetCreadCmdSize=3,
@@ -137,12 +139,13 @@ int bl_hbn_enter(hbn_type_t *hbn)
             .pdDelay=20,
             .qeData=0,
     };
+#endif
     HBN_APP_CFG_Type cfg = {
         .useXtal32k =0,                                        /*!< Wheather use xtal 32K as 32K clock source,otherwise use rc32k */
         .sleepTime =0,                                         /*!< HBN sleep time */
         .gpioWakeupSrc=HBN_WAKEUP_GPIO_NONE,                   /*!< GPIO Wakeup source */
         .gpioTrigType=HBN_GPIO_INT_TRIGGER_ASYNC_FALLING_EDGE, /*!< GPIO Triger type */
-        .flashCfg=&Gd_Q80E_Q16E,                     /*!< Flash config pointer, used when power down flash */
+        .flashCfg= NULL,                                      /*!< Flash config pointer, used when power down flash */
         .hbnLevel=HBN_LEVEL_0,                                /*!< HBN level */
         .ldoLevel=HBN_LDO_LEVEL_1P10V,                        /*!< LDO level */
     };
@@ -153,6 +156,7 @@ int bl_hbn_enter(hbn_type_t *hbn)
         log_buf(hbn->buf, hbn->buflen);
     }
 
+    cfg.sleepTime = (*time + 999) / 1000; 
     if ((!hbn->buf) || ((hbn->buflen != 1) && (hbn->buflen != 2))) {
         printf("not support arg.\r\n");
         return -1;
@@ -175,6 +179,8 @@ int bl_hbn_enter(hbn_type_t *hbn)
         printf("invalid arg.\r\n");
         return -1;
     }
+    cfg.flashCfg = bl_flash_get_flashCfg();
+
     HBN_Mode_Enter(&cfg);
     return -1;
 }

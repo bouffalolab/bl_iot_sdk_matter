@@ -2266,14 +2266,25 @@ enum wlan_mode {
     WIFI_AP_STA_MODE,
 };
 
+static char g_soft_ap_ssid[65] = {0};
+
 static AT_ERROR_CODE __wifimode_set(int mode)
 {
+    memset(g_soft_ap_ssid, 0, sizeof(g_soft_ap_ssid));
     if (mode == WIFI_DISABLE) {
+        wifi_mgmr_sta_disconnect();
+        vTaskDelay(1000);
         wifi_mgmr_sta_disable(NULL);
         wifi_mgmr_ap_stop(NULL);
     } else if (mode == WIFI_STATION_MODE) {
+        wifi_mgmr_sta_disable(NULL);
+        wifi_mgmr_ap_stop(NULL);
         g_wifi_interface = wifi_mgmr_sta_enable();
     } else if (mode == WIFI_SOFTAP_MODE) {
+        wifi_mgmr_sta_disconnect();
+        vTaskDelay(1000);
+        wifi_mgmr_sta_disable(NULL);
+        wifi_mgmr_ap_stop(NULL);
         g_wifi_interface = wifi_mgmr_ap_enable();
     } else {
         printf("The mode is not support \r\n");
@@ -2284,11 +2295,16 @@ static AT_ERROR_CODE __wifimode_set(int mode)
 
 static AT_ERROR_CODE cwmode_cur(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
+    int now_mode;
     FUN_DEBUG("----->\r\n");
 
     if(para->u.wifiMode.mode < 0 || para->u.wifiMode.mode >= WIFI_AP_STA_MODE) {
         printf("The mode is not support \r\n");
         return AEC_CMD_ERROR;
+    }
+    at_wifimode_get(&now_mode);
+    if (now_mode == para->u.wifiMode.mode) {
+        return AEC_OK;
     }
     at_wifimode_set(para->u.wifiMode.mode);
     return __wifimode_set(para->u.wifiMode.mode);
@@ -2307,6 +2323,7 @@ static AT_ERROR_CODE cwjap_cur(at_callback_para_t *para, at_callback_rsp_t *rsp)
   // uint32_t timeout = xTaskGetTickCount() +
   // pdMS_TO_TICKS(wep_open_connect_timeout_ms);
   int wifiMode;
+  int auto_conn;
   at_wifimode_get(&wifiMode);
 
   if (wifiMode != WIFI_STATION_MODE && wifiMode != WIFI_AP_STA_MODE) {
@@ -2330,9 +2347,15 @@ static AT_ERROR_CODE cwjap_cur(at_callback_para_t *para, at_callback_rsp_t *rsp)
     // wlan_sta_enable();
     wifi_mgmr_sta_connect(g_wifi_interface, (char *)para->u.joinParam.ssid,
                           (char *)para->u.joinParam.pwd, NULL, NULL, 0, 0);
-
+    at_wifi_auto_get(&auto_conn);
+    if (auto_conn) {
+        wifi_mgmr_sta_autoconnect_enable();
+    } else {
+        wifi_mgmr_sta_autoconnect_disable();
+    }
+    at_wifi_ssid_set((char *)para->u.joinParam.ssid);
+    at_wifi_pask_set((char *)para->u.joinParam.pwd);
     // enable wifi autoreconnect
-    //wifi_mgmr_sta_autoconnect_enable();
     return AEC_OK;
   }
 
@@ -2387,7 +2410,6 @@ static AT_ERROR_CODE cwlap(at_callback_para_t * para, at_callback_rsp_t * rsp)
 static AT_ERROR_CODE cwqap(at_callback_para_t *para, at_callback_rsp_t *rsp) {
   FUN_DEBUG("----->\r\n");
 
-  wifi_mgmr_sta_autoconnect_disable();
   wifi_mgmr_sta_disconnect();
   vTaskDelay(1000);
   wifi_mgmr_sta_disable(NULL);
@@ -2538,6 +2560,7 @@ static AT_ERROR_CODE cipdomain(at_callback_para_t *para, at_callback_rsp_t *rsp)
 }
 
 #endif
+
 static AT_ERROR_CODE ap_sta_get(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
     uint8_t cnt;
@@ -2551,7 +2574,9 @@ static AT_ERROR_CODE ap_sta_get(at_callback_para_t * para, at_callback_rsp_t * r
     wifi_mgmr_ap_mac_get(mac);
     at_dump("+SOFTAP:"
             "%s,"
+            "%s,"
             "%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+            g_soft_ap_ssid,
             ip4addr_ntoa(&ip),
             mac[0],
             mac[1],
@@ -2605,6 +2630,7 @@ static AT_ERROR_CODE set_apcfg(at_callback_para_t * para, at_callback_rsp_t * rs
                            para->u.apcfgParam.ssid, 0,
                            NULL, 1);
     }
+    strcpy(g_soft_ap_ssid, para->u.apcfgParam.ssid);
     return AEC_OK;
 }
 

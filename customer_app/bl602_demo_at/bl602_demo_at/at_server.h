@@ -35,6 +35,9 @@
 
 #define SAVE_KEY_UART_BAUD    "uart_baud"
 #define SAVE_KEY_WIFI_MODE    "wifi_mode"
+#define SAVE_KEY_WIFI_AUTO    "wifi_auto"
+#define SAVE_KEY_WIFI_SSID    "wifi_ssid"
+#define SAVE_KEY_WIFI_pask    "wifi_pask"
 
 #define AT_ASYNC_WIFI_CONNECTED (0x1 << 0)
 #define AT_ASYNC_DATA_IN        (0x1 << 1)
@@ -60,6 +63,13 @@ int at_serial_baud_set(uint32_t baud);
 int at_serial_baud_get(uint32_t *p_baud);
 int at_wifimode_get(int *p_mode);
 int at_wifimode_set(int mode);
+int at_wifi_auto_set(int is_auto);
+int at_wifi_auto_get(int *p_auto);
+
+int at_wifi_pask_get(char *pask);
+int at_wifi_pask_set(char *pask);
+int at_wifi_ssid_get(char *ssid);
+int at_wifi_ssid_set(char *ssid);
 
 #endif
 

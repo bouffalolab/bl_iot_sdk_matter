@@ -31,6 +31,7 @@
 #include <bl60x_fw_api.h>
 #include <lwip/tcpip.h>
 #include <lwip/netifapi.h>
+#include <lwip/dns.h>
 #include <ethernetif.h>
 #include <bl_efuse.h>
 #include <bl_wifi.h>
@@ -253,6 +254,25 @@ int wifi_mgmr_sta_ip_get(uint32_t *ip, uint32_t *gw, uint32_t *mask)
     *ip = netif_ip4_addr(&wifiMgmr.wlan_sta.netif)->addr;
     *mask = netif_ip4_netmask(&wifiMgmr.wlan_sta.netif)->addr;
     *gw = netif_ip4_gw(&wifiMgmr.wlan_sta.netif)->addr;
+
+    return 0;
+}
+
+int wifi_mgmr_sta_dns_get(uint32_t *dns1, uint32_t *dns2)
+{
+    const ip_addr_t* dns;
+
+    /*Get DNS1*/
+    dns = dns_getserver(0);
+    *dns1 = ip_addr_get_ip4_u32(dns);
+
+    /*Get DNS2*/
+    if (DNS_MAX_SERVERS > 1) {
+        dns = dns_getserver(1);
+        *dns2 = ip_addr_get_ip4_u32(dns);
+    } else {
+        *dns2 = 0;
+    }
 
     return 0;
 }
