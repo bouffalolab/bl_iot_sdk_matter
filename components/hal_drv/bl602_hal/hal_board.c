@@ -47,6 +47,10 @@ static uint32_t factory_addr = 0;
 
 #ifndef FEATURE_WIFI_DISABLE
 #include <bl60x_fw_api.h>
+
+#ifdef CONF_BLE_ENABLE
+#include "ble_lib_api.h"
+#endif
 static int update_mac_config_get_mac_from_dtb(const void *fdt, int offset1, uint8_t mac_addr[6])
 {
     int lentmp;
@@ -556,8 +560,8 @@ static int hal_board_load_fdt_info(const void *dtb)
 {
     const void *fdt = (const void *)dtb;/* const */
 
-    int wifi_offset = 0;    /* subnode wifi */
-    int offset1 = 0;        /* subnode offset1 */
+    int wifi_offset = 0, bt_offset = 0;    /* subnode wifi & bluetooth */
+    int offset1 = 0, offset2 = 0;        /* subnode offset1 */
     const uint8_t *addr_prop = 0;
 
     int lentmp = 0;
@@ -702,6 +706,25 @@ static int hal_board_load_fdt_info(const void *dtb)
     offset1 = update_ap_field(fdt, wifi_offset, "ap");
     offset1 = update_sta_field(fdt, wifi_offset, "sta");
 
+    bt_offset = fdt_subnode_offset(fdt, 0, "bluetooth");
+    if (!(bt_offset > 0)) {
+       blog_error("bt NULL.\r\n");
+    }
+
+    offset2 = fdt_subnode_offset(fdt, bt_offset, "brd_rf");
+    if (offset2 > 0) {
+        int pwr_table_ble = 0;
+        addr_prop = fdt_getprop(fdt, offset2, "pwr_table_ble", &lentmp);
+        if (addr_prop) {
+            pwr_table_ble = BL_FDT32_TO_U32(addr_prop, 0);
+        } else {
+            pwr_table_ble = 0;
+        }
+        blog_info("set pwr_table_ble = %ld in dts\r\n", pwr_table_ble);
+#ifdef CONF_BLE_ENABLE
+        ble_controller_set_tx_pwr(pwr_table_ble);
+#endif
+    }
     return 0;
 }
 #endif

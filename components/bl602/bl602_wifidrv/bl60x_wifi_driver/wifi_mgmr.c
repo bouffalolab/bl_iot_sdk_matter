@@ -431,6 +431,20 @@ static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
     return false;
 }
 
+static bool stateGlobal_cfg_req(void *ch, struct event *event)
+{
+    wifi_mgmr_msg_t *msg;
+    wifi_mgmr_cfg_element_msg_t *cfg_req;
+
+    msg = event->data;
+    if (WIFI_MGMR_EVENT_FW_CFG_REQ == msg->ev) {
+        cfg_req = (wifi_mgmr_cfg_element_msg_t*)msg->data;
+        bl_main_cfg_task_req(cfg_req->ops, cfg_req->task, cfg_req->element, cfg_req->type, cfg_req->buf, NULL);
+    }
+
+    return false;
+}
+
 static void stateSnifferEnter( void *stateData, struct event *event )
 {
     //bl60x_fw_xtal_capcode_autofit();
@@ -615,8 +629,9 @@ const static struct state stateGlobal = {
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_POWERSAVING, &stateGlobalGuard_fw_powersaving, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_SCAN, &stateGlobalGuard_fw_scan, &stateGlobalAction, &stateIdle},
       {EVENT_TYPE_FW,  (void*)WIFI_MGMR_EVENT_FW_DATA_RAW_SEND, &stateSnifferGuard_raw_send, &stateGlobalAction, &stateIdle},
+      {EVENT_TYPE_FW,  (void*)WIFI_MGMR_EVENT_FW_CFG_REQ, &stateGlobal_cfg_req, &stateGlobalAction, &stateIdle},
    },
-   .numTransitions = 11,
+   .numTransitions = 12,
    .data = "group",
    .entryAction = &stateGlobalEnter,
    .exitAction = &stateGlobalExit,

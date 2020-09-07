@@ -82,6 +82,7 @@ typedef enum WIFI_MGMR_EVENT {
     WIFI_MGMR_EVENT_FW_IND_DISCONNECT,
     WIFI_MGMR_EVENT_FW_IND_CONNECTED,
     WIFI_MGMR_EVENT_FW_DATA_RAW_SEND,
+    WIFI_MGMR_EVENT_FW_CFG_REQ,
 
     /*boundary between APP and Global handled EVENT*/
     WIFI_MGMR_EVENT_MAXFW_MINI_GLOBAL,
@@ -113,6 +114,15 @@ typedef struct wifi_mgmr_msg {
     uint32_t len;
     uint8_t data[0];
 } wifi_mgmr_msg_t;
+
+typedef struct wifi_mgmr_cfg_element_msg {
+    uint32_t ops;
+    uint32_t task;
+    uint32_t element;
+    uint32_t type;
+    uint32_t length;
+    uint32_t buf[];
+} wifi_mgmr_cfg_element_msg_t;
 
 typedef struct wifi_mgmr_profile_msg {
     char ssid[32];

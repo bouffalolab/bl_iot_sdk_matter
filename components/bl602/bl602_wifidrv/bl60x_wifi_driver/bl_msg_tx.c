@@ -28,6 +28,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <string.h>
+#include <utils_log.h>
+#include <utils_tlv_bl.h>
+#include <bl60x_fw_api.h>
 
 #include "errno.h"
 #include "bl_msg_tx.h"
@@ -983,6 +986,62 @@ int bl_send_apm_conf_max_sta_req(struct bl_hw *bl_hw, uint8_t max_sta_supported)
 
     /* Send the APM_STOP_REQ message to LMAC FW */
     return bl_send_msg(bl_hw, req, 1, APM_CONF_MAX_STA_CFM, NULL);
+}
+
+int bl_send_cfg_task_req(struct bl_hw *bl_hw, uint32_t ops, uint32_t task, uint32_t element, uint32_t type, void *arg1, void *arg2)
+{
+    struct cfg_start_req *req;
+#define ENTRY_BUF_SIZE      (8)
+
+    /* Build the APM_STOP_REQ message */
+    //FIXME static allocated size
+    req = bl_msg_zalloc(CFG_START_REQ, TASK_CFG, DRV_TASK_ID, sizeof(struct cfg_start_req) + 32);
+    if (!req) {
+        return -ENOMEM;
+    }
+
+    /* Set parameters for the APM_STOP_REQ message */
+    req->ops = ops;
+    switch (req->ops) {
+        case CFG_ELEMENT_TYPE_OPS_SET:
+        {
+            req->u.set[0].task = task;
+            req->u.set[0].element = element;
+            req->u.set[0].type = type;
+            req->u.set[0].length = utils_tlv_bl_pack_auto(
+                req->u.set[0].buf,
+                ENTRY_BUF_SIZE,
+                type, 
+                arg1
+            );
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_GET:
+        {
+            //TODO
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_RESET:
+        {
+            //TODO
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_DUMP_DEBUG:
+        {
+            req->u.set[0].task = task;
+            req->u.set[0].element = element;
+            req->u.set[0].length = 0;
+        }
+        break;
+        default:
+        {
+            /*empty here*/
+            BL_ASSERT(0);
+        }
+    }
+
+    /* Send the APM_STOP_REQ message to LMAC FW */
+    return bl_send_msg(bl_hw, req, 1, CFG_START_CFM, NULL);
 }
 
 int bl_send_channel_set_req(struct bl_hw *bl_hw, int channel)

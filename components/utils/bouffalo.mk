@@ -22,6 +22,7 @@ COMPONENT_SRCS := src/utils_hex.c \
                   src/utils_hmac_sha1_fast.c \
                   src/utils_psk_fast.c \
                   src/utils_memp.c \
+                  src/utils_tlv_bl.c \
 
 
 COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))

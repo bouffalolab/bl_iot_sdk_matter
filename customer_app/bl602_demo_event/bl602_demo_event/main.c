@@ -85,6 +85,10 @@
 #include <utils_log.h>
 #include <libfdt.h>
 #include <blog.h>
+#include "ble_lib_api.h"
+#include "hal_pds.h"
+#include "bl_rtc.h"
+#include "utils_string.h"
 
 #define TASK_PRIORITY_FW            ( 30 )
 #define mainHELLO_TASK_PRIORITY     ( 20 )
@@ -103,6 +107,10 @@
 #define WIFI_AP_PSM_INFO_GW_MAC         "conf_ap_gw_mac"
 #define CLI_CMD_AUTOSTART1              "cmd_auto1"
 #define CLI_CMD_AUTOSTART2              "cmd_auto2"
+
+#define TIME_5MS_IN_32768CYCLE  (164) // (5000/(1000000/32768))
+
+bool pds_start = false;
 
 extern void ble_stack_start(void);
 
@@ -143,11 +151,75 @@ void vApplicationMallocFailedHook(void)
 
 void vApplicationIdleHook(void)
 {
-    __asm volatile(
-            "   wfi     "
-    );
-    /*empty*/
+    if(!pds_start){
+        __asm volatile(
+                "   wfi     "
+        );
+        /*empty*/
+    }
 }
+
+#if ( configUSE_TICKLESS_IDLE != 0 )
+void vApplicationSleep( TickType_t xExpectedIdleTime_ms )
+{
+    int32_t bleSleepDuration_32768cycles = 0;
+    int32_t expectedIdleTime_32768cycles = 0;
+    eSleepModeStatus eSleepStatus;
+    bool freertos_max_idle = false;
+
+    if (pds_start == 0)
+        return;
+
+    if(xExpectedIdleTime_ms + xTaskGetTickCount() == portMAX_DELAY){
+        freertos_max_idle = true;
+    }else{   
+        xExpectedIdleTime_ms -= 1;
+        expectedIdleTime_32768cycles = 32768 * xExpectedIdleTime_ms / 1000;
+    }
+
+    if((!freertos_max_idle)&&(expectedIdleTime_32768cycles < TIME_5MS_IN_32768CYCLE)){
+        return;
+    }
+        
+    /*Disable mtimer interrrupt*/
+    *(volatile uint8_t*)configCLIC_TIMER_ENABLE_ADDRESS = 0;
+
+    eSleepStatus = eTaskConfirmSleepModeStatus();
+    if(eSleepStatus == eAbortSleep || ble_controller_sleep_is_ongoing())
+    {
+        /*A task has been moved out of the Blocked state since this macro was
+        executed, or a context siwth is being held pending.Restart the tick 
+        and exit the critical section. */
+        /*Enable mtimer interrrupt*/
+        *(volatile uint8_t*)configCLIC_TIMER_ENABLE_ADDRESS = 1;
+        //printf("%s:not do ble sleep\r\n", __func__);
+        return;
+    }
+
+    bleSleepDuration_32768cycles = ble_controller_sleep();
+
+	if(bleSleepDuration_32768cycles < TIME_5MS_IN_32768CYCLE)
+    {
+        /*BLE controller does not allow sleep.  Do not enter a sleep state.Restart the tick 
+        and exit the critical section. */
+        /*Enable mtimer interrrupt*/
+        //printf("%s:not do pds sleep\r\n", __func__);
+        *(volatile uint8_t*)configCLIC_TIMER_ENABLE_ADDRESS = 1;
+    }
+    else
+    {
+        printf("%s:bleSleepDuration_32768cycles=%ld\r\n", __func__, bleSleepDuration_32768cycles);
+        if(eSleepStatus == eStandardSleep && ((!freertos_max_idle) && (expectedIdleTime_32768cycles < bleSleepDuration_32768cycles)))
+        {
+           hal_pds_enter_with_time_compensation(1, expectedIdleTime_32768cycles - 40);//40);//20);
+        }
+        else
+        {
+           hal_pds_enter_with_time_compensation(1, bleSleepDuration_32768cycles - 40);//40);//20);
+        }
+    }
+}
+#endif
 
 static void proc_hellow_entry(void *pvParameters)
 {
@@ -696,6 +768,20 @@ static void cmd_stack_ble(char *buf, int len, int argc, char **argv)
     ble_stack_start();
 }
 
+static void cmd_start_pds(char *buf, int len, int argc, char **argv)
+{
+    if(argc != 2)
+    {
+        printf("Invalid params\r\n");
+        return;
+    }
+    get_uint8_from_string(&argv[1], &pds_start);
+    if (pds_start == 1)
+    {
+        hal_pds_init();
+    }
+}
+
 static void cmd_hbn_enter(char *buf, int len, int argc, char **argv)
 {
     uint32_t time;
@@ -1024,6 +1110,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         /*Stack Command*/
         { "stack_wifi", "Wi-Fi Stack", cmd_stack_wifi},
         { "stack_ble", "BLE Stack", cmd_stack_ble},
+        //{ "pds_start", "enable or disable pds", cmd_start_pds},
         /*TCP/IP network test*/
         {"http", "http client download test based on socket", http_test_cmd},
         {"httpc", "http client download test based on RAW TCP", cmd_httpc_test},
@@ -1172,7 +1259,8 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackTyp
     function then they must be declared static - otherwise they will be allocated on
     the stack and so not exists after this function exits. */
     static StaticTask_t xIdleTaskTCB;
-    static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+    //static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+    static StackType_t uxIdleTaskStack[512];
 
     /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
     state will be stored. */
@@ -1184,7 +1272,8 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackTyp
     /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
     Note that, as the array is necessarily of type StackType_t,
     configMINIMAL_STACK_SIZE is specified in words, not bytes. */
-    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+    //*pulIdleTaskStackSize = configMINIMAL_STACK_SIZE; 
+    *pulIdleTaskStackSize = 512;//size 512 words is For ble pds mode, otherwise stack overflow of idle task will happen.
 }
 
 /* configSUPPORT_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
@@ -1275,6 +1364,7 @@ static void system_init(void)
     bl_sec_init();
     bl_sec_test();
     bl_dma_init();
+    bl_rtc_init();
     hal_boot2_init();
 
     /* board config is set after system is init*/

@@ -83,6 +83,39 @@ int wifi_mgmr_api_connect(char *ssid, char *psk, char *pmk, uint8_t *mac, uint8_
     return 0;
 }
 
+int wifi_mgmr_api_cfg_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t type, uint32_t length, uint32_t *buf)
+{
+#define MAX_LENGTH_LIMIT        (32)
+    wifi_mgmr_msg_t *msg;
+    wifi_mgmr_cfg_element_msg_t *cfg_req;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t) + sizeof(wifi_mgmr_cfg_element_msg_t) + MAX_LENGTH_LIMIT];//XXX caution for stack overflow
+
+    if (length > MAX_LENGTH_LIMIT) {
+        return -1;
+    }
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+    msg->ev = WIFI_MGMR_EVENT_FW_CFG_REQ;
+    msg->data1 = (void*)0x11223344;
+    msg->data2 = (void*)0x55667788;
+    msg->len = sizeof (wifi_mgmr_msg_t) + sizeof(wifi_mgmr_profile_msg_t) + length;
+
+    cfg_req = (wifi_mgmr_cfg_element_msg_t*)msg->data;
+    cfg_req->ops = ops;
+    cfg_req->task = task;
+    cfg_req->element = element;
+    cfg_req->type = type;
+    cfg_req->length = length;
+    if (length) {
+        memcpy(cfg_req->buf, buf, length);
+    }
+
+    wifi_mgmr_event_notify(msg);
+
+    return 0;
+}
+
 int wifi_mgmr_api_ip_got(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns1, uint32_t dns2)
 {
     wifi_mgmr_msg_t *msg;

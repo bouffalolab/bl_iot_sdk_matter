@@ -28,9 +28,10 @@ CONFIG_ENABLE_VFS_ROMFS:=1
 # set easyflash env psm size, only support 4K、8K、16K options
 CONFIG_ENABLE_PSM_EF_SIZE:=16K
 
-CONFIG_FREERTOS_TICKLESS_MODE:=0
+CONFIG_FREERTOS_TICKLESS_MODE:=1
 
 CONFIG_BT:=1
+CONFIG_USE_XTAL32K:=0
 
 #blog enable components format :=blog_testc cli vfs helper
 LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop blestack

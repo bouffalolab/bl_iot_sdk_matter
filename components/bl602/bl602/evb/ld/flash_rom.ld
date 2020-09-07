@@ -44,6 +44,12 @@ SECTIONS
     *(.static_cli_cmds)
     _bl_static_cli_cmds_end = .;
 
+    /* static fw attribute entry */
+    . = ALIGN(4);
+    _bl_static_fw_cfg_entry_start = .;
+    KEEP(*(.wifi.cfg.entry))
+    _bl_static_fw_cfg_entry_end = .;
+
     /* static blog code1 */
     . = ALIGN(4);
     _bl_static_blogcomponent_code_start = .;
@@ -184,6 +190,10 @@ SECTIONS
   /*SYMOBOL used in code*/
   PROVIDE( _ld_bl_static_cli_cmds_start = _bl_static_cli_cmds_start );
   PROVIDE( _ld_bl_static_cli_cmds_end   = _bl_static_cli_cmds_end );
+
+  /*CFG FW used in code*/
+  PROVIDE( _ld_bl_static_cfg_entry_start = _bl_static_fw_cfg_entry_start );
+  PROVIDE( _ld_bl_static_cfg_entry_end   = _bl_static_fw_cfg_entry_end );
 
   /* blog */
   PROVIDE( _ld_bl_static_blogcomponent_code_start = _bl_static_blogcomponent_code_start );

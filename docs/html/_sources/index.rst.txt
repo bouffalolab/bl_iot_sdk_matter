@@ -30,6 +30,7 @@
    Examples/demo_system_fdt/fdt
    Examples/demo_wifi/wifi
    Examples/demo_ble/ble
+   Examples/demo_mesh/mesh
    Examples/demo_blsync_ble/blsync_ble
 
 .. toctree::

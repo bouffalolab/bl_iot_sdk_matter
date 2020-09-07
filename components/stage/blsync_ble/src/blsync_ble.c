@@ -13,8 +13,11 @@
 #include <blog.h>
 #include <stdio.h>
 #include "cJSON.h"
+#include "hci_core.h"
 
 static bl_ble_sync_t *gp_index = NULL;
+struct bt_conn *blsync_conn = NULL;
+struct bt_gatt_exchange_params blsync_exchg_mtu;
 
 static void wifiprov_ccc_cfg_changed(const struct bt_gatt_attr *attr,u16_t value);
 
@@ -25,6 +28,47 @@ static ssize_t write_data(struct bt_conn *conn,
 static ssize_t read_data(struct bt_conn *conn,
                          const struct bt_gatt_attr *attr, void *buf,
                          u16_t len, u16_t offset);
+
+
+static void blsync_exchange_func(struct bt_conn *conn, u8_t err,
+			  struct bt_gatt_exchange_params *params)
+{
+	printf("Exchange %s\r\n", err == 0U ? "successful" : "failed");
+}
+
+static void blsync_disconnected(struct bt_conn *conn, u8_t reason)
+{ 
+	printf("disconnected (reason %u)%s\r\n",reason);
+	blsync_conn = NULL;
+}
+
+static void blsync_connected(struct bt_conn *conn, u8_t err)
+{
+	int tx_octets = 0x00fb;
+	int tx_time = 0x0848;
+	int ret = -1;
+
+	printf("%s\n",__func__);
+	blsync_conn = conn;
+
+	//set data length after connected.
+	ret = bt_le_set_data_len(blsync_conn, tx_octets, tx_time);
+	if(!ret){
+		printf("Set data length success.\n");
+	}
+	else{
+		printf("Set data length failure, err: %d\n", ret);
+	}
+
+	//exchange mtu size after connected.
+	blsync_exchg_mtu.func = blsync_exchange_func;
+	ret = bt_gatt_exchange_mtu(blsync_conn, &blsync_exchg_mtu);
+	if (!ret) {
+		printf("Exchange mtu size pending.\n");
+	} else {
+		printf("Exchange mtu size failure, err: %d\n", ret);
+	}
+}                        
 
 static void scan_complete_cb(void *param)
 {
@@ -306,6 +350,11 @@ static struct bt_gatt_attr attrs[]= {
 
 const static struct bt_gatt_service wifiprov_server = BT_GATT_SERVICE(attrs);
 
+static struct bt_conn_cb blsync_conn_callbacks = {
+	.connected	=   blsync_connected,
+	.disconnected	=   blsync_disconnected,
+};
+
 int bl_ble_sync_start(bl_ble_sync_t *index,
                        struct blesync_wifi_func *func,
                        pfn_complete_cb_t cb,
@@ -324,7 +373,8 @@ int bl_ble_sync_start(bl_ble_sync_t *index,
     gp_index->scaning = 0;
     index->task_runing = 0;
     index->stop_flag = 0;
-
+    
+	bt_conn_cb_register(&blsync_conn_callbacks);
     bt_gatt_service_register((struct bt_gatt_service *)&wifiprov_server);
 
     index->task_handle = xTaskCreateStatic(__bl_ble_sync_task,

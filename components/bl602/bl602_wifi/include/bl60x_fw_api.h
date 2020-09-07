@@ -97,4 +97,12 @@ void bl_tpc_update_power_rate_11n(int8_t power_rate_table[8]);
 void bl_tpc_power_table_get(int8_t power_table_config[38]);
 
 void phy_cli_register(void);
+
+
+
+enum task_mm_cfg {
+    TASK_MM_CFG_KEEP_ALIVE_STATUS_ENABLED,
+    TASK_MM_CFG_KEEP_ALIVE_TIME_LAST_RECEIVED,
+    TASK_MM_CFG_KEEP_ALIVE_PACKET_COUNTER,
+};
 #endif /*__BL60x_FW_API_H__*/

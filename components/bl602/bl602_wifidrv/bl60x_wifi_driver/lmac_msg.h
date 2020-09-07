@@ -73,15 +73,20 @@ enum
     TASK_BAM,
     /// MESH task
     TASK_MESH,
+    /// HOSTAPD task
+    TASK_HOSTAPD_U,
     /// RXU task
     TASK_RXU,
+    /// CFG task
+    TASK_CFG,
 #if 0
     // This is used to define the last task that is running on the EMB processor
     TASK_LAST_EMB = TASK_TDLS,
 #else
     // This is used to define the last task that is running on the EMB processor
-    TASK_LAST_EMB = TASK_RXU,
+    TASK_LAST_EMB = TASK_CFG,
 #endif
+
     // nX API task
     TASK_API,
     TASK_MAX,
@@ -1941,6 +1946,70 @@ enum apm_msg_tag
     /// MAX number of messages
     APM_MAX,
 };
+
+enum cfg_msg_tag
+{
+    /// Request to start the AP.
+    CFG_START_REQ = LMAC_FIRST_MSG(TASK_CFG),
+    CFG_START_CFM,
+    CFG_MAX,
+};
+
+struct
+{
+    /// TASK 
+    uint32_t task;
+    /// ELEMENT
+    uint32_t element;
+    /// length
+    uint32_t length;
+    /// buffer
+    uint32_t buf[];
+} cfg_start_req_u_tlv_t;
+
+struct cfg_start_req
+{
+    /// TYPE: GET/SET/RESET/DUMP
+    uint32_t ops;
+    union {
+        /// struct for get ELEMENT
+        struct {
+            /// TASK 
+            uint32_t task;
+            /// ELEMENT
+            uint32_t element;
+        } get[0];
+
+        /// struct for reset ELEMENT
+        struct {
+            /// TASK 
+            uint32_t task;
+            /// ELEMENT
+            uint32_t element;
+        } reset[0];
+
+        /// struct for set ELEMENT with TLV based
+        struct {
+            /// TASK 
+            uint32_t task;
+            /// ELEMENT
+            uint32_t element;
+            /// type
+            uint32_t type;
+            /// length
+            uint32_t length;
+            /// buffer
+            uint32_t buf[];
+        } set[0];
+    } u;
+};
+
+struct cfg_start_cfm
+{
+    /// Status of the AP starting procedure
+    uint8_t status;
+};
+
 
 /// Structure containing the parameters of the @ref APM_START_REQ message.
 struct apm_start_req

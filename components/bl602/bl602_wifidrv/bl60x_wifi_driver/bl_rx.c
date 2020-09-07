@@ -890,6 +890,10 @@ const static msg_cb_fct apm_hdlrs[MSG_I(APM_MAX)] = {
     [MSG_I(APM_STA_DEL_IND)] = bl_rx_apm_sta_del_ind,
 };
 
+const static msg_cb_fct cfg_hdlrs[MSG_I(CFG_MAX)] = {
+};
+
+
 static int bl_rx_mesh_path_create_cfm(struct bl_hw *bl_hw,
    struct bl_cmd *cmd, struct ipc_e2a_msg *msg)
 {
@@ -937,6 +941,7 @@ const static msg_cb_fct *msg_hdlrs[] = {
     [TASK_ME]    = me_hdlrs,
     [TASK_SM]    = sm_hdlrs,
     [TASK_APM]   = apm_hdlrs,
+    [TASK_CFG]  =  cfg_hdlrs,
     [TASK_MESH]  = mesh_hdlrs,
 };
 

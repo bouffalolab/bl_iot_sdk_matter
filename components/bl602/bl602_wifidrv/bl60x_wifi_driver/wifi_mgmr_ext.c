@@ -653,6 +653,11 @@ int wifi_mgmr_scan(void *data, scan_complete_cb_t cb)
     return 0;
 }
 
+int wifi_mgmr_cfg_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t type, uint32_t length, uint32_t *buf)
+{
+    return wifi_mgmr_api_cfg_req(ops, task, element, type, length, buf);
+}
+
 int wifi_mgmr_scan_filter_hidden_ssid(int filter)
 {
     taskENTER_CRITICAL();

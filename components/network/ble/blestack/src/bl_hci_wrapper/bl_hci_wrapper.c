@@ -350,15 +350,11 @@ static void bl_onchiphci_rx_packet_handler(uint8_t pkt_type, uint16_t src_id, ui
 			tlt_len = BT_HCI_EVT_LE_PARAM_OFFSET + param_len;
             *buf_data++ = BT_HCI_EVT_LE_META_EVENT;
             *buf_data++ = param_len;
-            #if defined(CONFIG_BTSOONP_PRINT)
-            tbuf_data = buf_data;
-            #endif
+       
             memcpy(buf_data, param, param_len);
-            
-            #if defined(CONFIG_BTSOONP_PRINT)
-            tbuf_data += param_len;
-		 	
-            printf("[btsnoop]:pkt_type =[0x%x],len =[0x%x],data=[%s]\r\n",pkt_type,param_len,bt_hex(tbuf_data-param_len,param_len));
+           
+            #if defined(CONFIG_BTSOONP_PRINT)    	 	
+            printf("[btsnoop]:pkt_type =[0x%x],len =[0x%x],data=[%s]\r\n",pkt_type,param_len,bt_hex(buf_data,param_len));
             printf("[btsnoop]:Stop\r\n"); 
 		 	#endif
 		 	
@@ -370,10 +366,19 @@ static void bl_onchiphci_rx_packet_handler(uint8_t pkt_type, uint16_t src_id, ui
                 prio = false;
             bt_buf_set_type(buf, BT_BUF_EVT);
 			tlt_len = BT_HCI_EVT_LE_PARAM_OFFSET + param_len;
+	
             *buf_data++ = src_id;
             *buf_data++ = param_len;
     
-			memcpy(buf_data, param, param_len);        
+			memcpy(buf_data, param, param_len);
+			#if defined(CONFIG_BTSOONP_PRINT)
+			if(!prio){
+				printf("[btsnoop]:pkt_type =[0x%x],len =[0x%x],data=[%s]\r\n",pkt_type,param_len,bt_hex(buf_data-2,param_len+2));
+				printf("[btsnoop]:Stop\r\n");
+			}else{
+				/*ignore :BT_HCI_EVT_NUM_COMPLETED_PACKETS */
+			}
+			#endif
 			break;
 		}
 		case BT_HCI_ACL_DATA:

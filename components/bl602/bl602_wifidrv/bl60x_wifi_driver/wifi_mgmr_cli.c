@@ -40,6 +40,8 @@
 #include <wifi_mgmr.h>
 #include <wifi_mgmr_api.h>
 #include <utils_hexdump.h>
+#include <utils_tlv_bl.h>
+#include <utils_getopt.h>
 #include <wifi_mgmr_ext.h>
 
 #define WIFI_AP_DATA_RATE_1Mbps      0x00
@@ -735,6 +737,84 @@ static void cmd_wifi_dump(char *buf, int len, int argc, char **argv)
     }
 }
 
+static void cmd_wifi_cfg(char *buf, int len, int argc, char **argv)
+{
+    int opt;
+    uint32_t ops;
+    uint32_t task = 0, element = 0, type = 0;
+    uint32_t val[1];
+
+    getopt_env_t getopt_env;
+    utils_getopt_init(&getopt_env, 0);
+
+    ops = CFG_ELEMENT_TYPE_OPS_UNKNOWN;
+    while ((opt = utils_getopt(&getopt_env, argc, argv, ":c:T:e:t:v:")) != -1) {
+        switch (opt) {
+            case 'c':
+                if (0 == strcmp("dump",  getopt_env.optarg)) {
+                    ops = CFG_ELEMENT_TYPE_OPS_DUMP_DEBUG;
+                } else if (0 == strcmp("set", getopt_env.optarg)) {
+                    ops = CFG_ELEMENT_TYPE_OPS_SET;
+                } else if (0 == strcmp("get", getopt_env.optarg)) {
+                    ops = CFG_ELEMENT_TYPE_OPS_GET;
+                } else if (0 == strcmp("reset", getopt_env.optarg)) {
+                    ops = CFG_ELEMENT_TYPE_OPS_RESET;
+                }
+                break;
+            case 't':
+                task = atoi(getopt_env.optarg);
+                break;
+            case 'e':
+                element = atoi(getopt_env.optarg);
+                break;
+            case 'T':
+                type = atoi(getopt_env.optarg);
+                break;
+            case 'v':
+                val[0] = atoi(getopt_env.optarg);
+                break;
+            case '?':
+                printf("%s: unknown option %c\r\n", *argv, getopt_env.optopt);
+                return;
+        }
+    }
+
+    printf("Target CFG Element Info, task: %lu, element %lu, type %lu, val %lu\r\n",
+        task, element, type, val[0]
+    );
+    switch (ops) {
+        case CFG_ELEMENT_TYPE_OPS_SET:
+        {
+            printf("    OPS: %s\r\n", "set");
+            wifi_mgmr_cfg_req(CFG_ELEMENT_TYPE_OPS_SET, task, element, type, sizeof(val), val);
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_GET:
+        {
+            printf("    OPS: %s\r\n", "get");
+            wifi_mgmr_cfg_req(CFG_ELEMENT_TYPE_OPS_GET, task, element, type, sizeof(val), val);
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_RESET:
+        {
+            printf("    OPS: %s\r\n", "reset");
+            wifi_mgmr_cfg_req(CFG_ELEMENT_TYPE_OPS_RESET, task, element, 0, 0, NULL);
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_DUMP_DEBUG:
+        {
+            printf("    OPS: %s\r\n", "dump");
+            wifi_mgmr_cfg_req(CFG_ELEMENT_TYPE_OPS_DUMP_DEBUG, 0, 0, 0, 0, NULL);
+        }
+        break;
+        case CFG_ELEMENT_TYPE_OPS_UNKNOWN:
+        {
+            printf("UNKNOWN OPS\r\n");
+        }
+        break;
+    }
+}
+
 static void cmd_wifi_mib(char *buf, int len, int argc, char **argv)
 {
 void hal_mib_dump();
@@ -886,6 +966,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_ap_stop", "stop Ap mode", cmd_wifi_ap_stop},
         { "wifi_ap_conf_max_sta", "config Ap max sta", cmd_wifi_ap_conf_max_sta},
         { "wifi_dump", "dump fw statistic", cmd_wifi_dump},
+        { "wifi_cfg", "wifi cfg cmd", cmd_wifi_cfg},
         { "wifi_mib", "dump mib statistic", cmd_wifi_mib},
         { "wifi_pkt", "wifi dump needed", cmd_dump_reset},
         { "wifi_coex_rf_force_on", "wifi coex RF forece on", cmd_wifi_coex_rf_force_on},
