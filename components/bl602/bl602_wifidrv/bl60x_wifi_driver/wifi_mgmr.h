@@ -282,6 +282,7 @@ typedef struct wifi_mgmr {
 
 int wifi_mgmr_event_notify(wifi_mgmr_msg_t *msg);
 int wifi_mgmr_state_get_internal(int *state);
+int wifi_mgmr_status_code_clean_internal(void);
 int wifi_mgmr_status_code_get_internal(int *s_code);
 int wifi_mgmr_set_country_code_internal(char *country_code);
 int wifi_mgmr_ap_sta_cnt_get_internal(uint8_t *sta_cnt);

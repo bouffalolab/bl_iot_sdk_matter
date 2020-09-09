@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-#define AT_PARA_MAX_SIZE 64UL /* should be pow2(n), n is a integer */
+#define AT_PARA_MAX_SIZE 256UL /* should be pow2(n), n is a integer */
 
 #define AT_SEPARATOR	','
 #define AT_CR			0x0d

@@ -48,7 +48,7 @@
 /*just limit packet len with a reasonable value*/
 #define LEN_PKT_RAW_80211   (480)
 
-#define WIFI_SCAN_MAX_AP      (32)
+#define WIFI_SCAN_MAX_AP      (WIFI_MGMR_SCAN_ITEMS_MAX)
 
 SemaphoreHandle_t scan_sig;
 

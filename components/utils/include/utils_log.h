@@ -153,7 +153,7 @@ typedef enum LOG_BUF_OUT_DATA_TYPE {
                             log_info("compile time = %s\r\n", __TIME__);\
                             } while (0 == 1);
 
-int log_buf_out(const char *file, int line, void *inbuf, int len, LOG_BUF_OUT_DATA_TYPE_T type);
+int log_buf_out(const char *file, int line, const void *inbuf, int len, LOG_BUF_OUT_DATA_TYPE_T type);
 
 void bl_printk(const char *format, ...);
 

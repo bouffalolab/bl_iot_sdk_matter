@@ -27,49 +27,27 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _AT_SERVER_H_
-#define _AT_SERVER_H_
+#ifndef __HAL_I2C_H__
+#define __HAL_I2C_H__
 
-#include <FreeRTOS.h>
-#include <event_groups.h>
+#include <bl_i2c.h>
 
-#define SAVE_KEY_UART_BAUD    "uart_baud"
-#define SAVE_KEY_WIFI_MODE    "wifi_mode"
-#define SAVE_KEY_WIFI_AUTO    "wifi_auto"
-#define SAVE_KEY_WIFI_SSID    "wifi_ssid"
-#define SAVE_KEY_WIFI_pask    "wifi_pask"
+#define EV_I2C_END_INT       0
+#define EV_I2C_TXF_INT       1
+#define EV_I2C_RXF_INT       3
+#define EV_I2C_FER_INT       4
+#define EV_I2C_ARB_INT       5 
+#define EV_I2C_NAK_INT       6
+#define EV_I2C_UNKNOW_INT    0xff
 
-#define AT_ASYNC_WIFI_CONNECTED (0x1 << 0)
-#define AT_ASYNC_DATA_IN        (0x1 << 1)
-#define AT_ASYNC_PASK_ERROR     (0x1 << 2)
-#define AT_ASYNC_NO_AP_FOUND    (0x1 << 3)
-#define ATCMDSEND_MAX_BUFF_SIZE (1024)
+int hal_i2c_init(int i2cx, int freq);
+int hal_i2c_read_block(int address, char *data, int length, int subaddr_len, int subaddr);
+int hal_i2c_write_block(int address, const char *data, int length, int subaddr_len, int subaddr);
+int hal_i2c_write_no_block(int address, const char *data, int length, int subaddr_len, int subaddr);
+int hal_i2c_read_no_block(int address, const char *data, int length, int subaddr_len, int subaddr);
 
-typedef struct at_sever {
-    int wifi_mode;
-    uint32_t uart_baud;
-    int at_serial_fd;
-    SemaphoreHandle_t at_serial_mtx;
-    uint8_t queue_buf[ATCMDSEND_MAX_BUFF_SIZE];
-    EventGroupHandle_t at_notify_eg;
-} at_sever_t;
-
-int at_server_init(void);
-int at_server_notify(int event);
-
-int at_serial_open(void);
-int at_serial_close(void);
-int at_serial_baud_set(uint32_t baud);
-int at_serial_baud_get(uint32_t *p_baud);
-int at_wifimode_get(int *p_mode);
-int at_wifimode_set(int mode);
-int at_wifi_auto_set(int is_auto);
-int at_wifi_auto_get(int *p_auto);
-
-int at_wifi_pask_get(char *pask);
-int at_wifi_pask_set(char *pask);
-int at_wifi_ssid_get(char *ssid);
-int at_wifi_ssid_set(char *ssid);
+int i2c_transfer_msgs_block(i2c_msg_t *pstmsg, int num, int support_ins);
+void i2c_msgs_process(i2c_msg_t *pstmsg);
+void i2c_insert_msgs_process(i2c_msg_t *pstmsg);
 
 #endif
-

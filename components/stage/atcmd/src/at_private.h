@@ -47,9 +47,11 @@ extern "C" {
 #define ANL_UNIX	1
 #define ANL_MAC		2
 
-#ifndef BIT
-#define BIT(n) (1UL<<(n))
+#ifndef BIT 
+#define BIT(bit)                  (1u << (bit))
 #endif
+#define BIT_ISSET(data, bit)      ((data) & BIT(bit))
+#define BIT_GET(data, bit)        (BIT_ISSET(data, bit) ? 1 : 0)
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -62,6 +64,7 @@ extern "C" {
 
 typedef enum {
 	APT_TEXT, /* text */
+    APT_TDATA,
 	APT_HEX, /* hex format data */
 	APT_DI, /* decimal integer */
 	APT_HI, /* hexadecimal integer */
@@ -109,6 +112,9 @@ typedef struct {
 extern AT_ERROR_CODE at_status(char *sts_var);
 extern AT_ERROR_CODE at_setsts(char *key, at_value_t *value);
 extern AT_ERROR_CODE at_peer(s32 pn, at_peer_t *peer, char *var);
+extern AT_ERROR_CODE at_get_parameters(char **ppara, at_para_descriptor_t *list,
+                                       s32 lsize, s32 *pcnt);
+extern void at_response(AT_ERROR_CODE aec);
 
 #ifdef __cplusplus
 }

@@ -39,6 +39,8 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/hal_ir.c \
                   bl602_hal/bl_ir.c \
                   bl602_hal/bl_dac_audio.c \
+                  bl602_hal/bl_i2c.c \
+                  bl602_hal/hal_i2c.c \
                   bl602_hal/hal_button.c \
                   bl602_hal/hal_hbnram.c \
                   bl602_hal/bl_pds.c \

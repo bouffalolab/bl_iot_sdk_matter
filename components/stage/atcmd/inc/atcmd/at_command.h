@@ -128,6 +128,7 @@ typedef enum {
 	ACC_TCPSERVERMAXCONN,
 	ACC_CIPMUX,
 	ACC_CIPMODE,
+	ACC_HTTP_REQ,
 	ACC_CIPDNS_CUR,
 	ACC_CIPRECVDATA,
 	ACC_CIPRECVMODE,
@@ -234,12 +235,13 @@ typedef struct {
 			int hwfc;
 		}uart;
 		struct{
-			int sleepMode;
+			uint32_t sleep_time;
+            int weakup_pin;
 		}sleep;
-		struct{
-			int gpioId;
-			int edge;
-		}wakeupgpio;
+		//struct{
+        //    uint32_t sleep_time;
+        //    int gpioId;
+		//}wakeupgpio;
 		struct {
 			int mode;
 		}wifiMode;
@@ -261,6 +263,12 @@ typedef struct {
 		struct{
 			char hostname[128];
 		}dns_parse;
+        struct{
+            char hostname[128];
+            uint8_t type;
+            uint8_t content_type;
+            uint8_t *data;
+        }http_req;
 		struct{
 			at_ip_t setdnsip;
 		}set_dns;
@@ -320,19 +328,48 @@ typedef struct {
 	u32 hwfc;
 } at_serial_para_t;
 
-extern at_callback_t at_callback;
+typedef struct {
+  char *ptr;
+} at_para_t;
 
+typedef struct {
+  const char *cmd;
+  AT_ERROR_CODE (*handler)(at_para_t *at_para);
+  const char *usage;
+} at_command_handler_t;
+
+#define AT_CMD_ECHOSTART    "\r\n"
+#define AT_CMD_TAILED       "\r\n"
+
+#define SAVE_KEY_UART_BAUD    "uart_baud"
+#define SAVE_KEY_UART_DATABIT "databit"
+#define SAVE_KEY_UART_STOPBIT "stopbit"
+#define SAVE_KEY_UART_PARITY  "parity"
+#define SAVE_KEY_UART_HWFC    "hwfc"
+#define SAVE_KEY_WIFI_MODE    "wifi_mode"
+#define SAVE_KEY_WIFI_AUTO    "wifi_auto"
+#define SAVE_KEY_WIFI_SSID    "wifi_ssid"
+#define SAVE_KEY_WIFI_PASK    "wifi_pask"
+#define SAVE_KEY_UART_ECHO    "uart_echo"
+#define SAVE_KEY_WIFISCAN_OPT "scan_opt"
+
+extern at_callback_t at_callback;
 extern AT_ERROR_CODE at_init(at_callback_t *cb);
 extern AT_ERROR_CODE at_parse(void);
 extern s32 at_event(s32 idx);
 extern s32 at_serial(at_serial_para_t *ppara);
 extern s32 at_data_output(char *buf, int size);
-extern s32 at_dump(char* format, ...);
+extern s32 at_dump_noend(char *format, ...);
+#define at_dump(...) do { \
+    at_dump_noend(AT_CMD_ECHOSTART); \
+    at_dump_noend(__VA_ARGS__); \
+    at_dump_noend(AT_CMD_TAILED);\
+    } while(0)
 extern u32 at_get_errorcode(void);
 extern s32 atcmd_send(char* format, ...);
 extern int get_reconnect_enable_status(void);
 extern void set_reconnect_disable(void);
-
+extern AT_ERROR_CODE at_command_register(const at_command_handler_t *cmd, uint32_t cmd_cnt);
 
 #ifdef __cplusplus
 }

@@ -162,6 +162,7 @@ void vApplicationIdleHook(void)
 #if ( configUSE_TICKLESS_IDLE != 0 )
 void vApplicationSleep( TickType_t xExpectedIdleTime_ms )
 {
+#if defined(CFG_BLE_PDS)
     int32_t bleSleepDuration_32768cycles = 0;
     int32_t expectedIdleTime_32768cycles = 0;
     eSleepModeStatus eSleepStatus;
@@ -180,7 +181,7 @@ void vApplicationSleep( TickType_t xExpectedIdleTime_ms )
     if((!freertos_max_idle)&&(expectedIdleTime_32768cycles < TIME_5MS_IN_32768CYCLE)){
         return;
     }
-        
+
     /*Disable mtimer interrrupt*/
     *(volatile uint8_t*)configCLIC_TIMER_ENABLE_ADDRESS = 0;
 
@@ -218,6 +219,7 @@ void vApplicationSleep( TickType_t xExpectedIdleTime_ms )
            hal_pds_enter_with_time_compensation(1, bleSleepDuration_32768cycles - 40);//40);//20);
         }
     }
+#endif
 }
 #endif
 
@@ -768,6 +770,7 @@ static void cmd_stack_ble(char *buf, int len, int argc, char **argv)
     ble_stack_start();
 }
 
+#if defined(CFG_BLE_PDS)
 static void cmd_start_pds(char *buf, int len, int argc, char **argv)
 {
     if(argc != 2)
@@ -775,12 +778,13 @@ static void cmd_start_pds(char *buf, int len, int argc, char **argv)
         printf("Invalid params\r\n");
         return;
     }
-    get_uint8_from_string(&argv[1], &pds_start);
+    get_uint8_from_string(&argv[1], (uint8_t *)&pds_start);
     if (pds_start == 1)
     {
         hal_pds_init();
     }
 }
+#endif
 
 static void cmd_hbn_enter(char *buf, int len, int argc, char **argv)
 {
@@ -1110,7 +1114,9 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         /*Stack Command*/
         { "stack_wifi", "Wi-Fi Stack", cmd_stack_wifi},
         { "stack_ble", "BLE Stack", cmd_stack_ble},
-        //{ "pds_start", "enable or disable pds", cmd_start_pds},
+#if defined(CFG_BLE_PDS)
+        { "pds_start", "enable or disable pds", cmd_start_pds},
+#endif
         /*TCP/IP network test*/
         {"http", "http client download test based on socket", http_test_cmd},
         {"httpc", "http client download test based on RAW TCP", cmd_httpc_test},

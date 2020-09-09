@@ -87,7 +87,7 @@
 #define mainHELLO_TASK_PRIORITY     ( 20 )
 #define UART_ID_2 (2)
 #define WIFI_AP_PSM_INFO_SSID           SAVE_KEY_WIFI_SSID //"conf_ap_ssid"
-#define WIFI_AP_PSM_INFO_PASSWORD       SAVE_KEY_WIFI_pask //"conf_ap_psk"
+#define WIFI_AP_PSM_INFO_PASSWORD       SAVE_KEY_WIFI_PASK //"conf_ap_psk"
 #define WIFI_AP_PSM_INFO_PMK            "conf_ap_pmk"
 #define WIFI_AP_PSM_INFO_BSSID          "conf_ap_bssid"
 #define WIFI_AP_PSM_INFO_CHANNEL        "conf_ap_channel"
@@ -146,17 +146,6 @@ void vApplicationIdleHook(void)
     /*empty*/
 }
 
-static void proc_hellow_entry(void *pvParameters)
-{
-    vTaskDelay(500);
-
-    while (1) {
-        printf("%s: RISC-V rv32imafc\r\n", __func__);
-        vTaskDelay(10000);
-    }
-    vTaskDelete(NULL);
-}
-
 static unsigned char char_to_hex(char asccode)
 {
     unsigned char ret;
@@ -200,31 +189,10 @@ static void _chan_str_to_hex(uint8_t *chan_band, uint16_t *chan_freq, char *chan
     (*chan_freq) = freq;
 }
 
-static void bssid_str_to_mac(uint8_t *hex, char *bssid, int len)
-{
-   unsigned char l4,h4;
-   int i,lenstr;
-   lenstr = len;
-
-   if(lenstr%2) {
-       lenstr -= (lenstr%2);
-   }
-
-   if(lenstr==0){
-       return;
-   }
-
-   for(i=0; i < lenstr; i+=2) {
-       h4=char_to_hex(bssid[i]);
-       l4=char_to_hex(bssid[i+1]);
-       hex[i/2]=(h4<<4)+l4;
-   }
-}
-
 static void _connect_wifi()
 {
     /*XXX caution for BIG STACK*/
-    char pmk[66], bssid[32], chan[10];
+    char bssid[32], chan[10];
     char ssid[33], password[66];
     char val_buf[66];
     char val_len = sizeof(val_buf) - 1;
@@ -233,25 +201,16 @@ static void _connect_wifi()
     uint16_t freq = 0;
     int wifi_mode, wifi_auto;
 
-    at_wifimode_get(&wifi_mode);
+    at_key_value_get(SAVE_KEY_WIFI_MODE, &wifi_mode);
     if (wifi_mode != 1) {
         return;
     }
-    at_wifi_auto_get(&wifi_auto);
+    at_key_value_get(SAVE_KEY_WIFI_AUTO, &wifi_auto);
     if (!wifi_auto) {
         return;
     }
 
     wifi_interface = wifi_mgmr_sta_enable();
-    printf("[APP] [WIFI] [T] %lld\r\n"
-           "[APP]   Get STA %p from Wi-Fi Mgmr, pmk ptr %p, ssid ptr %p, password %p\r\n",
-           aos_now_ms(),
-           wifi_interface,
-           pmk,
-           ssid,
-           password
-    );
-    memset(pmk, 0, sizeof(pmk));
     memset(ssid, 0, sizeof(ssid));
     memset(password, 0, sizeof(password));
     memset(bssid, 0, sizeof(bssid));
@@ -281,26 +240,7 @@ static void _connect_wifi()
     }
 
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_PMK, val_buf, val_len, NULL);
-    if (val_buf[0]) {
-        strncpy(pmk, val_buf, sizeof(pmk) - 1);
-    }
-    if (0 == pmk[0]) {
-        printf("[APP] [WIFI] [T] %lld\r\n",
-           aos_now_ms()
-        );
-        puts("[APP]    Re-cal pmk\r\n");
-        /*At lease pmk is not illegal, we re-cal now*/
-        //XXX time consuming API, so consider lower-prirotiy for cal PSK to avoid sound glitch
-        wifi_mgmr_psk_cal(
-                password,
-                ssid,
-                strlen(ssid),
-                pmk
-        );
-        ef_set_env(WIFI_AP_PSM_INFO_PMK, pmk);
-        ef_save_env();
-    }
+
     memset(val_buf, 0, sizeof(val_buf));
     ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_CHANNEL, val_buf, val_len, NULL);
     if (val_buf[0]) {
@@ -309,26 +249,25 @@ static void _connect_wifi()
         _chan_str_to_hex(&band, &freq, chan);
     }
     memset(val_buf, 0, sizeof(val_buf));
-    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
-    if (val_buf[0]) {
-        strncpy(bssid, val_buf, sizeof(bssid) - 1);
-        printf("connect wifi bssid = %s\r\n", bssid);
-        bssid_str_to_mac(mac, bssid, strlen(bssid));
-        printf("mac = %02X:%02X:%02X:%02X:%02X:%02X\r\n",
-                mac[0],
-                mac[1],
-                mac[2],
-                mac[3],
-                mac[4],
-                mac[5]
-        );
-    }
+//    ef_get_env_blob((const char *)WIFI_AP_PSM_INFO_BSSID, val_buf, val_len, NULL);
+//    if (val_buf[0]) {
+//        strncpy(bssid, val_buf, sizeof(bssid) - 1);
+//        printf("connect wifi bssid = %s\r\n", bssid);
+//        bssid_str_to_mac(mac, bssid, strlen(bssid));
+//        printf("mac = %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+//                mac[0],
+//                mac[1],
+//                mac[2],
+//                mac[3],
+//                mac[4],
+//                mac[5]
+//        );
+//    }
     printf("[APP] [WIFI] [T] %lld\r\n"
            "[APP]    SSID %s\r\n"
            "[APP]    SSID len %d\r\n"
            "[APP]    password %s\r\n"
            "[APP]    password len %d\r\n"
-           "[APP]    pmk %s\r\n"
            "[APP]    bssid %s\r\n"
            "[APP]    channel band %d\r\n"
            "[APP]    channel freq %d\r\n",
@@ -337,13 +276,12 @@ static void _connect_wifi()
            strlen(ssid),
            password,
            strlen(password),
-           pmk,
            bssid,
            band,
            freq
     );
     //wifi_mgmr_sta_connect(wifi_interface, ssid, pmk, NULL);
-    wifi_mgmr_sta_connect(wifi_interface, ssid, password, pmk, mac, band, freq);
+    wifi_mgmr_sta_connect(wifi_interface, ssid, password, NULL, NULL, band, freq);
 }
 
 static void wifi_sta_connect(char *ssid, char *password)
@@ -493,12 +431,6 @@ void aws_main_entry(void *arg);
 
 #define PORT 80
 
-err_t cb_httpc_headers_done_fn(httpc_state_t *connection, void *arg, struct pbuf *hdr, u16_t hdr_len, u32_t content_len)
-{
-    printf("[HTTPC] hdr_len is %u, content_len is %lu\r\n", hdr_len, content_len);
-    return ERR_OK;
-}
-
 static void cmd_stack_wifi(char *buf, int len, int argc, char **argv)
 {
     /*wifi fw stack and thread stuff*/
@@ -526,37 +458,12 @@ static void cmd_free_mem(char *buf, int len, int argc, char **argv)
     printf("free memory is %d\r\n", xPortGetFreeHeapSize());
 }
 
-static void wifi_capcode_cmd(char *buf, int len, int argc, char **argv)
-{
-    int capcode = 0;
-
-    if (2 != argc && 1 != argc) {
-        printf("Usage: %s capcode\r\n", argv[0]);
-        return;
-    }
-
-    /*get capcode*/
-    if (1 == argc) {
-        printf("Capcode %u is being used\r\n", hal_sys_capcode_get());
-        return;
-    }
-
-    /*set capcode*/
-    capcode = atoi(argv[1]);
-    printf("Setting capcode to %d\r\n", capcode);
-
-    if (capcode > 0) {
-        hal_sys_capcode_update(capcode, capcode);
-    }
-}
-
 //xPortGetFreeHeapSize
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         /*Stack Command*/
         { "stack_wifi", "Wi-Fi Stack", cmd_stack_wifi},
         { "stack_ble", "BLE Stack", cmd_stack_ble},
         { "free", "Remain free memory", cmd_free_mem},
-        {"wifi_capcode", "wifi capcode", wifi_capcode_cmd},
 };
 
 static void _cli_init()
@@ -605,6 +512,8 @@ static void __opt_feature_init(void)
 #endif
 }
 
+extern void usr_at_cmd_register(void);
+
 static void aos_loop_proc(void *pvParameters)
 {
     int fd_console;
@@ -646,6 +555,7 @@ static void aos_loop_proc(void *pvParameters)
     aos_register_event_filter(EV_WIFI, event_cb_wifi_event, NULL);
 
     at_server_init();
+    usr_at_cmd_register();
     cmd_stack_wifi(NULL, 0, 0, NULL);
     cmd_stack_ble(NULL, 0, 0, NULL);
     aos_loop_run();
@@ -780,17 +690,13 @@ void bfl_main()
 {
     static StackType_t aos_loop_proc_stack[1024];
     static StaticTask_t aos_loop_proc_task;
-    static StackType_t proc_hellow_stack[512];
-    static StaticTask_t proc_hellow_task;
 
     bl_sys_early_init();
 
     /*Init UART In the first place*/
     bl_uart_init(0, 16, 7, 255, 255, 2 * 1000 * 1000);
     puts("Starting bl602 now....\r\n");
-
     bl_sys_init();
-
     _dump_boot_info();
 
     vPortDefineHeapRegions(xHeapRegions);
@@ -803,7 +709,7 @@ void bfl_main()
     system_thread_init();
 
     puts("[OS] Starting proc_hellow_entry task...\r\n");
-    xTaskCreateStatic(proc_hellow_entry, (char*)"hellow", 512, NULL, 15, proc_hellow_stack, &proc_hellow_task);
+
     puts("[OS] Starting aos_loop_proc task...\r\n");
     xTaskCreateStatic(aos_loop_proc, (char*)"event_loop", 1024, NULL, 15, aos_loop_proc_stack, &aos_loop_proc_task);
     puts("[OS] Starting TCP/IP Stack...\r\n");

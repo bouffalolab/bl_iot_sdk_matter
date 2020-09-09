@@ -181,6 +181,9 @@ int bl_hbn_enter(hbn_type_t *hbn, uint32_t *time)
     }
     cfg.flashCfg = bl_flash_get_flashCfg();
 
+    HBN_Clear_IRQ(HBN_INT_GPIO7);
+    HBN_Clear_IRQ(HBN_INT_GPIO8);
+
     HBN_Mode_Enter(&cfg);
     return -1;
 }

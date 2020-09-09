@@ -72,25 +72,25 @@ void at_response(AT_ERROR_CODE aec) {
     return;
   }
   if (aec == AEC_OK) {
-    at_dump("OK\r\n");
+    at_dump("OK");
   } else if (aec == AEC_CMD_FAIL) {
-    at_dump("FAIL\r\n");
+    at_dump("FAIL");
   } else {
     s32 i;
 
     for (i = 0; i < TABLE_SIZE(err_info); i++) {
       if (err_info[i].aec == aec) {
         if (aec == AEC_SEND_READY) {
-          at_dump("%s\r\n", err_info[i].info);
+          at_dump("%s", err_info[i].info);
         } else {
-          at_dump("ERROR: %s\r\n", err_info[i].info);
+          at_dump("ERROR: %s", err_info[i].info);
         }
         return;
       }
     }
 
     if (aec != AEC_BLANK_LINE) {
-      AT_DBG("no rsp message!\r\n");
+      AT_DBG("\r\nno rsp message!\r\n");
     }
   }
 }
@@ -145,7 +145,7 @@ AT_ERROR_CODE at_mode(AT_MODE mode) {
   if (at_callback.handle_cb != NULL) {
     memset(&para, 0, sizeof(para));
     escape_len = strlen(at_cfg.escape_seq);
-    at_dump("Enter data mode.\r\n");
+    at_dump("Enter data mode.");
     while (1) {
       para.u.mode.buf = at_socket_buf;
 
@@ -165,14 +165,14 @@ AT_ERROR_CODE at_mode(AT_MODE mode) {
 
       if (len > 2 && (len >= escape_len && len <= escape_len + 2) &&
           !strncmp(at_cfg.escape_seq, (const char *)at_socket_buf, escape_len)) {
-        at_dump("Exit data mode.\r\n");
+        at_dump("Exit data mode.");
         break;
       }
 
       para.u.mode.len = len;
       //AT_DBG("Enter callback\n");
       if (at_callback.handle_cb(ACC_MODE, &para, NULL) != AEC_OK) {
-        at_dump("Exit data mode.\r\n");
+        at_dump("Exit data mode.");
         break;
       }
     }

@@ -30,16 +30,22 @@
 #include "atcmd/at_command.h"
 #include "at_debug.h"
 #include "at_private.h"
-
+#include <cJSON.h>
 #include <FreeRTOS.h>
 #include <task.h>
 #include <timers.h>
-
+#include <lwip/tcpip.h>
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#include <lwip/tcp.h>
+#include <lwip/err.h>
 
 #define CMD_CACHE_MAX_LEN (1024)
 #define CMD_SEND_DATA_MAX_LEN (1024 + 4)
 #define CMD_SEND_TIMEOUT (10)
 char *c_atCmdRspBuf[1024 + 4];
+static const at_command_handler_t *g_at_cmd_handler_usr = NULL;
+static uint32_t g_at_cmd_usr_cnt = 0;
 
 typedef struct cmd_cache {
   u32 cnt;
@@ -53,16 +59,6 @@ typedef struct cmd_send_cache {
   u32 length;
   u8 buf[CMD_SEND_DATA_MAX_LEN];
 } cmd_send_cache_t;
-
-typedef struct {
-  char *ptr;
-} at_para_t;
-
-typedef struct {
-  const char *cmd;
-  AT_ERROR_CODE (*handler)(at_para_t *at_para);
-  const char *usage;
-} at_command_handler_t;
 
 typedef struct {
   at_text_t key[AT_PARA_MAX_SIZE];
@@ -159,15 +155,18 @@ typedef struct {
   at_text_t repeat[1 + 1];
 } at_scan_para_t;
 
+
+typedef struct {
+  uint8_t sort_enable;
+  uint8_t mask;
+} at_scan_opt_t;
+
 #if 0
 extern s32 at_get_value(char *strbuf, s32 pt, void *pvar, s32 vsize);
 extern s32 at_set_value(s32 pt, void *pvar, s32 vsize, at_value_t *value);
 extern int getWifiStationStatus(void);
 extern int is_netconnet_ap(void);
 #endif
-extern AT_ERROR_CODE at_get_parameters(char **ppara, at_para_descriptor_t *list,
-                                       s32 lsize, s32 *pcnt);
-extern void at_response(AT_ERROR_CODE aec);
 extern AT_ERROR_CODE at_reset(void);
 extern AT_ERROR_CODE at_help(void);
 
@@ -223,6 +222,7 @@ static AT_ERROR_CODE wifi_handler(at_para_t *at_para);
 static AT_ERROR_CODE reassociate_handler(at_para_t *at_para);
 #endif
 static AT_ERROR_CODE scan_handler(at_para_t *at_para);
+static AT_ERROR_CODE scan_handler_opt(at_para_t *at_para);
 
 typedef struct {
   at_di_t uart_id;
@@ -235,6 +235,7 @@ typedef struct {
 
 typedef struct {
   int sleepMode;
+
 } at_sleep_para_t;
 
 typedef struct {
@@ -254,8 +255,8 @@ typedef struct {
 } at_ipdinfo_para_t;
 
 typedef struct {
+  at_di_t sleep_time;
   at_di_t gpioId;
-  at_di_t edge;
 } at_gpiowakeup_para_t;
 
 typedef struct {
@@ -306,12 +307,28 @@ typedef struct {
   at_text_t hostname[AT_PARA_MAX_SIZE];
 } at_hostname_para_t;
 
+typedef struct {
+  at_text_t hostname[AT_PARA_MAX_SIZE];
+  uint8_t type; //0:GET, 1:POST
+  /*
+   * 0 : application/x-www-form-urlencoded
+   * 1 : application/json
+   * 2 : multipart/form-data
+   * 3 : text/xml
+   */
+  uint8_t content_type;
+  at_text_t data[AT_PARA_MAX_SIZE];
+} at_http_para_t;
+
+static AT_ERROR_CODE http_req(at_para_t *at_para);
 static AT_ERROR_CODE version_handler(at_para_t *at_para);
 static AT_ERROR_CODE echo_on_handler(at_para_t *at_para);
-static AT_ERROR_CODE echo_off_handler(at_para_t *at_para);
 static AT_ERROR_CODE restore_handler(at_para_t *at_para);
 static AT_ERROR_CODE uart_config_handler(at_para_t *at_para);
 static AT_ERROR_CODE deep_sleep_handler(at_para_t *at_para);
+static AT_ERROR_CODE wifi_supports(at_para_t *at_para);
+static AT_ERROR_CODE base_station_info(at_para_t *at_para);
+static AT_ERROR_CODE domain_name_resolution(at_para_t *at_para);
 static AT_ERROR_CODE wifi_mode_handler(at_para_t *at_para);
 static AT_ERROR_CODE ap_cfg_handler(at_para_t *at_para);
 static AT_ERROR_CODE join_ap_handler(at_para_t *at_para);
@@ -354,7 +371,7 @@ extern AT_ERROR_CODE at_uart_config_get(void);
 extern AT_ERROR_CODE at_uart_config(int uartId, int uartBaud, int dataBit,
                                     int parity, int stopBit, int hwfc);
 
-extern AT_ERROR_CODE at_deep_sleep_mode(int sleep_time);
+extern AT_ERROR_CODE at_deep_sleep_mode(uint32_t sleep_time, int weakup_pin);
 extern AT_ERROR_CODE at_set_tcpserver(int port, int enable);
 extern AT_ERROR_CODE at_wifi_mode(int wifiMode);
 extern AT_ERROR_CODE at_wifi_mode_get(void);
@@ -424,6 +441,9 @@ typedef struct {
   at_ip_t dns;
 } at_dns_para_t;
 
+extern AT_ERROR_CODE at_http_request(char* url, uint8_t type,
+                                     uint8_t content_type, uint8_t *data,
+                                     at_callback_rsp_t *req_rsp);
 extern AT_ERROR_CODE at_set_ap(char *ssid, char *psk, char chl, int max_conn);
 extern AT_ERROR_CODE at_ap_sta_get(void);
 extern AT_ERROR_CODE at_close_network(int linkId);
@@ -431,8 +451,8 @@ extern AT_ERROR_CODE at_create_network_connect(at_network_para_t netpara,
                                                at_callback_rsp_t *rsp);
 extern AT_ERROR_CODE at_send_data(int linkId, char *dataBuffer,
                                   s32 dataBufferLen);
-#if 0
 extern AT_ERROR_CODE at_network_status(char *param, at_callback_rsp_t *rsp);
+#if 0
 extern AT_ERROR_CODE at_domain_query(char *dnsAdress);
 extern AT_ERROR_CODE at_send_tcp_buffer(char *tcpBuffer);
 extern AT_ERROR_CODE at_mux_network(int mux);
@@ -508,8 +528,7 @@ static const at_command_handler_t at_command_table[] = {
     {"AT+S.SCAN", scan_handler, " -- Perform a scan"},
 #endif
 
-    {"ATE1", echo_on_handler, " -- echo on/off"},
-    {"ATE0", echo_off_handler, " -- echo on/off"},
+    {"AT+UARTE", echo_on_handler, "=<1|0> -- echo on/off"},
     {"AT+GMR", version_handler, " -- version info"},
     {"AT+UART", uart_config_handler, " -- config uart save into flash"},
 //    {"AT+UART_DEF", uart_config_save_handler, " -- config uart save into flash"},
@@ -521,6 +540,7 @@ static const at_command_handler_t at_command_table[] = {
 #endif
 //    {"AT+CWLAPOPT", CWLAPOPTscan_handler, " -- scan the ap near"},
     {"AT+CWLAP", scan_handler, " -- scan the ap near"},
+    {"AT+CWLAPOPT", scan_handler_opt, "=<sort>,<mask> -- scan the ap near opt"},
     {"AT+CWQAP", disconnect_handler, " -- disconnect ap "},
     {"AT+CWAUTOCONN", setautoconnect_handler, " -- setautoconnect funciton "},
 //    {"AT+CWDHCP", set_dhcp_handler, " -- set dhcp address"},
@@ -563,6 +583,10 @@ static const at_command_handler_t at_command_table[] = {
 //    {"AT+SLEEP", sleep_handler, " -- enter into sleep mode"},
     {"AT+GSLP", deep_sleep_handler, "=<time_s> -- enter intodeep sleep mode"},
 //    {"AT+WAKEUPGPIO", wakeupgpio_handler, " -- wake up by gpio"},
+    {"AT+WIFISP", wifi_supports, "-- check whether wifi supports"},
+    {"AT+BASESTA", base_station_info, "-- base station get"},
+    {"AT+DNSRES", domain_name_resolution, "=<domain>-- Domain name resolution"},
+    {"AT+HTTPC", http_req, "=<opt>,<content-type>,<url>,[<data>]-- http request"},
     {"AT+CWMODE", wifi_mode_handler, "=<mode> -- set the wifi mode save into flash"},
     {"AT+SOFTAP", ap_cfg_handler, "=<ssid>,[psk] -- start ap"},
 #if 0
@@ -601,11 +625,18 @@ static const at_command_handler_t at_command_table[] = {
 #endif
 };
 
+extern int at_key_value_get(char *key, void *p_value);
+extern int at_key_value_set(char *key, void *p_value);
+
 AT_ERROR_CODE at_help(void) {
   s32 i;
 
   for (i = 0; i < TABLE_SIZE(at_command_table); i++) {
-    at_dump("# %s%s\r\n", at_command_table[i].cmd, at_command_table[i].usage);
+    at_dump("# %s%s", at_command_table[i].cmd, at_command_table[i].usage);
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  for (i = 0; i < g_at_cmd_usr_cnt; i++) {
+    at_dump("# %s%s", g_at_cmd_handler_usr[i].cmd, g_at_cmd_handler_usr[i].usage);
     vTaskDelay(pdMS_TO_TICKS(10));
   }
 
@@ -624,6 +655,21 @@ static s32 at_match(char *cmd) {
       return i;
     }
   }
+
+  return -1;
+}
+
+static s32 at_match_form_usr(const at_command_handler_t *handler, int handler_cnt, char *cmd) {
+  s32 i;
+
+  if (cmd == NULL || handler == NULL) {
+    return -2;
+  }
+    for (i = 0; i < handler_cnt; i++) {
+        if (!strcmp(cmd, handler[i].cmd)) {
+            return i;
+        }
+    }
 
   return -1;
 }
@@ -694,10 +740,14 @@ static AT_ERROR_CODE at_parse_cmd(char *cmdline, s32 size) {
   if (cnt == 0) { /* skip blank line */
     return AEC_BLANK_LINE;
   }
-
-  idx = at_match(at_cmd);
-
-  if (idx >= 0) {
+  if ((idx = at_match_form_usr(g_at_cmd_handler_usr, g_at_cmd_usr_cnt, at_cmd)) >= 0) {
+       if (g_at_cmd_handler_usr[idx].handler != NULL) {
+         at_para.ptr = cptr;
+         return g_at_cmd_handler_usr[idx].handler(&at_para);
+       } else {
+         return AEC_CMD_ERROR;
+       }
+  } else if ((idx = at_match(at_cmd)) >= 0) {
     if (at_command_table[idx].handler != NULL) {
       at_para.ptr = cptr;
       return at_command_table[idx].handler(&at_para);
@@ -707,6 +757,16 @@ static AT_ERROR_CODE at_parse_cmd(char *cmdline, s32 size) {
   } else {
     return AEC_CMD_ERROR;
   }
+}
+
+AT_ERROR_CODE at_command_register(const at_command_handler_t *cmd, uint32_t cmd_cnt)
+{
+    if (cmd == NULL) {
+        return AEC_NULL_POINTER;
+    }
+    g_at_cmd_handler_usr = cmd;
+    g_at_cmd_usr_cnt = cmd_cnt;
+    return AEC_OK;
 }
 
 /**
@@ -728,6 +788,10 @@ AT_ERROR_CODE at_parse(void) {
     // get one char from queue, if queue empty, then invoke serial_read callback
     aqec = at_queue_get(&tmp);
     if (aqec == AQEC_OK) {
+      /* echo */
+      if (at_cfg.localecho1) {
+          at_callback.dump_cb(&tmp, 1);
+      }
       if (send_cache.status == 0) {
         // repeat receive command into cache.buf
         if (tmp == AT_LF) {
@@ -736,12 +800,12 @@ AT_ERROR_CODE at_parse(void) {
           } else {
             cache.cnt = 0;
             AT_DBG("command is discarded!\n");
-            flag = 0;
+            //flag = 0;
             continue; /* command is discarded */
           }
 
           flag = 1;
-          continue;
+          //continue;
         } else if (tmp == AT_CR) {
           cache.buf[cache.cnt++] = tmp;
 
@@ -753,12 +817,12 @@ AT_ERROR_CODE at_parse(void) {
             } else {
               cache.cnt = 0;
               AT_DBG("command is discarded!\n");
-              flag = 0;
+              //flag = 0;
               continue; /* command is discarded */
             }
           }
           flag = 1;
-          continue;
+          //continue;
         }
       } else if (send_cache.status == 1) {
         // this way seems put AT+CIPSEND command into cache when data too long, fucking why?
@@ -801,11 +865,6 @@ AT_ERROR_CODE at_parse(void) {
 
     // flag represent command vaild?
     if (flag) {
-      /* echo */
-      if (at_cfg.localecho1) {
-        cache.buf[cache.cnt] = '\0';
-        at_dump("%s", cache.buf);
-      }
 
       aec = at_parse_cmd((char *)cache.buf, cache.cnt);
 
@@ -1361,9 +1420,9 @@ static AT_ERROR_CODE reassociate_handler(at_para_t *at_para) {
   }
 }
 #endif
+
 static AT_ERROR_CODE scan_handler(at_para_t *at_para) {
-  at_scan_para_t cmd_para = {/* default value */
-                             "", ""};
+  at_scan_para_t cmd_para = {0};
   at_para_descriptor_t cmd_para_list[] = {
       {APT_TEXT, &cmd_para.mode, AET_PARA | SIZE_LIMIT(sizeof(cmd_para.mode))},
       {APT_TEXT, &cmd_para.repeat,
@@ -1405,6 +1464,44 @@ static AT_ERROR_CODE scan_handler(at_para_t *at_para) {
     return at_scan(cmd_para.mode, cmd_para.repeat);
   }
 }
+
+static AT_ERROR_CODE scan_handler_opt(at_para_t *at_para) {
+  uint8_t opt = 0;
+  at_scan_opt_t cmd_para = {0};
+  at_para_descriptor_t cmd_para_list[] = {
+      {APT_DI, &cmd_para.sort_enable, AET_PARA | SIZE_LIMIT(sizeof(cmd_para.sort_enable))},
+      {APT_DI, &cmd_para.mask, AET_LINE | SIZE_LIMIT(sizeof(cmd_para.mask))},
+  };
+  s32 paracnt;
+  int res;
+
+  if (*at_para->ptr == AT_QUE) {
+      if (at_key_value_get(SAVE_KEY_WIFISCAN_OPT, &opt) != 0) {
+          opt = 0xff;
+      }
+      at_dump("+CWLAPOPT:%d,%d",BIT_GET(opt, 5), (opt & 0x1f)); 
+      return AEC_OK;
+  } else if (*at_para->ptr == AT_EQU) {
+    at_para->ptr++; /* skip '=' */
+
+    res = at_get_parameters(&at_para->ptr, cmd_para_list,
+                            TABLE_SIZE(cmd_para_list), &paracnt);
+
+    if (res != AEC_OK) {
+      return AEC_PARA_ERROR;
+    }
+
+    if (paracnt < 2) {
+      return AEC_PARA_ERROR;
+    }
+
+    opt = (cmd_para.mask & 0x1f) | (cmd_para.sort_enable << 5);
+    return at_key_value_set(SAVE_KEY_WIFISCAN_OPT, &opt);
+  } else {
+    return AEC_PARA_ERROR;
+  }
+}
+
 #if 0
 static AT_ERROR_CODE CWLAPOPTscan_handler(at_para_t *at_para) {
   AT_WRN("------>%s\n", __func__);
@@ -1483,21 +1580,47 @@ static AT_ERROR_CODE CWLAPscan_handler(at_para_t *at_para) {
   return AEC_CMD_FAIL;
 }
 #endif
+
 static AT_ERROR_CODE echo_on_handler(at_para_t *at_para) {
   AT_WRN("------>%s\n", __func__);
+  at_echoswitch_para_t echoswitch = {0};
+  at_para_descriptor_t cmd_para_list[] = {
+      {APT_DI, &echoswitch.echoSwitch,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(echoswitch.echoSwitch))},
+  };
 
-  at_cfg.localecho1 = 1;
+  s32 paracnt;
+  int res;
 
+  if (*at_para->ptr == AT_QUE) {
+    at_key_value_get(SAVE_KEY_UART_ECHO, &res);
+    at_dump("+UARTE:%d", res);
+    return AEC_OK;
+  } else if (*at_para->ptr == AT_EQU) {
+    at_para->ptr++; /* skip '=' */
+
+    res = at_get_parameters(&at_para->ptr, cmd_para_list,
+                            TABLE_SIZE(cmd_para_list), &paracnt);
+
+    if (res != AEC_OK) {
+      return AEC_PARA_ERROR;
+    }
+
+    if (paracnt < 1) {
+      return AEC_PARA_ERROR;
+    }
+    if (echoswitch.echoSwitch <= 1) {
+        at_cfg.localecho1 = echoswitch.echoSwitch;
+        at_key_value_set(SAVE_KEY_UART_ECHO, &echoswitch.echoSwitch);
+    } else {
+        return AEC_PARA_ERROR;
+    }
+  } else {
+      return AEC_PARA_ERROR;
+  }
   return AEC_OK;
 }
 
-static AT_ERROR_CODE echo_off_handler(at_para_t *at_para) {
-  AT_WRN("------>%s\n", __func__);
-
-  at_cfg.localecho1 = 0;
-
-  return AEC_OK;
-}
 static AT_ERROR_CODE version_handler(at_para_t *at_para) {
   AT_ERROR_CODE res;
 
@@ -1553,6 +1676,22 @@ static AT_ERROR_CODE uart_config_handler(at_para_t *at_para) {
     if (res != AEC_OK) {
       return AEC_PARA_ERROR;
     }
+    if (paracnt < 5) {
+        uartParam.hwfc = 0;
+    }
+    if (paracnt < 4) {
+        uartParam.parity = 0;
+    }
+    if (paracnt < 3) {
+        uartParam.stop_bits = 1;
+    }
+    if (paracnt < 2) {
+        uartParam.data_bits = 8;
+    }
+    if (paracnt < 1) {
+      return AEC_PARA_ERROR;
+    }
+    
 //     AT_WRN("------>uart_id = %d \n", uartParam.uart_id);
     AT_WRN("------>baudrate = %d \n", uartParam.baudrate);
     AT_WRN("------>data_bits = %d \n", uartParam.data_bits);
@@ -1564,6 +1703,141 @@ static AT_ERROR_CODE uart_config_handler(at_para_t *at_para) {
                           uartParam.stop_bits, uartParam.hwfc);
   }
   return AEC_UNSUPPORTED;
+}
+
+static AT_ERROR_CODE wifi_supports(at_para_t *at_para) {
+    AT_ERROR_CODE res;
+    res = at_get_parameters(&at_para->ptr, NULL, 0, NULL);
+
+    if (res != AEC_OK) {
+      return AEC_PARA_ERROR;
+    } else {
+        return AEC_OK;
+    }
+}
+
+#define _STRING(str) (str?str->valuestring:NULL)
+#define BOUFFALOLAB_GET_IP_SERVER  "napi.bouffalolab.com/mygeoip"
+#define BOUFFALOLAB_GET_IP_SIZE    128
+static AT_ERROR_CODE base_station_info(at_para_t *at_para) {
+    cJSON *root, *state, *ip, *local;
+    AT_ERROR_CODE res;
+    at_callback_rsp_t rsp = {0};
+    res = at_get_parameters(&at_para->ptr, NULL, 0, NULL);
+
+    if (res != AEC_OK) {
+      return AEC_PARA_ERROR;
+    } 
+    rsp.vptr = malloc(BOUFFALOLAB_GET_IP_SIZE);
+    rsp.vsize = BOUFFALOLAB_GET_IP_SIZE;
+    at_http_request(BOUFFALOLAB_GET_IP_SERVER, 0, 1, NULL, &rsp);
+    root = cJSON_Parse((char *)rsp.vptr);
+    state = cJSON_GetObjectItem(root, "error");
+    ip = cJSON_GetObjectItem(root, "ip");
+    local = cJSON_GetObjectItem(root, "location");
+    at_dump("+BASESTA:%s,%s,%s", _STRING(state), _STRING(ip), _STRING(local));
+    free(rsp.vptr);
+    cJSON_Delete(root);
+    return AEC_OK;
+}
+
+static AT_ERROR_CODE http_req(at_para_t *at_para) {
+
+  at_http_para_t *httpParam = malloc(sizeof(at_http_para_t));
+  static at_callback_rsp_t rsp;
+  if (httpParam == NULL) {
+      return AEC_NOT_ENOUGH_MEMORY;
+  }
+  at_para_descriptor_t cmd_para_list[] = {
+      {APT_DI, &httpParam->type,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(httpParam->type))},
+      {APT_DI, &httpParam->content_type,
+        AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(httpParam->content_type))},
+      {APT_TEXT, httpParam->hostname,
+        AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(httpParam->hostname))},
+      {APT_TDATA, httpParam->data,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(httpParam->data))},
+  };
+  s32 paracnt;
+  int res;
+
+  if (*at_para->ptr != AT_EQU) {
+    return AEC_PARA_ERROR;
+
+  } else {
+    at_para->ptr++; /* skip '=' */
+
+    res = at_get_parameters(&at_para->ptr, cmd_para_list,
+                            TABLE_SIZE(cmd_para_list), &paracnt);
+
+    if (res != AEC_OK) {
+      goto __err;
+    }
+
+    if (paracnt < 3) {
+        goto __err;
+    }
+    if (httpParam->type > 1) {
+        goto __err;
+    }
+    if (httpParam->content_type > 3) {
+        goto __err;
+    }
+    rsp.status = 0;
+    rsp.vptr = NULL;
+    rsp.vsize = 0;
+    at_http_request(httpParam->hostname, httpParam->type,
+                    httpParam->content_type, (uint8_t *)httpParam->data,
+                    &rsp);
+  }
+  free(httpParam);
+  return AEC_NO_RESPONSE;
+
+__err:
+  free(httpParam);
+  return AEC_PARA_ERROR;
+}
+
+static AT_ERROR_CODE domain_name_resolution(at_para_t *at_para) {
+  AT_WRN("------>%s\n", __func__);
+  at_hostname_para_t hostParam = {0};
+  at_para_descriptor_t cmd_para_list[] = {
+      {APT_TEXT, &hostParam.hostname,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(hostParam.hostname))},
+  };
+  struct hostent *hostinfo = NULL;
+  s32 paracnt;
+  int res, i;
+
+  if (*at_para->ptr != AT_EQU) {
+    return AEC_PARA_ERROR;
+
+  } else {
+    at_para->ptr++; /* skip '=' */
+
+    res = at_get_parameters(&at_para->ptr, cmd_para_list,
+                            TABLE_SIZE(cmd_para_list), &paracnt);
+
+    if (res != AEC_OK) {
+      return AEC_PARA_ERROR;
+    }
+
+    if (paracnt < 1) {
+      return AEC_PARA_ERROR;
+    }
+    AT_WRN("------>hostParam = %s \n", hostParam.hostname);
+    hostinfo = gethostbyname(hostParam.hostname);
+    if (hostinfo == NULL) {
+        return AEC_NETWORK_ERROR;
+    }
+    for(i=0; hostinfo->h_addr_list[i]; i++);
+    at_dump("+DNSRES:%d", i);
+    for(i=0; hostinfo->h_addr_list[i]; i++){
+        at_dump("%s",inet_ntoa(*(struct in_addr*)hostinfo->h_addr_list[i]));
+    }
+  }
+
+  return AEC_OK;
 }
 
 static AT_ERROR_CODE wifi_mode_handler(at_para_t *at_para) {
@@ -1633,15 +1907,15 @@ static AT_ERROR_CODE uart_config_save_handler(at_para_t *at_para) {
 #endif
 
 static AT_ERROR_CODE deep_sleep_handler(at_para_t *at_para) {
-  at_sleep_para_t sleepParam = {0};
+  at_gpiowakeup_para_t wakeupParam = {0};
   at_para_descriptor_t cmd_para_list[] = {
-      {APT_DI, &sleepParam.sleepMode,
-       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(sleepParam.sleepMode))},
+      {APT_DI, &wakeupParam.sleep_time,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(wakeupParam.sleep_time))},
+      {APT_DI, &wakeupParam.gpioId,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(wakeupParam.gpioId))},
   };
-
   s32 paracnt;
   int res;
-  int sleep_time;
 
   if (*at_para->ptr != AT_EQU) {
     return AEC_PARA_ERROR;
@@ -1659,9 +1933,9 @@ static AT_ERROR_CODE deep_sleep_handler(at_para_t *at_para) {
     if (paracnt < 1) {
       return AEC_PARA_ERROR;
     }
-    sleep_time = sleepParam.sleepMode;
-    AT_WRN("------>deep slee time = %d \n", sleep_time);
-    return at_deep_sleep_mode(sleep_time);
+    AT_WRN("------>deep slee time = %d, weakup_pin %d \n", 
+            wakeupParam.sleep_time, wakeupParam.gpioId);
+    return at_deep_sleep_mode(wakeupParam.sleep_time, wakeupParam.gpioId);
   }
 }
 
@@ -1921,7 +2195,7 @@ static AT_ERROR_CODE join_ap_handler(at_para_t *at_para) {
     }
 
     else {
-      at_dump("+CWJAP_CUR:%d \r\n", at_get_errorcode());
+      at_dump("+CWJAP_CUR:%d", at_get_errorcode());
       return AEC_CMD_FAIL;
     }
   }
@@ -1949,15 +2223,13 @@ static AT_ERROR_CODE setautoconnect_handler(at_para_t *at_para) {
       {APT_DI, &autoParam.autoconnectSwitch,
        AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(autoParam.autoconnectSwitch))},
   };
-extern int at_wifi_auto_set(int is_auto);
-extern int at_wifi_auto_get(int *p_auto);
 
   s32 paracnt;
   int res;
 
   if (*at_para->ptr == AT_QUE) {
-    at_wifi_auto_get(&res);
-    at_dump("+CWAUTOCONN:%d\r\n", res);
+    at_key_value_get(SAVE_KEY_WIFI_AUTO, (uint8_t *)&res);
+    at_dump("+CWAUTOCONN:%d", res);
     return AEC_OK;
 
   } else if (*at_para->ptr == AT_EQU) {
@@ -1978,10 +2250,12 @@ extern int at_wifi_auto_get(int *p_auto);
 
     if (autoParam.autoconnectSwitch == 1) {
       //set_reconnect_enable();
-      at_wifi_auto_set(1);
+      res = 1;
+      at_key_value_set(SAVE_KEY_WIFI_AUTO, &res);
     } else if (autoParam.autoconnectSwitch == 0) {
       //set_reconnect_disable();
-      at_wifi_auto_set(0);
+      res = 0;
+      at_key_value_set(SAVE_KEY_WIFI_AUTO, &res);
     } else {
       return AEC_PARA_ERROR;
     }
@@ -2498,10 +2772,10 @@ static AT_ERROR_CODE create_tcp_udp_handler(at_para_t *at_para) {
   s32 paracnt;
   int res;
 
-  if (*at_para->ptr != AT_EQU) {
-    return AEC_PARA_ERROR;
-
-  } else {
+  if (*at_para->ptr == AT_QUE) {
+      at_network_status(NULL, &rsp);
+      return AEC_OK;
+  } else if (*at_para->ptr == AT_EQU) {
     at_para->ptr++; /* skip '=' */
 
     res = at_get_parameters(&at_para->ptr, cmd_para_type,
@@ -2540,9 +2814,11 @@ static AT_ERROR_CODE create_tcp_udp_handler(at_para_t *at_para) {
     res = at_create_network_connect(networkPara, &rsp);
 
     if (rsp.status == 1) {
-      at_dump("%s \n", rsp.vptr);
+      at_dump("%s", rsp.vptr);
     }
     return res;
+  } else {
+      return AEC_PARA_ERROR;
   }
 
   return AEC_OK;
@@ -2757,54 +3033,6 @@ static AT_ERROR_CODE set_transport_mode_handler(at_para_t *at_para) {
   return AEC_OK;
 }
 
-static AT_ERROR_CODE set_dns_handler(at_para_t *at_para) {
-  AT_WRN("------>%s\n", __func__);
-  at_dns_para_t dnsPara;
-
-  at_para_descriptor_t cmd_para_list[] = {
-      {APT_IP, &dnsPara.dns,
-       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(at_dns_para_t))},
-  };
-
-  s32 paracnt;
-  int res;
-
-  if (*at_para->ptr == AT_QUE) {
-    // memcpy(&getdnsip,dns_getserver(0),sizeof(ip_addr_t));
-#if defined(__CONFIG_LWIP_V1)
-    ip_addr_t getdnsip;
-    getdnsip = dns_getserver(0);
-    at_dump("+CIPDNS:\"%s\"\r\n", ipaddr_ntoa(&getdnsip));
-#else
-    const ip_addr_t *getdnsip;
-    getdnsip = dns_getserver(0);
-    at_dump("+CIPDNS:\"%s\"\r\n", ipaddr_ntoa(getdnsip));
-#endif
-    return AEC_OK;
-
-  } else if (*at_para->ptr != AT_EQU) {
-    return AEC_PARA_ERROR;
-
-  } else {
-    at_para->ptr++; /* skip '=' */
-
-    res = at_get_parameters(&at_para->ptr, cmd_para_list,
-                            TABLE_SIZE(cmd_para_list), &paracnt);
-
-    if (res != AEC_OK) {
-      return AEC_PARA_ERROR;
-    }
-
-    if (paracnt < 1) {
-      return AEC_PARA_ERROR;
-    }
-    AT_WRN("------>dnsPara.dns = %d.%d.%d.%d \n", dnsPara.dns[0],
-           dnsPara.dns[1], dnsPara.dns[2], dnsPara.dns[3]);
-    return at_set_dns((char *)dnsPara.dns);
-  }
-  return AEC_OK;
-}
-
 static AT_ERROR_CODE read_tcp_data_handler(at_para_t *at_para) {
   AT_WRN("------>%s\n", __func__);
   return AEC_OK;
@@ -2856,6 +3084,54 @@ static AT_ERROR_CODE ipdinfo_handler(at_para_t *at_para) {
 static AT_ERROR_CODE set_recv_data_mode_handler(at_para_t *at_para) {
   AT_WRN("------>%s\n", __func__);
 
+  return AEC_OK;
+}
+
+static AT_ERROR_CODE set_dns_handler(at_para_t *at_para) {
+  AT_WRN("------>%s\n", __func__);
+  at_dns_para_t dnsPara;
+
+  at_para_descriptor_t cmd_para_list[] = {
+      {APT_IP, &dnsPara.dns,
+       AET_PARA | AET_LINE | SIZE_LIMIT(sizeof(at_dns_para_t))},
+  };
+
+  s32 paracnt;
+  int res;
+
+  if (*at_para->ptr == AT_QUE) {
+    // memcpy(&getdnsip,dns_getserver(0),sizeof(ip_addr_t));
+#if defined(__CONFIG_LWIP_V1)
+    ip_addr_t getdnsip;
+    getdnsip = dns_getserver(0);
+    at_dump("+CIPDNS:\"%s\"\r\n", ipaddr_ntoa(&getdnsip));
+#else
+    const ip_addr_t *getdnsip;
+    getdnsip = dns_getserver(0);
+    at_dump("+CIPDNS:\"%s\"\r\n", ipaddr_ntoa(getdnsip));
+#endif
+    return AEC_OK;
+
+  } else if (*at_para->ptr != AT_EQU) {
+    return AEC_PARA_ERROR;
+
+  } else {
+    at_para->ptr++; /* skip '=' */
+
+    res = at_get_parameters(&at_para->ptr, cmd_para_list,
+                            TABLE_SIZE(cmd_para_list), &paracnt);
+
+    if (res != AEC_OK) {
+      return AEC_PARA_ERROR;
+    }
+
+    if (paracnt < 1) {
+      return AEC_PARA_ERROR;
+    }
+    AT_WRN("------>dnsPara.dns = %d.%d.%d.%d \n", dnsPara.dns[0],
+           dnsPara.dns[1], dnsPara.dns[2], dnsPara.dns[3]);
+    return at_set_dns((char *)dnsPara.dns);
+  }
   return AEC_OK;
 }
 #endif

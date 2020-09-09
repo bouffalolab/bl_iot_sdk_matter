@@ -1363,6 +1363,12 @@ int wifi_mgmr_status_code_get_internal(int *s_code)
     return 0;
 }
 
+int wifi_mgmr_status_code_clean_internal()
+{
+    wifiMgmr.wifi_mgmr_stat_info.status_code = WLAN_FW_SUCCESSFUL;
+    return 0;
+}
+
 int wifi_mgmr_state_get_internal(int *state)
 {
     const struct state *m_state;

@@ -423,6 +423,7 @@
 /** AT */
 #define EV_BLE 0x020E
 
+
 /** ADC */
 #define EV_ADC 0x020F
 #define CODE_ADC_DATA 1
@@ -430,5 +431,15 @@
 #define CODE_ADC_NEG_SATURATION 3
 #define CODE_ADC_FIFO_UNDERRUN 4
 #define CODE_ADC_FIFO_OVERRUN 5
+
+
+/** I2C */
+#define EV_I2C 0x020F
+
+#define CODE_I2C_END 1
+#define CODE_I2C_ARB 2          
+#define CODE_I2C_NAK 3      
+#define CODE_I2C_FER 4
+
 
 #endif /* AOS_EVENT_TYPE_CODE_API_H */

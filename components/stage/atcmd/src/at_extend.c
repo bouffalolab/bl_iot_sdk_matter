@@ -77,7 +77,12 @@ AT_ERROR_CODE at_uart_config_get(void) {
       return ret;
     }
     // print the uart config
-    at_dump("+UART_CUR:%d\r\n", para.u.uart.uartBaud);
+    at_dump("+UART_CUR:%d,%d,%d,%d,%d", 
+            para.u.uart.uartBaud,
+            para.u.uart.dataBit,
+            para.u.uart.stopBit,
+            para.u.uart.parity,
+            para.u.uart.hwfc);
     return AEC_OK;
   }
 
@@ -104,7 +109,7 @@ AT_ERROR_CODE at_uart_config(int uartId,int uartBaud,int dataBit,int parity, int
 
     return AEC_OK; /* succeed */
 }
-
+#if 0
 AT_ERROR_CODE at_sleep(int sleepMode)
 {
     AT_WRN("------>%s\n",__func__);
@@ -119,12 +124,14 @@ AT_ERROR_CODE at_sleep(int sleepMode)
 
     return AEC_OK; /* succeed */
 }
+#endif
 
-AT_ERROR_CODE at_deep_sleep_mode(int sleep_time)
+AT_ERROR_CODE at_deep_sleep_mode(uint32_t sleep_time, int weakup_pin)
 {
     AT_WRN("------>%s\n",__func__);
     at_callback_para_t para;
-    para.u.sleep.sleepMode = sleep_time;
+    para.u.sleep.sleep_time = sleep_time;
+    para.u.sleep.weakup_pin = weakup_pin;
 
     para.cfg = &at_cfg;
 
@@ -135,6 +142,7 @@ AT_ERROR_CODE at_deep_sleep_mode(int sleep_time)
     return AEC_CMD_ERROR; /* succeed */
 }
 
+#if 0
 AT_ERROR_CODE at_wakeupgpio(int gpioId)
 {
     AT_WRN("------>%s\n",__func__);
@@ -149,6 +157,7 @@ AT_ERROR_CODE at_wakeupgpio(int gpioId)
     }
     return AEC_OK; /* succeed */
 }
+#endif
 
 AT_ERROR_CODE at_wifi_mode(int wifiMode)
 {
@@ -182,7 +191,7 @@ AT_ERROR_CODE at_wifi_mode_get(void)
         if (ret != AEC_OK) {
             return ret;
         }
-        at_dump("+CWMODE:%d\r\n", para.u.wifiMode.mode);
+        at_dump("+CWMODE:%d", para.u.wifiMode.mode);
     }
     return AEC_OK; /* succeed */
 }
@@ -218,6 +227,7 @@ AT_ERROR_CODE at_tcp_max_conn(int max_conn)
     return AEC_OK; /* succeed */
 }
 
+#if 0
 AT_ERROR_CODE at_setwupio(int gpioId,int edge)
 {
     AT_WRN("------>%s\n",__func__);
@@ -233,7 +243,7 @@ AT_ERROR_CODE at_setwupio(int gpioId,int edge)
 
     return AEC_OK; /* succeed */
 }
-
+#endif
 
 AT_ERROR_CODE at_get_apinfo(void)
 {
@@ -482,6 +492,25 @@ extern AT_ERROR_CODE at_set_trans_mode(int mode)
     return AEC_OK; /* succeed */
 }
 
+extern AT_ERROR_CODE at_http_request(char* url, uint8_t type,
+                                     uint8_t content_type, uint8_t *data,
+                                     at_callback_rsp_t *req_rsp)
+{
+    AT_WRN("------>%s\n",__func__);
+    at_callback_para_t para;
+
+    memcpy((char *)(&para.u.http_req.hostname), url, sizeof(para.u.http_req.hostname));
+    para.u.http_req.type = type;
+    para.u.http_req.data = data;
+    para.u.http_req.content_type = content_type;
+    para.cfg = &at_cfg;
+
+    if (at_callback.handle_cb != NULL) {
+        at_callback.handle_cb(ACC_HTTP_REQ, &para, req_rsp);
+    }
+    return AEC_OK; /* succeed */
+}
+
 extern AT_ERROR_CODE at_set_dns(char* dnsAdress)
 {
     AT_WRN("------>%s\n",__func__);
@@ -510,7 +539,7 @@ extern AT_ERROR_CODE at_send_data(int linkId, char* dataBuffer, s32 dataBufferLe
     if (at_callback.handle_cb != NULL) {
         at_callback.handle_cb(ACC_CIPSEND, &para, NULL);
     }
-    return AEC_OK; /* succeed */
+    return AEC_NO_RESPONSE; /* succeed */
 }
 
 extern AT_ERROR_CODE at_io_cfg(int ID, int mode , int pull)

@@ -1,31 +1,30 @@
 /*
- * Copyright (c) 2020 Bouffalolab.
+ * Copyright (C) 2017 XRADIO TECHNOLOGY CO., LTD. All rights reserved.
  *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the
+ *       distribution.
+ *    3. Neither the name of XRADIO TECHNOLOGY CO., LTD. nor the names of
+ *       its contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <FreeRTOS.h>
@@ -45,7 +44,8 @@
 #include <easyflash.h>
 #include <bl602_uart.h>
 #include "at_server.h"
-
+#include "hal_hbn.h"
+#include "bl_hbn.h"
 #if 0
 #include "kernel/os/os.h"
 #include "sys/interrupt.h"
@@ -81,6 +81,9 @@
 #include "driver/chip/hal_wakeup.h"
 #endif
 #include <hal_sys.h>
+#include "bl_gpio.h"
+#include "hal_gpio.h"
+#include <http_client.h>
 
 #define FUN_DEBUG_ON 0
 
@@ -88,7 +91,7 @@
 #define FUN_DEBUG(fmt...)                           \
   {                                                 \
     printf("file:%s line:%d ", __FILE__, __LINE__); \
-    printf(fmt);                                    \
+      printf(fmt);                                    \
   }
 #else
 #define FUN_DEBUG(fmt...)
@@ -114,7 +117,7 @@
 #define IP_ADDR_SIZE 15
 #define SOCKET_CACHE_BUFFER_SIZE 1024
 
-#define SERVER_THREAD_STACK_SIZE (2 * 1024)
+#define SERVER_THREAD_STACK_SIZE (1 * 1024)
 
 typedef struct {
   s32 cmd;
@@ -192,6 +195,7 @@ enum atc_cwjap_cur_type {
 extern int at_serial_lock(void);
 extern int at_serial_unlock(void);
 
+static AT_ERROR_CODE http_url_req(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipsend(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipstart(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipsendbuf(at_callback_para_t *para, at_callback_rsp_t *rsp);
@@ -212,8 +216,10 @@ static AT_ERROR_CODE scan(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE ap_sta_get(at_callback_para_t * para, at_callback_rsp_t * rsp);
 static AT_ERROR_CODE sockon(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE reset(at_callback_para_t *para, at_callback_rsp_t *rsp);
+static AT_ERROR_CODE cipstatus(at_callback_para_t *para, at_callback_rsp_t *rsp);
 
 #if 0
+static AT_ERROR_CODE cipdns_cur(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE act(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE mode(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE save(at_callback_para_t *para, at_callback_rsp_t *rsp);
@@ -240,12 +246,10 @@ static AT_ERROR_CODE cwdhcp_cur(at_callback_para_t *para, at_callback_rsp_t *rsp
 static AT_ERROR_CODE cipstamac_cur(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipsta_cur(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cwhostname(at_callback_para_t *para, at_callback_rsp_t *rsp);
-static AT_ERROR_CODE cipstatus(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipdomain(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE tcpservermaxconn(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipmux(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE cipmode(at_callback_para_t *para, at_callback_rsp_t *rsp);
-static AT_ERROR_CODE cipdns_cur(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE ciprecvdata(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE ciprecvmode(at_callback_para_t *para, at_callback_rsp_t *rsp);
 static AT_ERROR_CODE sysiosetcfg(at_callback_para_t *para, at_callback_rsp_t *rsp);
@@ -281,9 +285,7 @@ static const callback_handler_t callback_tbl[] = {
     {ACC_GPIOW,             gpiow},
 #endif
     {ACC_SCAN,              scan},
-#if 0
     {ACC_CIPSTATUS,         cipstatus},
-#endif
     {ACC_GMR,               version},
     {ACC_RESTORE,           restory},
     {ACC_UART_SET,          uart_set},
@@ -315,17 +317,15 @@ static const callback_handler_t callback_tbl[] = {
     {ACC_CIPSENDBUF, cipsendbuf},
     {ACC_CIPCLOSE, cipclose},
     {ACC_TCPSERVER, tcpserver},
-
+    {ACC_CIPSEND, cipsend},
+    {ACC_HTTP_REQ, http_url_req},
 #if 0
     {ACC_TCPSERVERMAXCONN,  tcpservermaxconn},
     {ACC_CIPMUX,            cipmux},
     {ACC_CIPMODE,           cipmode},
-    {ACC_CIPDNS_CUR,        cipdns_cur},
     {ACC_CIPRECVDATA,       ciprecvdata},
     {ACC_CIPRECVMODE,       ciprecvmode},
-#endif
-    {ACC_CIPSEND, cipsend},
-#if 0
+    {ACC_CIPDNS_CUR,        cipdns_cur},
     {ACC_SYSIOSETCFG,       sysiosetcfg},
     {ACC_SYSIOGETCFG,       sysiogetcfg},
     {ACC_SYSGPIODIR,        syssetiodir},
@@ -576,7 +576,7 @@ static AT_ERROR_CODE reset(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
     AT_ERROR_CODE aec = AEC_OK;
 
-    at_dump("OK\r\n");
+    at_dump("OK");
 
     vTaskDelay(pdMS_TO_TICKS(2));
     hal_reboot();
@@ -1044,6 +1044,7 @@ static AT_ERROR_CODE disconnect(s32 id) {
   FUN_DEBUG("disconnect id = %d!\r\n", id);
   if (networks.connect[id].flag) {
     networks.connect[id].flag = 0;
+    at_dump("+IPS:%d,DISCONNECT", id);
     vTaskDelay(pdMS_TO_TICKS(200));
 
     closesocket(networks.connect[id].fd);
@@ -1079,13 +1080,13 @@ static void sockon_task(void *arg) {
         ret = socket_task_create(sockpara.para.u.net_param.linkId);
       }
       if (AEC_SOCKET_EXISTING == ret) {
-        at_dump("socket%d is ALREADY CONNECT\r\n", sockpara.para.u.sockon.fd);
+        at_dump("+IPS:%d,ALREADY CONNECTED ERROR", sockpara.para.u.net_param.linkId);
       }
       // FIXME(Zhuoran) fd => linkId
       if (AEC_OK == ret) {
-        at_dump("+IPS:%d,0\r\n", sockpara.para.u.sockon.fd);
+        at_dump("+IPS:%d,CONNECTED", sockpara.para.u.net_param.linkId);
       } else {
-        at_dump("+IPS:%d,-1\r\n", sockpara.para.u.sockon.fd);
+        at_dump("+IPS:%d,FAILED", sockpara.para.u.net_param.linkId);
       }
       ret = AEC_UNDEFINED;
       memset(&sockpara, 0, sizeof(at_sockontask_para_t));
@@ -1752,13 +1753,10 @@ static void server_task(void *arg) {
         strcpy(networks.connect[linkId].type, "TCP");
 
         ret = socket_task_create(linkId);
-        if (AEC_SOCKET_EXISTING == ret) {
-          at_dump("socket %d is ALREADY CONNECT\r\n", linkId);
-        }
         if (AEC_OK == ret) {
-          at_dump("+IPS:%d,0\r\n", linkId);
+          at_dump("+IPS:%d,CONNECTED", linkId);
         } else {
-          at_dump("+IPS:%d,-1\r\n", linkId);
+          at_dump("+IPS:%d,FAILED", linkId);
         }
       }
 
@@ -1970,6 +1968,78 @@ static s32 freq_to_chan(s32 freq)
     return i+1;
 }
 #endif
+
+extern char *wifi_mgmr_auth_to_str(uint8_t auth);
+
+static void insert_sort(wifi_mgmr_ap_item_t *ap_ary, int *a, int n)
+{
+    int i, j, x;
+
+    for(i = 1; i < n; i++){
+        if(ap_ary[a[i]].rssi > ap_ary[a[i-1]].rssi){
+            j= i-1;
+            x = a[i];
+            while(j>-1 && ap_ary[x].rssi > ap_ary[a[j]].rssi){
+                a[j+1] = a[j];
+                j--;
+            }
+            a[j+1] = x;
+        }
+    }
+}
+
+static void scan_result_sort(wifi_mgmr_ap_item_t *ap_ary, int cnt, uint8_t opt)
+{
+    int i;
+
+    int *a = malloc(cnt * sizeof(int *));
+    if (a == NULL) {
+        printf("mem not enought\r\n");
+        return;
+    }
+
+    for (i = 0; i < cnt; i++) {
+        a[i] = i;
+    }
+
+    if (BIT_GET(opt, 5)) {
+        insert_sort(ap_ary, a, cnt);
+    }
+
+    at_serial_lock();
+    at_dump("+CWLAP:");
+    for (i = 0; i < cnt; i++) {
+        if (strlen((char *)ap_ary[a[i]].ssid) > 0) {
+            at_dump_noend(AT_CMD_ECHOSTART"%02d", i);
+            if (BIT_GET(opt, 1)) {
+                at_dump_noend(",%s", ap_ary[a[i]].ssid);
+            }
+            if (BIT_GET(opt, 3)) {
+                at_dump_noend(",%02x:%02x:%02x:%02x:%02x:%02x",
+                              ap_ary[a[i]].bssid[0],
+                              ap_ary[a[i]].bssid[1],
+                              ap_ary[a[i]].bssid[2],
+                              ap_ary[a[i]].bssid[3],
+                              ap_ary[a[i]].bssid[4],
+                              ap_ary[a[i]].bssid[5]);
+            }
+            if (BIT_GET(opt, 4)) {
+                at_dump_noend(",%02d", ap_ary[a[i]].channel);
+            }
+            if (BIT_GET(opt, 2)) {
+                at_dump_noend(",%02d", ap_ary[a[i]].rssi);
+            }
+            if (BIT_GET(opt, 0)) {
+                at_dump_noend(",%s", wifi_mgmr_auth_to_str(ap_ary[a[i]].auth));
+            }
+            at_dump_noend(AT_CMD_TAILED);
+            vTaskDelay(pdMS_TO_TICKS(5));
+        }
+    }
+    at_serial_unlock();
+    free(a);
+}
+
 static AT_ERROR_CODE scan(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
 #if 0
@@ -2020,54 +2090,38 @@ static AT_ERROR_CODE scan(at_callback_para_t *para, at_callback_rsp_t *rsp)
     }
 
     return aec;
-    #else
+#else
     AT_ERROR_CODE aec = AEC_OK;
     uint32_t cnt;
-    int ret, i;
+    int ret;
     wifi_mgmr_ap_item_t *ap_ary = NULL;
+    uint8_t opt = 0;
 
-extern char *wifi_mgmr_auth_to_str(uint8_t auth);
-
+    if (at_key_value_get(SAVE_KEY_WIFISCAN_OPT, &opt) != 0) {
+        opt = 0xff;
+    }
     ret = wifi_mgmr_all_ap_scan(&ap_ary, &cnt);
     if (ret != 0) {
         printf("wifi all ap scan error %d\r\n", ret);
     }
     else {
         printf("Scan done: %lu ap info\r\n", cnt);
-        at_dump("+CWLAP:\r\n");
-        for (i = 0; i < cnt; i++) {
-            if (strlen((char *)ap_ary[i].ssid) > 0) {
-                at_dump("%2d,%s,%02x:%02x:%02x:%02x:%02x:%02x,"
-                        "%2d,%d,%s\r\n",
-                        i,
-                        ap_ary[i].ssid,
-                        ap_ary[i].bssid[0],
-                        ap_ary[i].bssid[1],
-                        ap_ary[i].bssid[2],
-                        ap_ary[i].bssid[3],
-                        ap_ary[i].bssid[4],
-                        ap_ary[i].bssid[5],
-                        ap_ary[i].channel,
-                        ap_ary[i].rssi,
-                        wifi_mgmr_auth_to_str(ap_ary[i].auth));
-                vTaskDelay(pdMS_TO_TICKS(5));
-            }
-        }
+        scan_result_sort(ap_ary, cnt, opt);
         if (ap_ary != NULL) {
             vPortFree(ap_ary);
         }
     }
     return aec;
-    #endif
+#endif
 }
 
 static AT_ERROR_CODE version(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
-    at_dump("+GMR:fw:\"%s-%s\"\r\n", BL_SDK_PHY_VER, BL_SDK_RF_VER);
+    at_dump("+GMR:fw:\"%s-%s\"", BL_SDK_PHY_VER, BL_SDK_RF_VER);
 
-    at_dump("+GMR:sdk:\""BL_SDK_VER"\"\r\n");
+    at_dump("+GMR:sdk:\""BL_SDK_VER"\"");
 
-    at_dump("+GMR:tm:\"%s %s\"\r\n",__DATE__,__TIME__);
+    at_dump("+GMR:tm:\"%s %s\"",__DATE__,__TIME__);
     return AEC_OK;
 }
 
@@ -2104,6 +2158,7 @@ static UART_FifoCfg_Type fifoCfg =
 #endif
 
 static AT_ERROR_CODE uart_get(at_callback_para_t * para, at_callback_rsp_t * rsp) {
+  
 //  para->u.uart.uartBaud = uartCfg.baudRate;
 //  para->u.uart.dataBit = uartCfg.dataBits + 5;
 //  para->u.uart.stopBit = uartCfg.stopBits + 1;
@@ -2120,101 +2175,54 @@ static AT_ERROR_CODE uart_get(at_callback_para_t * para, at_callback_rsp_t * rsp
 //  } else {
 //    return AEC_CMD_ERROR;
 //  }
-  at_serial_baud_get((uint32_t *)&para->u.uart.uartBaud);
+  at_key_value_get(SAVE_KEY_UART_BAUD, &para->u.uart.uartBaud);
+  at_key_value_get(SAVE_KEY_UART_DATABIT, &para->u.uart.dataBit);
+  at_key_value_get(SAVE_KEY_UART_STOPBIT, &para->u.uart.stopBit);
+  at_key_value_get(SAVE_KEY_UART_PARITY, &para->u.uart.parity);
+  at_key_value_get(SAVE_KEY_UART_HWFC, &para->u.uart.hwfc);
+  
   return AEC_OK;
 }
 
 static AT_ERROR_CODE uart_set(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
-//    const uint8_t uart_div = 3;
-//    UART_CFG_Type cfg_tmp;
+    int ret;
 
     printf("at_para.baudrate = %d\r\n", para->u.uart.uartBaud);
-    at_serial_baud_set(para->u.uart.uartBaud);
 
-    /* gpio init */
-    // gpio_init(id, tx_pin, rx_pin, cts_pin, rts_pin);
-//    memcpy(&cfg_tmp, &uartCfg, sizeof(UART_CFG_Type));
-//
-//    cfg_tmp.baudRate = para->u.uart.uartBaud;
-//    cfg_tmp.uartClk = (160 * 1000 * 1000) / (uart_div + 1);
-//
-//    if (para->u.uart.dataBit >= 5 && para->u.uart.dataBit <= 8) {
-//      cfg_tmp.dataBits = para->u.uart.dataBit - 5;
-//    } else {
-//      return AEC_PARA_ERROR;
-//    }
-//
-//    if (para->u.uart.stopBit >= 1 && para->u.uart.stopBit <= 3) {
-//      cfg_tmp.stopBits = para->u.uart.stopBit - 1;
-//    } else {
-//      return AEC_PARA_ERROR;
-//    }
-//
-//    if (para->u.uart.parity >= 0 && para->u.uart.parity <= 2) {
-//      cfg_tmp.parity = para->u.uart.parity;
-//    } else {
-//      return AEC_PARA_ERROR;
-//    }
-//
-//    switch (para->u.uart.hwfc) {
-//      case 0:
-//        cfg_tmp.ctsFlowControl = DISABLE;
-//        cfg_tmp.rtsSoftwareControl = DISABLE;
-//        break;
-//
-//      case 1:
-//        cfg_tmp.ctsFlowControl = DISABLE;
-//        cfg_tmp.rtsSoftwareControl = ENABLE;
-//        break;
-//
-//      case 2:
-//        cfg_tmp.ctsFlowControl = ENABLE;
-//        cfg_tmp.rtsSoftwareControl = DISABLE;
-//        break;
-//
-//      case 3:
-//        cfg_tmp.ctsFlowControl = ENABLE;
-//        cfg_tmp.rtsSoftwareControl = ENABLE;
-//        break;
-//
-//      default:
-//        return AEC_PARA_ERROR;
-//    }
-//
-//    /* Disable all interrupt */
-//    UART_IntMask(UART1_ID, UART_INT_ALL, MASK);
-//
-//    /* Disable uart before config */
-//    UART_Disable(UART1_ID, UART_TXRX);
-//
-//    /* UART init */
-//    UART_Init(UART1_ID, &cfg_tmp);
-//
-//    /* Enable tx free run mode */
-//    UART_TxFreeRun(UART1_ID, ENABLE);
-//
-//    /* FIFO Config*/
-//    UART_FifoConfig(UART1_ID, &fifoCfg);
-//
-//    /* Enable uart */
-//    UART_Enable(UART1_ID, UART_TXRX);
-//
-//    memcpy(&uartCfg, &cfg_tmp, sizeof(UART_CFG_Type));
-//
+    ret = at_serial_cfg_set(para->u.uart.uartBaud,
+                            para->u.uart.dataBit,
+                            para->u.uart.stopBit,
+                            para->u.uart.parity,
+                            para->u.uart.hwfc);
+    if (ret != 0) {
+        return AEC_PARA_ERROR;
+    }
+    at_key_value_set(SAVE_KEY_UART_BAUD, &para->u.uart.uartBaud);
+    at_key_value_set(SAVE_KEY_UART_DATABIT, &para->u.uart.dataBit);
+    at_key_value_set(SAVE_KEY_UART_STOPBIT, &para->u.uart.stopBit);
+    at_key_value_set(SAVE_KEY_UART_PARITY, &para->u.uart.parity);
+    at_key_value_set(SAVE_KEY_UART_HWFC, &para->u.uart.hwfc);
+
     return AEC_OK;
 }
 
 static AT_ERROR_CODE deep_sleep(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
+    uint32_t sleep_time = para->u.sleep.sleep_time;
+    uint8_t weakup_pin = para->u.sleep.weakup_pin;
     FUN_DEBUG("----->\r\n");
-    int sleep_time = para->u.sleep.sleepMode;
-    at_dump("OK\r\n");
-    vTaskDelay(10);
-    at_serial_close();
-    vTaskDelay(pdMS_TO_TICKS(sleep_time) * 1000);
-    at_serial_open();
-    at_dump("+GSLP:WEAKUP\r\n");
+
+    if ((weakup_pin != 7) && (weakup_pin != 8)) {
+        return AEC_CMD_FAIL;
+    }
+
+    hal_hbn_init(&weakup_pin, 1);
+    at_dump("OK");
+    vTaskDelay(100);
+    sleep_time = sleep_time * 1000;
+    hal_hbn_enter(sleep_time);
+    at_dump("+GSLP:WEAKUP");
     return AEC_NO_RESPONSE;
 }
 
@@ -2302,17 +2310,17 @@ static AT_ERROR_CODE cwmode_cur(at_callback_para_t * para, at_callback_rsp_t * r
         printf("The mode is not support \r\n");
         return AEC_CMD_ERROR;
     }
-    at_wifimode_get(&now_mode);
+    at_key_value_get(SAVE_KEY_WIFI_MODE, &now_mode);
     if (now_mode == para->u.wifiMode.mode) {
         return AEC_OK;
     }
-    at_wifimode_set(para->u.wifiMode.mode);
+    at_key_value_set(SAVE_KEY_WIFI_MODE, &para->u.wifiMode.mode);
     return __wifimode_set(para->u.wifiMode.mode);
 }
 
 static AT_ERROR_CODE cwmode_cur_get(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
-    at_wifimode_get(&para->u.wifiMode.mode);
+    at_key_value_get(SAVE_KEY_WIFI_MODE, &para->u.wifiMode.mode);
     FUN_DEBUG("----->\r\n");
     return AEC_OK;
 }
@@ -2324,7 +2332,7 @@ static AT_ERROR_CODE cwjap_cur(at_callback_para_t *para, at_callback_rsp_t *rsp)
   // pdMS_TO_TICKS(wep_open_connect_timeout_ms);
   int wifiMode;
   int auto_conn;
-  at_wifimode_get(&wifiMode);
+  at_key_value_get(SAVE_KEY_WIFI_MODE, &wifiMode);
 
   if (wifiMode != WIFI_STATION_MODE && wifiMode != WIFI_AP_STA_MODE) {
       return AEC_CMD_FAIL;
@@ -2347,14 +2355,14 @@ static AT_ERROR_CODE cwjap_cur(at_callback_para_t *para, at_callback_rsp_t *rsp)
     // wlan_sta_enable();
     wifi_mgmr_sta_connect(g_wifi_interface, (char *)para->u.joinParam.ssid,
                           (char *)para->u.joinParam.pwd, NULL, NULL, 0, 0);
-    at_wifi_auto_get(&auto_conn);
+    at_key_value_get(SAVE_KEY_WIFI_AUTO, &auto_conn);
     if (auto_conn) {
         wifi_mgmr_sta_autoconnect_enable();
     } else {
         wifi_mgmr_sta_autoconnect_disable();
     }
-    at_wifi_ssid_set((char *)para->u.joinParam.ssid);
-    at_wifi_pask_set((char *)para->u.joinParam.pwd);
+    at_key_value_set(SAVE_KEY_WIFI_SSID, &para->u.joinParam.ssid);
+    at_key_value_set(SAVE_KEY_WIFI_PASK, &para->u.joinParam.pwd);
     // enable wifi autoreconnect
     return AEC_OK;
   }
@@ -2377,7 +2385,7 @@ static AT_ERROR_CODE cwjap_info(at_callback_para_t *para, at_callback_rsp_t *rsp
 
     at_dump("+CWJAP:%s,"
             "%02x:%02x:%02x:%02x:%02x:%02x,"
-            "%s\r\n",
+            "%s",
             info.ssid,
             info.bssid[0],
             info.bssid[1],
@@ -2456,88 +2464,6 @@ static AT_ERROR_CODE cwhostname(at_callback_para_t * para, at_callback_rsp_t * r
     return AEC_OK;
 }
 
-//add for xr808
-static AT_ERROR_CODE cipstatus(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    uint16_t net_event;
-    uint16_t net_event_index;
-
-    FUN_DEBUG("----->\r\n");
-
-    net_event = net_get_status();
-    switch (net_event) {
-    case NET_CTRL_MSG_NETWORK_UP:
-        net_event_index = 2;
-        if((networks.connect[0].flag)
-            | (networks.connect[1].flag)
-            | (networks.connect[2].flag)
-            | (networks.connect[3].flag))
-            net_event_index = 3;
-        break;
-    case NET_CTRL_MSG_NETWORK_DOWN:
-        net_event_index = 5;
-        break;
-    case NET_CTRL_MSG_WLAN_DISCONNECTED:
-        net_event_index = 4;
-        break;
-    default:
-        net_event_index = 5;
-        break;
-    }
-
-    sprintf(rsp->vptr, "STATUS:%d\r\n", net_event_index);
-
-
-    if(net_event_index == 3)
-    {
-        sprintf(((char *)rsp->vptr + strlen((char *)rsp->vptr)), "+CIPSTATUS:");
-        if(networks.connect[0].flag)
-        {
-            sprintf(((char *)rsp->vptr + strlen((char *)rsp->vptr)),
-                "%d,\"%s\",\"%s\",%d    ",
-                0,
-                networks.connect[0].type,
-                networks.connect[0].ip,
-                networks.connect[0].port
-                );
-        }
-        if(networks.connect[1].flag)
-        {
-            sprintf(((char *)rsp->vptr + strlen((char *)rsp->vptr)),
-                "%d,\"%s\",\"%s\",%d    ",
-                1,
-                networks.connect[1].type,
-                networks.connect[1].ip,
-                networks.connect[1].port
-                );
-        }
-        if(networks.connect[2].flag)
-        {
-            sprintf(((char *)rsp->vptr + strlen((char *)rsp->vptr)),
-                "%d,\"%s\",\"%s\",%d    ",
-                2,
-                networks.connect[2].type,
-                networks.connect[2].ip,
-                networks.connect[2].port
-                );
-        }
-        if(networks.connect[3].flag)
-        {
-            sprintf(((char *)rsp->vptr + strlen((char *)rsp->vptr)),
-                "%d,\"%s\",\"%s\",%d    ",
-                3,
-                networks.connect[3].type,
-                networks.connect[3].ip,
-                networks.connect[3].port
-                );
-        }
-    }
-    rsp->status = 1;
-    rsp->type  = 1;
-    return AEC_OK;
-
-}
-
 static AT_ERROR_CODE cipdomain(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
     FUN_DEBUG("----->\r\n");
@@ -2560,6 +2486,25 @@ static AT_ERROR_CODE cipdomain(at_callback_para_t *para, at_callback_rsp_t *rsp)
 }
 
 #endif
+
+static AT_ERROR_CODE cipstatus(at_callback_para_t *para, at_callback_rsp_t *rsp)
+{
+    uint16_t connect_cnt;
+
+    FUN_DEBUG("----->\r\n");
+
+    for (connect_cnt = 0; connect_cnt < MAX_SOCKET_NUM; connect_cnt++) {
+        if (networks.connect[connect_cnt].flag) {
+            at_dump("+CIPSTART:%d,%s,%s,%d",
+                    connect_cnt,
+                    networks.connect[connect_cnt].type,
+                    networks.connect[connect_cnt].ip,
+                    networks.connect[connect_cnt].port);
+        }
+    }
+
+    return AEC_OK;
+}
 
 static AT_ERROR_CODE ap_sta_get(at_callback_para_t * para, at_callback_rsp_t * rsp)
 {
@@ -2592,7 +2537,7 @@ static AT_ERROR_CODE ap_sta_get(at_callback_para_t * para, at_callback_rsp_t * r
         }
         at_dump("+STA:%d,"
                 "%02x:%02x:%02x:%02x:%02x:%02x,"
-                "%d\r\n",
+                "%d",
                 sta_info.sta_idx,
                 sta_info.sta_mac[0],
                 sta_info.sta_mac[1],
@@ -2610,7 +2555,7 @@ static AT_ERROR_CODE set_apcfg(at_callback_para_t * para, at_callback_rsp_t * rs
 
     FUN_DEBUG("----->\r\n");
 
-    at_wifimode_get(&wifiMode);
+    at_key_value_get(SAVE_KEY_WIFI_MODE, &wifiMode);
 
     if (wifiMode != WIFI_SOFTAP_MODE && wifiMode != WIFI_AP_STA_MODE) {
         return AEC_CMD_FAIL;
@@ -2667,7 +2612,7 @@ void socket0_task(void *pvParameters) {
     }
     if (xQueueReceive(q_SocketSend[id], &sendinf, pdMS_TO_TICKS(100)) == pdTRUE) {
       if (networks.connect[id].fd == -1) {
-        at_dump("SOCKET %d ERROR\r\n", id);
+        at_dump("SOCKET %d ERROR", id);
         free(sendinf.p_senddata);
         continue;
       }
@@ -2684,14 +2629,14 @@ void socket0_task(void *pvParameters) {
         rc = select(networks.connect[id].fd + 1, NULL, &fdset, NULL, &tv);
         if (rc > 0) {
           if ((rc = send(networks.connect[id].fd, sendinf.p_senddata, sendinf.datalen, 0)) > 0) {
-            at_dump("+IPS:%d SEND OK\r\n", id);
+            at_dump("+IPS:%d,OK", id);
           } else if (rc == 0) {
             disconnect(id);
           } else {
             disconnect(id);
           }
         } else if (rc == 0) {
-          at_dump("+IPS:%d SEND TIMEOUT\r\n", id);
+          at_dump("+IPS:%d,TIMEOUT", id);
         } else {
           disconnect(id);
         }
@@ -2710,14 +2655,14 @@ void socket0_task(void *pvParameters) {
         if (rc > 0) {
           if ((rc = sendto(networks.connect[id].fd, sendinf.p_senddata, sendinf.datalen, 0,
                            (struct sockaddr *)&address, sizeof(address))) > 0) {
-            at_dump("+IPS:%d SEND OK\r\n", id);
+            at_dump("+IPS:%d,OK", id);
           } else if (rc == 0) {
             disconnect(id);
           } else {
             disconnect(id);
           }
         } else if (rc == 0) {
-          at_dump("+IPS:%d SEND TIMEOUT\n", id);
+          at_dump("+IPS:%d,TIMEOUT", id);
         } else {
           disconnect(id);
         }
@@ -2748,8 +2693,7 @@ void socket0_task(void *pvParameters) {
 
       if (rc > 0) {
         at_serial_lock();
-        at_dump("+IPD:");
-        if (is_disp_ipd == 1) at_dump("%d,%d\r\n", id, rc);
+        at_dump("+IPD:%d,%d", id, rc);
         at_data_output((char *)socket_cache[id].buffer, rc);
         at_serial_unlock();
 
@@ -2771,10 +2715,6 @@ AT_ERROR_CODE socket_task_create(int linkId) {
   if (linkId >= MAX_SOCKET_NUM) {
     return AEC_SOCKET_FAIL;
   }
-
-//  if (networks.connect[linkId].flag != 0) {
-//    return AEC_SOCKET_EXISTING;
-//  }
 
   sprintf(task_name, "socket%d_task", linkId);
   if (networks.connect[linkId].ThreadHd == 0) {
@@ -2806,7 +2746,7 @@ static AT_ERROR_CODE cipstart(at_callback_para_t *para, at_callback_rsp_t *rsp) 
       return AEC_SOCKET_FAIL;
     }
 
-    ret = xTaskCreate(sockon_task, "sockon_task", 2048, NULL, 2, &OS_Thread_sockon_handler);
+    ret = xTaskCreate(sockon_task, "sockon_task", 1024, NULL, 2, &OS_Thread_sockon_handler);
     vTaskDelay(pdMS_TO_TICKS(1));
     if (xQueueSend(OS_queue_sockon_handler, &sockontask_data, pdMS_TO_TICKS(200)) != pdPASS) {
       ret = pdFAIL;
@@ -2840,7 +2780,7 @@ static AT_ERROR_CODE cipclose(at_callback_para_t *para, at_callback_rsp_t *rsp) 
           return AEC_SOCKET_EXISTING;
       }
       disconnect(para->u.close_id.id);
-      at_dump("+CIPCLOSE:%d\r\n", para->u.close_id.id);
+      //at_dump("+CIPCLOSE:%d", para->u.close_id.id);
   } else {
       return AEC_PARA_ERROR;
   }
@@ -2910,7 +2850,6 @@ static AT_ERROR_CODE tcpserver(at_callback_para_t *para, at_callback_rsp_t *rsp)
           return AEC_BIND_FAIL;
         }
       }
-
       return AEC_OK;
     }
   } else {
@@ -2930,13 +2869,25 @@ static AT_ERROR_CODE tcpserver(at_callback_para_t *para, at_callback_rsp_t *rsp)
       } else if (g_server_arg.protocol == 1) { /* UDP */
         /* Do nothing */
       }
+      return AEC_OK;
     }
   }
 
   return AEC_SOCKET_FAIL;
 }
-
 #if 0
+static AT_ERROR_CODE cipdns_cur(at_callback_para_t *para, at_callback_rsp_t *rsp)
+{
+    FUN_DEBUG("----->\r\n");
+    ip_addr_t dnsip;
+
+    memcpy((char *)(&dnsip), &para->u.set_dns.setdnsip, sizeof(at_ip_t));
+
+    dns_setserver(0,&dnsip);
+    return AEC_OK;
+
+}
+
 static AT_ERROR_CODE cipmux(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
     FUN_DEBUG("----->\r\n");
@@ -2950,17 +2901,6 @@ static AT_ERROR_CODE cipmode(at_callback_para_t *para, at_callback_rsp_t *rsp)
     FUN_DEBUG("----->\r\n");
 
     return AEC_OK;
-}
-static AT_ERROR_CODE cipdns_cur(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    FUN_DEBUG("----->\r\n");
-    ip_addr_t dnsip;
-
-    memcpy((char *)(&dnsip), &para->u.set_dns.setdnsip, sizeof(at_ip_t));
-
-    dns_setserver(0,&dnsip);
-    return AEC_OK;
-
 }
 
 static AT_ERROR_CODE ciprecvdata(at_callback_para_t *para, at_callback_rsp_t *rsp)
@@ -2976,6 +2916,123 @@ static AT_ERROR_CODE ciprecvmode(at_callback_para_t *para, at_callback_rsp_t *rs
     return AEC_OK;
 }
 #endif
+
+static SemaphoreHandle_t g_http_xSemaphore = NULL;
+static void cb_httpc_result(void *arg, httpc_result_t httpc_result, u32_t rx_content_len, u32_t srv_res, err_t err)
+{
+    at_callback_rsp_t *rsp = (at_callback_rsp_t *)arg;
+    printf("[HTTPC] Transfer finished err %d. rx_content_len is %lu\r\n", err, rx_content_len);
+    if (rsp && (!rsp->vptr)) {
+        at_dump_noend(AT_CMD_TAILED);
+    }
+    xSemaphoreGive(g_http_xSemaphore);
+    if (err == 0) {
+        at_dump("+RSP:OK");
+    } else {
+        at_dump("+RSP:%d", err);
+    }
+}
+
+static err_t cb_httpc_headers_done_fn(httpc_state_t *connection, void *arg, struct pbuf *hdr, u16_t hdr_len, u32_t content_len)
+{
+    at_callback_rsp_t *rsp = (at_callback_rsp_t *)arg;
+
+    printf("[HTTPC] hdr_len is %u, content_len is %lu\r\n", hdr_len, content_len);
+    printf((char *)hdr->payload);
+    if (rsp && (!rsp->vptr)) {
+        at_dump_noend(AT_CMD_ECHOSTART);
+        at_dump_noend("+HTTPC:%d,", content_len);
+    }
+    return ERR_OK;
+}
+
+static err_t cb_altcp_recv_fn(void *arg, struct altcp_pcb *conn, struct pbuf *p, err_t err)
+{
+    static int count = 0;
+    at_callback_rsp_t *rsp = (at_callback_rsp_t *)arg;
+
+    if (0 == ((count++) & 0x3F)) {
+        puts("\r\n");
+    }
+    altcp_recved(conn, p->tot_len);
+    if (rsp) {
+        if (!rsp->vptr && p->tot_len) {
+            at_data_output(p->payload, p->tot_len);
+        } else if (strlen((char *)p->payload) <= rsp->vsize) {
+            if (rsp->vptr) {
+                strcpy(rsp->vptr, (char *)p->payload);
+            }
+        } else {
+            printf("rsp buffer size not enought\r\n");
+        }
+    }
+    //printf("%s\r\n", (char *)p->payload);
+    pbuf_free(p);
+
+    return ERR_OK;
+}
+
+static AT_ERROR_CODE http_url_req(at_callback_para_t *para, at_callback_rsp_t *rsp)
+{
+    char *uri = "/";
+    char *param, *server_name;
+    static httpc_connection_t settings;
+    static httpc_state_t *req = NULL;
+    in_addr_t ip_addr;
+    char *p_port;
+    int port = 80;
+
+    if (g_http_xSemaphore == NULL) {
+        g_http_xSemaphore = xSemaphoreCreateBinary();
+    }
+    server_name = pvPortMalloc(128);
+    if (server_name== NULL) {
+        return AEC_CMD_FAIL;
+    }
+    memset(&settings, 0, sizeof(settings));
+    settings.use_proxy = 0;
+    settings.req_type  = para->u.http_req.type;
+    settings.content_type = para->u.http_req.content_type;
+    settings.data = para->u.http_req.data;
+    settings.result_fn = cb_httpc_result;
+    settings.headers_done_fn = cb_httpc_headers_done_fn;
+
+    if ((param = strstr(para->u.http_req.hostname, uri)) == NULL) {
+        param = uri;
+    }
+    strcpy(server_name, para->u.http_req.hostname);
+    server_name[param - para->u.http_req.hostname] = '\0';
+    if ((p_port = strstr(server_name, ":")) != NULL) {
+        p_port[0] = '\0';
+        p_port++;
+        port = atoi(p_port);
+    }
+    if ((ip_addr = inet_addr(server_name)) != INADDR_NONE) {
+        httpc_get_file((const ip_addr_t* )&ip_addr,
+                        port,
+                        param,
+                        &settings,
+                        cb_altcp_recv_fn,
+                        rsp,
+                        &req);
+    } else {
+        httpc_get_file_dns(
+                server_name,
+                port,
+                param,
+                &settings,
+                cb_altcp_recv_fn,
+                rsp,
+                &req);
+    }
+
+    if (xSemaphoreTake(g_http_xSemaphore, (TickType_t)-1) != pdTRUE) {
+        vPortFree(server_name);
+        return AEC_NETWORK_ERROR;
+    }
+    vPortFree(server_name);
+    return AEC_OK;
+}
 
 static AT_ERROR_CODE cipsend(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
@@ -2997,7 +3054,7 @@ static AT_ERROR_CODE cipsend(at_callback_para_t *para, at_callback_rsp_t *rsp)
     printf("id:%d, len:%d, buffer:%s\r\n", id, len, buffer);
     sendinf.p_senddata = malloc(SOCKET_CACHE_BUFFER_SIZE);
     if(sendinf.p_senddata == NULL) {
-        at_dump("malloc buffer for atcmdSend failed \r\n");
+        at_dump("malloc buffer for atcmdSend failed");
         return AEC_CMD_ERROR;
     }
     sendinf.datalen =  len;
@@ -3005,7 +3062,7 @@ static AT_ERROR_CODE cipsend(at_callback_para_t *para, at_callback_rsp_t *rsp)
     memcpy(sendinf.p_senddata, buffer, len);
     printf("q_SocketSend[%d] = %p\r\n", id, q_SocketSend[id]);
     if (xQueueSend(q_SocketSend[id], &sendinf, pdMS_TO_TICKS(10)) != pdPASS) {
-        at_dump("LinkId %d Send ERROR \r\n", id);
+        at_dump("LinkId %d Send ERROR", id);
         FUN_DEBUG("LinkId %d Send ERROR \r\n", id);
         free(sendinf.p_senddata);
     }

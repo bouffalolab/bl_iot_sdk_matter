@@ -211,8 +211,75 @@ static u32 get_text_para(char **ppara, void *pvar, u32 opt)
 
 			break;
 		}else if(*para == AT_QUO){
-			para++; 
+			para++;
 			continue;
+		}
+
+		strbuf[cnt++] = *para++;
+	}
+
+	if (!(end_type & opt)) {
+		error = 1;
+	}
+
+	if (!error) {
+		if (cnt > 0 && cnt < size_limit) {
+			strbuf[cnt++] = '\0';
+
+			memcpy(pvar,strbuf,cnt);
+		}
+		else {
+			error = 1;
+		}
+	}
+
+	*ppara = para;
+
+	return (over | (error << 1));
+}
+
+static u32 get_tdata_para(char **ppara, void *pvar, u32 opt)
+{
+	char *para;
+	int over = 0;
+	int error = 0;
+	char strbuf[AT_PARA_MAX_SIZE];
+	int cnt;
+	int size_limit;
+	u32 end_type = 0;
+
+	para = *ppara;
+
+	cnt = 0;
+	strbuf[0] = '\0';
+
+	size_limit = SIZE_LIMIT(opt);
+
+	while (cnt < size_limit) {
+		//if ((*para == AT_SEPARATOR) && (*(para-1) != AT_BAC)) {
+		//	para++; /* skip separator */
+		//	end_type = AET_PARA;
+		//	break;
+		//}
+		if (*para == AT_CR) {
+			para++; /* skip <CR> */
+
+			if (*para == AT_LF) {
+				para++; /* skip <LF> */
+			}
+
+			over = 1;
+			end_type = AET_LINE;
+
+			break;
+		}
+		else if (*para == AT_LF) {
+			para++; /* skip <LF> */
+
+			over = 1;
+			end_type = AET_LINE;
+
+			break;
 		}
 
 		strbuf[cnt++] = *para++;
@@ -697,6 +764,11 @@ AT_ERROR_CODE at_get_parameters(char **ppara, at_para_descriptor_t *list, s32 ls
 		case APT_TEXT:
 
 			res = get_text_para(&para, list[i].pvar, list[i].option);
+
+			break;
+		case APT_TDATA:
+
+			res = get_tdata_para(&para, list[i].pvar, list[i].option);
 
 			break;
 

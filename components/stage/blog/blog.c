@@ -44,7 +44,7 @@
 /* every line log's buffer */
 static char log_buf[BLOG_LINE_BUF_SIZE] = { 0 };
 
-static int findch_sum(char *str, char ch)
+static int findch_sum(const char *str, char ch)
 {
     int i = 0;
     int len = strlen(str);
@@ -295,7 +295,7 @@ size_t blog_strcpy(size_t cur_len, char *dst, const char *src) {
  * @param buf hex buffer
  * @param size buffer size
  */
-void blog_hexdump_out(const char *name, uint8_t width, uint8_t *buf, uint16_t size)
+void blog_hexdump_out(const char *name, uint8_t width, const uint8_t *buf, uint16_t size)
 {
 #define __is_print(ch)       ((unsigned int)((ch) - ' ') < 127u - ' ')
 

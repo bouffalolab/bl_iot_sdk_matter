@@ -41,6 +41,8 @@ static bl_ble_sync_t *gp_index = NULL;
 
 static void wifiprov_connect_ap_ind(struct wifi_conn *info)
 {
+    extern int wifi_mgmr_status_code_clean_internal();
+    wifi_mgmr_status_code_clean_internal();
     printf("Recevied indication to connect to AP\r\n");    
     wifi_prov_api_event_trigger_connect(info);
 }
