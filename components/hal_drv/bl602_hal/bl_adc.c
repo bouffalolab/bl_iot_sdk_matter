@@ -270,7 +270,7 @@ int bl_adc_init(void)
     adccfg.chopMode=ADC_CHOP_MOD_ALL_OFF;
     adccfg.biasSel=ADC_BIAS_SEL_MAIN_BANDGAP;
     adccfg.vcm=ADC_PGA_VCM_1V;
-    adccfg.vref=ADC_VREF_3P3V;
+    adccfg.vref=ADC_VREF_3P2V;
     adccfg.inputMode=ADC_INPUT_SINGLE_END;
     adccfg.resWidth=ADC_DATA_WIDTH_16_WITH_256_AVERAGE;
     adccfg.offsetCalibEn=0;

@@ -153,20 +153,31 @@ typedef struct {
     uint32_t tsenRefcodeCorner                       :  12;    /*!< TSEN refcode */
     uint32_t tsenRefcodeCornerParity                 :  1;    /*!< TSEN refcode parity */
     uint32_t tsenRefcodeCornerEn                     :  1;    /*!< TSEN refcode enable */
-    uint32_t reserved                                :  18;    /*!< TSEN analog trim:reserved */
+    uint32_t tsenRefcodeCornerVersion                :  1;    /*!< TSEN refcode version */
+    uint32_t reserved                                :  17;    /*!< TSEN analog trim:reserved */
 }Efuse_TSEN_Refcode_Corner_Type;
+
+/**
+ *  @brief Efuse analog ADC Gain trim type definition
+ */
+typedef struct {
+    uint32_t adcGainCoeff                            :  12;    /*!< ADC gain coeff */
+    uint32_t adcGainCoeffParity                      :  1;    /*!< ADC gain coeff parity */
+    uint32_t adcGainCoeffEn                          :  1;    /*!< ADC gain coeff enable */
+    uint32_t reserved                                :  18;    /*!< ADC gain coeff:reserved */
+}Efuse_ADC_Gain_Coeff_Type;
 
 /**
  *  @brief Efuse analog device info type definition
  */
 typedef struct {
-    uint32_t rsvd                                    :  20;    /*!< Reserved */
-    uint32_t customerID                              :  4;    /*!< Efuse customer ID information */
-    uint32_t rsvd_info                               :  3;    /*!< Efuse reserved */
-    uint32_t memoryInfo                              :  2;    /*!< Efuse memory info 0:no memory, 1:1MB PUYA flash, 2:2MB PUYA flash, 3:MXIC psram */
-    uint32_t coreInfo                                :  1;    /*!< Efuse core info 0:dual core, 1:single core */
+    uint32_t rsvd                                    :  22;    /*!< Reserved */
+    uint32_t customerID                              :  2;    /*!< Efuse customer ID information */
+    uint32_t rsvd_info                               :  3;    /*!< Efuse device info extension: 1:BL602C, 2:BL602L, 3:BL602E */
+    uint32_t memoryInfo                              :  2;    /*!< Efuse memory info 0:no memory, 1:1MB flash, 2:2MB flash */
+    uint32_t coreInfo                                :  1;    /*!< Efuse reserved */
     uint32_t mcuInfo                                 :  1;    /*!< Efuse mcu info 0:wifi, 1:mcu */
-    uint32_t pinInfo                                 :  1;    /*!< Efuse pin info 0:QFN40, 1:QFN56 */
+    uint32_t pinInfo                                 :  1;    /*!< Efuse pin info 0:QFN32, 1:QFN40 */
 }Efuse_Device_Info_Type;
 
 /**
@@ -268,6 +279,7 @@ void EF_Ctrl_Read_Ana_Trim( uint32_t index, uint32_t *trim);
 void EF_Ctrl_Read_RC32M_Trim( Efuse_Ana_RC32M_Trim_Type *trim);
 void EF_Ctrl_Read_RC32K_Trim( Efuse_Ana_RC32K_Trim_Type *trim);
 void EF_Ctrl_Read_TSEN_Trim( Efuse_TSEN_Refcode_Corner_Type *trim);
+void EF_Ctrl_Read_ADC_Gain_Trim( Efuse_ADC_Gain_Coeff_Type *trim);
 void EF_Ctrl_Write_Sw_Usage(uint32_t index, uint32_t usage,uint8_t program);
 void EF_Ctrl_Read_Sw_Usage( uint32_t index, uint32_t *usage);
 void EF_Ctrl_Writelock_Sw_Usage(uint32_t index, uint8_t program);

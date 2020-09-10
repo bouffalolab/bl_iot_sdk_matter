@@ -43,6 +43,7 @@
 #define HW_TIMER_IRQn      TIMER_CH0_IRQn
 #define HD_MS_TO_VAL       40000 
 
+#ifdef HAL_USE_HW_TIMER
 struct hw_timer_ctx {
     SemaphoreHandle_t hwtimer_mux;
     utils_dlist_t *pstqueue;
@@ -231,3 +232,44 @@ int hal_hwtimer_change_period(hw_timer_t *pstnode, uint32_t period)
     xSemaphoreGive(pstctx->hwtimer_mux);
     return ret;
 }
+#else
+/*HW Timer based on FreeRTOS Software timer which using mtimer on RISC-V platform*/
+int hal_hwtimer_init(void)
+{
+    return 0;
+}
+
+hw_timer_t *hal_hwtimer_create(uint32_t period, hw_t handler, int repeat)
+{
+    TimerHandle_t handle;
+
+    handle = xTimerCreate(
+                "hw_timer",
+                pdMS_TO_TICKS(period),
+                pdTRUE,
+                &handle,//use stack ptr as timer ID
+                (TimerCallbackFunction_t)handler
+    );
+    if (handle) {
+         xTimerStart(handle, portMAX_DELAY);
+    }
+    return (hw_timer_t*)handle;
+}
+
+int hal_hwtimer_delete(hw_timer_t *pstnode)
+{
+    if (pdFALSE == xTimerDelete((TimerHandle_t)pstnode, portMAX_DELAY)) {
+        return -1;
+    }
+    return 0;
+}
+
+int hal_hwtimer_change_period(hw_timer_t *pstnode, uint32_t period)
+{
+    if (pdFALSE == xTimerChangePeriod( (TimerHandle_t)pstnode, pdMS_TO_TICKS(period), portMAX_DELAY)) {
+        return -1;
+    }
+    return 0;
+}
+
+#endif
