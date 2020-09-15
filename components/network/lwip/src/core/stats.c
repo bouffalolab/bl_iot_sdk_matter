@@ -205,10 +205,10 @@ stats_netstat(void *ctx)
     // foreach pcb lists
     for (curr_tcp = *_tcp_pcb_list[i]; curr_tcp != NULL; curr_tcp = curr_tcp->next) { 
       ipaddr_ntoa_r(&curr_tcp->local_ip, ip_str, sizeof ip_str);
-      LWIP_PLATFORM_DIAG(("TCP\t%s:%"U32_F"\t", ip_str, curr_tcp->local_port));
+      LWIP_PLATFORM_DIAG(("TCP\t%s:%"U16_F"\t", ip_str, curr_tcp->local_port));
       
       ipaddr_ntoa_r(&curr_tcp->remote_ip, ip_str, sizeof ip_str);
-      LWIP_PLATFORM_DIAG(("%s:%"U32_F"\t%s\r\n", ip_str, curr_tcp->remote_port, 
+      LWIP_PLATFORM_DIAG(("%s:%"U16_F"\t%s\r\n", ip_str, curr_tcp->remote_port, 
             tcp_debug_state_str(curr_tcp->state)));
     }
   }
@@ -218,10 +218,10 @@ stats_netstat(void *ctx)
   // UDP
   for (curr_udp = _udp_pcbs; curr_udp != NULL; curr_udp = curr_udp->next) {
     ipaddr_ntoa_r(&curr_udp->local_ip, ip_str, sizeof ip_str);
-    LWIP_PLATFORM_DIAG(("UDP\t%s:%"U32_F"\t", ip_str, curr_udp->local_port));
+    LWIP_PLATFORM_DIAG(("UDP\t%s:%"U16_F"\t", ip_str, curr_udp->local_port));
     
     ipaddr_ntoa_r(&curr_udp->remote_ip, ip_str, sizeof ip_str);
-    LWIP_PLATFORM_DIAG(("%s:%"U32_F"\r\n", ip_str, curr_udp->remote_port));
+    LWIP_PLATFORM_DIAG(("%s:%"U16_F"\r\n", ip_str, curr_udp->remote_port));
   }
 #endif
 

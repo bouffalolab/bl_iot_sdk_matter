@@ -51,6 +51,8 @@ extern "C" {
 #define  CODE_WIFI_ON_PROV_SCAN_START   18
 #define  CODE_WIFI_ON_PROV_STATE_GET    19
 #define  CODE_WIFI_ON_MGMR_DENOISE      20
+#define  CODE_WIFI_ON_AP_STA_ADD        21
+#define  CODE_WIFI_ON_AP_STA_DEL        22
 
 /* Network Event */
 #define EV_NETWORK EV_WIFI

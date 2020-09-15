@@ -21,6 +21,8 @@
 ////#define LWIP_IPV6_MLD           1
 #define LWIP_NUM_NETIF_CLIENT_DATA      1
 
+#define LWIP_ALTCP                      1
+#define LWIP_ALTCP_TLS                  1
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
  * use lwIP facilities.
@@ -29,6 +31,7 @@
 
 #define LWIP_TIMEVAL_PRIVATE    0
 
+#define LWIP_ALTCP                      1
 /**
  * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
  * this lets tcpip_input() grab the mutex for input packets as well,
@@ -37,7 +40,7 @@
  * ATTENTION: this does not work when tcpip_input() is called from
  * interrupt context!
  */
-#define LWIP_TCPIP_CORE_LOCKING_INPUT   1
+#define LWIP_TCPIP_CORE_LOCKING_INPUT   0
 
 /* ---------- Memory options ---------- */
 /* MEM_ALIGNMENT: should be set to the alignment of the CPU for which
@@ -241,16 +244,16 @@ a lot of data that needs to be copied, this should be set high. */
 */
 
 #define TCPIP_THREAD_NAME              "TCP/IP"
-#define TCPIP_THREAD_STACKSIZE          1000
+#define TCPIP_THREAD_STACKSIZE          4000
 #define TCPIP_MBOX_SIZE                 50
 #define DEFAULT_UDP_RECVMBOX_SIZE       2000
 #define DEFAULT_TCP_RECVMBOX_SIZE       2000
 #define DEFAULT_ACCEPTMBOX_SIZE         2000
 #define DEFAULT_THREAD_STACKSIZE        500
-#define TCPIP_THREAD_PRIO               (configMAX_PRIORITIES - 3) 
+#define TCPIP_THREAD_PRIO               (configMAX_PRIORITIES - 2) 
 
 #define LWIP_COMPAT_MUTEX               0
-#define LWIP_TCPIP_CORE_LOCKING         1
+#define LWIP_TCPIP_CORE_LOCKING         0
 #define LWIP_SOCKET_SET_ERRNO           1
 #define SO_REUSE                        1
 #define LWIP_TCP_KEEPALIVE              1

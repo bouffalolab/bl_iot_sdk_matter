@@ -27,6 +27,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include <FreeRTOS.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,9 +36,11 @@
 #include <time.h>
 #include <wifi_mgmr_ext.h>
 #include <lwip/tcpip.h>
-#include <lwip/sockets.h>
 #include <lwip/netdb.h>
 #include <lwip/tcp.h>
+#include <lwip/udp.h>
+#include <lwip/altcp.h>
+#include <lwip/altcp_tcp.h>
 #include <lwip/err.h>
 #include "atcmd/at_command.h"
 #include "at_private.h"
@@ -129,15 +132,30 @@ typedef struct {
   at_config_t cfg;
 } config_containner_t;
 
+enum socket_state {
+  SOCK_IDLE_CLOSE = 0,
+  SOCK_SERVER_LISTENING,
+  SOCK_CLIENT_CONNECTING,
+  SOCK_CLIENT_CONNECTED
+};
+
+enum socket_type {
+  SOCK_TYPE_TCP = 1,
+  SOCK_TYPE_UDP,
+  SOCK_TYPE_TLS
+};
+
 typedef struct {
   char ip[IP_ADDR_SIZE + 1];
   char hostname[AT_PARA_MAX_SIZE];
-  at_text_t type[4];
   u32 port;
-  s32 protocol;  // 1:TCP , 2:UDP
-  s32 fd;
-  u32 flag;
-  u32 ThreadHd;
+  enum socket_type protocol;  // 1:TCP , 2:UDP , 3:TLS
+  union {
+    struct udp_pcb *udp;
+    struct altcp_pcb *tcp;
+    struct altcp_pcb *tls;
+  } pcb;
+  enum socket_state status;
 } connect_t;
 
 typedef struct {
@@ -149,12 +167,14 @@ typedef struct {
   s32 mode;  // 0:no connections 1: sta connections 2:ap connections
 } system_status_t;
 
+#if 0
 typedef struct {
   u32 flag;
   s32 offset;
   s32 cnt;
   u8 buffer[SOCKET_CACHE_BUFFER_SIZE];
 } socket_cache_t;
+#endif
 
 typedef struct {
   s16 port;
@@ -165,13 +185,13 @@ typedef struct {
   u32 flag;
   s16 port;
   s32 protocol;
-  s32 conn_fd;
+  union {
+    struct altcp_pcb *tcp;
+    struct altcp_pcb *tls;
+    struct udp_pcb *udp;
+  } pcb;
 } server_ctrl_t;
 
-static socket_cache_t socket_cache[MAX_SOCKET_NUM + 1];
-
-//static TaskHandle_t g_server_thread;
-//static SemaphoreHandle_t g_server_mutex = NULL;
 static server_arg_t g_server_arg;
 static server_ctrl_t g_server_ctrl;
 // static system_status_t g_status;
@@ -183,6 +203,9 @@ static u32 g_server_enable = 0;
 static SemaphoreHandle_t g_server_sem;
 // static uint16_t net_evevt_state = NET_CTRL_MSG_NETWORK_DOWN;
 int is_disp_ipd = 1;
+
+// cipsend data totlen
+static int32_t cipsend_totlen = 0;
 
 enum atc_cwjap_cur_type {
   ATC_CWJAP_CUR_OK = 0,
@@ -1017,415 +1040,35 @@ static AT_ERROR_CODE peer(at_callback_para_t *para, at_callback_rsp_t *rsp)
 }
 #endif
 
-#define SOCKET_TASK_STACK_SIZE (1 * 1024)
-#define QLEN_ATCMDSEND 5
-
-static TaskHandle_t socket_task_handler[5];
-static QueueHandle_t q_SocketSend[5];
-
-static AT_ERROR_CODE socket_task_delete(int linkId) {
-  if (linkId >= MAX_SOCKET_NUM) {
-    return AEC_SOCKET_FAIL;
-  }
-  if (networks.connect[linkId].ThreadHd != 0) {
-      if (q_SocketSend[linkId]) {
-          vQueueDelete(q_SocketSend[linkId]);
-          q_SocketSend[linkId] = NULL;
-      }
-      networks.connect[linkId].ThreadHd = 0;
-      if (socket_task_handler[linkId]) {
-          vTaskDelete(socket_task_handler[linkId]);
-      }
-  }
-  return AEC_OK;
-}
-
 static AT_ERROR_CODE disconnect(s32 id) {
-  FUN_DEBUG("disconnect id = %d!\r\n", id);
-  if (networks.connect[id].flag) {
-    networks.connect[id].flag = 0;
-    at_dump("+IPS:%d,DISCONNECT", id);
-    vTaskDelay(pdMS_TO_TICKS(200));
+  if (id >= MAX_SOCKET_NUM) {
+    return AEC_OUT_OF_RANGE;
+  }
 
-    closesocket(networks.connect[id].fd);
-    FUN_DEBUG("disconnect closesocket id = %d!\r\n", id);
-    networks.connect[id].fd = -1;
-    networks.connect[id].flag = 0;
+  at_dump("+IPS:%d,-1\r\n", id);
+
+  connect_t *connect = &networks.connect[id];
+  
+  FUN_DEBUG("disconnect id = %d!\r\n", id);
+  if (connect->status != SOCK_IDLE_CLOSE) {
+    connect->status = SOCK_IDLE_CLOSE; 
+
+    // choose the right way to close
+    if (connect->protocol == SOCK_TYPE_UDP){ // UDP
+      udp_remove(connect->pcb.udp);
+      connect->pcb.udp = NULL;
+    } else if (connect->protocol == SOCK_TYPE_TCP || connect->protocol == SOCK_TYPE_TLS) { // TCP or TLS
+      altcp_close(connect->pcb.tcp);
+      connect->pcb.tcp = NULL;
+    }
+    connect->protocol = 0;
     networks.count--;
-    socket_task_delete((int)id);
     return AEC_OK;
   }
   return AEC_DISCONNECT;
 }
 
-static TaskHandle_t OS_Thread_sockon_handler;
-static QueueHandle_t OS_queue_sockon_handler;
-AT_ERROR_CODE socket_task_create(int linkId);
-typedef struct {
-  at_callback_para_t para;
-  at_callback_rsp_t rsp;
-} at_sockontask_para_t;
-at_sockontask_para_t sockontask_data;
-
-static void sockon_task(void *arg) {
-  AT_ERROR_CODE ret;
-  BaseType_t status;
-  at_sockontask_para_t sockpara;
-
-  while (1) {
-    status = xQueueReceive(OS_queue_sockon_handler, &sockpara, portMAX_DELAY);
-    if (status == pdPASS) {
-      ret = sockon(&sockpara.para, &sockpara.rsp);
-      if (AEC_OK == ret) {
-        ret = socket_task_create(sockpara.para.u.net_param.linkId);
-      }
-      if (AEC_SOCKET_EXISTING == ret) {
-        at_dump("+IPS:%d,ALREADY CONNECTED ERROR", sockpara.para.u.net_param.linkId);
-      }
-      // FIXME(Zhuoran) fd => linkId
-      if (AEC_OK == ret) {
-        at_dump("+IPS:%d,CONNECTED", sockpara.para.u.net_param.linkId);
-      } else {
-        at_dump("+IPS:%d,FAILED", sockpara.para.u.net_param.linkId);
-      }
-      ret = AEC_UNDEFINED;
-      memset(&sockpara, 0, sizeof(at_sockontask_para_t));
-    }
-  }
-}
 #if 0
-static void __server_task_entry(void *arg)
-{
-    server_arg_t *server_arg;
-
-    server_arg = arg;
-
-    do {
-        if (server_arg->protocol == 0) { /* TCP */
-            struct sockaddr_in server_addr;
-            struct sockaddr_in conn_addr;
-            int sock_fd;                  /* server socked */
-            int sock_conn;        /* request socked */
-            socklen_t addr_len;
-            int err;
-            int option;
-
-            sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-            if (sock_fd == -1) {
-                FUN_DEBUG("failed to create sock_fd!\r\n");
-                break;
-            }
-
-            server_mutex_lock();
-            g_server_net.sock_fd = sock_fd;
-            server_mutex_unlock();
-
-            FUN_DEBUG("sock fd = %d\r\n", sock_fd);
-
-            memset(&server_addr, 0, sizeof(server_addr));
-            server_addr.sin_family = AF_INET;
-            server_addr.sin_addr.s_addr =htonl(INADDR_ANY);
-            server_addr.sin_port = htons(server_arg->port);
-
-            option = 1;
-            if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&option, sizeof(option)) < 0) {
-                FUN_DEBUG("failed to setsockopt sock_fd!\r\n");
-                closesocket(sock_fd);
-                break;
-            }
-
-            option = 1;
-            if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEPORT, (char *)&option, sizeof(option)) < 0) {
-                FUN_DEBUG("failed to setsockopt sock_fd!\r\n");
-                closesocket(sock_fd);
-                break;
-            }
-
-            err = bind(sock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-            if (err < 0) {
-                FUN_DEBUG("bind err = %d\r\n", err);
-                FUN_DEBUG("failed to bind sock_fd!\r\n");
-                closesocket(sock_fd);
-                break;
-            }
-
-            err = listen(sock_fd, 1);
-            if (err < 0) {
-                FUN_DEBUG("failed to listen sock_fd!\r\n");
-                closesocket(sock_fd);
-                break;
-            }
-
-            addr_len = sizeof(struct sockaddr_in);
-
-            while (1) {
-                if (xSemaphoreTake(g_server_sem, portMAX_DELAY) != pdTRUE)
-                    continue;
-
-                FUN_DEBUG("before accept!\r\n");
-                sock_conn = accept(sock_fd, (struct sockaddr *)&conn_addr, &addr_len);
-                FUN_DEBUG("after accept!\r\n");
-
-                if (sock_conn > 0) {
-                    server_mutex_lock();
-                    g_server_net.flag = 1;
-                    g_server_net.conn_fd = sock_conn;
-                    server_mutex_unlock();
-                }
-
-                FUN_DEBUG("conn fd = %d\r\n", sock_conn);
-            }
-        } else if (server_arg->protocol == 1) { /* UDP */
-            /* do nothing */
-        }
-    } while (0);
-
-    server_mutex_lock();
-    g_server_net.flag = 0;
-    g_server_net.sock_fd = -1;
-    g_server_net.conn_fd = -1;
-    server_mutex_unlock();
-
-    FUN_DEBUG("%s() end\r\n", __func__);
-    vTaskDelete(g_server_thread);
-}
-#endif
-static AT_ERROR_CODE sockon(at_callback_para_t *para, at_callback_rsp_t *rsp) {
-  int type;
-  int family;
-  struct addrinfo hints_tcp = {0, AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, NULL, NULL, NULL};
-  struct addrinfo hints_udp = {0, AF_INET, SOCK_DGRAM, IPPROTO_UDP, 0, NULL, NULL, NULL};
-
-  int rc = -1;
-  struct sockaddr_in address;
-  struct addrinfo *result = NULL;
-  s32 id = -1;
-  int fd = 0;
-
-  int socketid = para->u.net_param.linkId;
-
-  rsp->status = 0;
-
-  if (socketid >= 4) return AEC_PARA_ERROR;
-
-  if (networks.connect[socketid].flag) {
-    sprintf(rsp->vptr, "ALREADY CONNECT");
-    rsp->type = 1;
-    rsp->status = 1;
-    return AEC_SOCKET_EXISTING;
-  }
-
-  strncpy(networks.connect[socketid].type, para->u.net_param.type, 4);
-  /*
-      if (networks.connect[socketid].fd != -1) {
-          return AEC_SOCKET_FAIL;
-      }
-  */
-
-  strncpy(networks.connect[socketid].ip, para->u.net_param.hostname, IP_ADDR_SIZE);
-  networks.connect[socketid].port = para->u.net_param.port;
-
-  if (strcmp(para->u.net_param.networkType, "TCP") == 0) {
-    networks.connect[socketid].protocol = 0;
-  } else if (strcmp(para->u.net_param.networkType, "UDP") == 0) {
-    networks.connect[socketid].protocol = 1;
-  } else {
-    return AEC_PARA_ERROR;
-  }
-
-  if (networks.connect[socketid].protocol == 0) { /* TCP */
-    type = SOCK_STREAM;
-    family = AF_INET;
-    if ((rc = getaddrinfo(networks.connect[socketid].ip, NULL, &hints_tcp, &result)) == 0) {
-      struct addrinfo *res = result;
-
-      while (res) {
-        if (res->ai_family == family) {
-          result = res;
-          break;
-        }
-        res = res->ai_next;
-      }
-
-      if (result->ai_family == family) {
-        address.sin_port = htons(networks.connect[socketid].port);
-        address.sin_family = family;
-        address.sin_addr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr;
-      } else
-        rc = -1;
-
-      freeaddrinfo(result);
-    }
-
-    if (rc == 0) {
-      fd = socket(family, type, 0);
-      if (fd < 0) return AEC_SOCKET_FAIL;
-
-      rc = connect(fd, (struct sockaddr *)&address, sizeof(address));
-      if (rc < 0) {
-        closesocket(fd);
-        return AEC_CONNECT_FAIL;
-      }
-
-    } else {
-      return AEC_CONNECT_FAIL;
-    }
-
-    networks.connect[socketid].fd = fd;
-    networks.connect[socketid].flag = 1;
-
-    networks.count++;
-
-    memset(&socket_cache[socketid], 0, sizeof(socket_cache_t));
-
-    rsp->type = 0;
-    return AEC_OK;
-  } else if (networks.connect[socketid].protocol == 1) { /* UDP */
-    type = SOCK_DGRAM;
-    family = AF_INET;
-    if ((rc = getaddrinfo(networks.connect[socketid].ip, NULL, &hints_udp, &result)) == 0) {
-      struct addrinfo *res = result;
-
-      while (res) {
-        if (res->ai_family == family) {
-          result = res;
-          FUN_DEBUG("sockon UDP getaddrinfo aifamily!\r\n");
-          break;
-        }
-        res = res->ai_next;
-      }
-
-      if (result->ai_family == family) {
-        address.sin_port = htons(networks.connect[socketid].port);
-        address.sin_family = family;
-        address.sin_addr.s_addr = htonl(INADDR_ANY);
-      } else
-        rc = -1;
-
-      freeaddrinfo(result);
-    }
-
-    if (rc == 0) {
-      fd = socket(family, type, 0);
-      if (fd < 0) return AEC_SOCKET_FAIL;
-
-      /* for receive */
-      FUN_DEBUG("sockon UDP bind address prot = %d!\r\n", networks.connect[socketid].port);
-      rc = bind(fd, (struct sockaddr *)&address, sizeof(address));
-      if (rc < 0) {
-        closesocket(fd);
-        return AEC_BIND_FAIL;
-      }
-    } else {
-      return AEC_BIND_FAIL;
-    }
-
-    networks.connect[socketid].fd = fd;
-    networks.connect[socketid].flag = 1;
-
-    networks.count++;
-
-    memset(&socket_cache[socketid], 0, sizeof(socket_cache_t));
-
-    rsp->type = 0;
-    rsp->vptr = (void *)id;
-
-    return AEC_OK;
-  }
-  return AEC_CMD_FAIL;
-}
-
-#if 0
-static AT_ERROR_CODE sockw(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    s32 id;
-    u8 *buffer;
-    s32 len;
-    struct sockaddr_in address;
-    s32 timeout_ms = 10;
-    int sentLen = 0;
-
-    id = para->u.sockw.id;
-    buffer = para->u.sockw.buf;
-    len = para->u.sockw.len;
-
-    if (networks.count > 0) {
-        if (networks.connect[id].flag) {
-            if (networks.connect[id].protocol == 0) { /* TCP */
-                int rc = -1;
-                fd_set fdset;
-                struct timeval tv;
-
-                FD_ZERO(&fdset);
-                FD_SET(networks.connect[id].fd, &fdset);
-
-                tv.tv_sec = timeout_ms / 1000;
-                tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-                rc = select(networks.connect[id].fd + 1, NULL, &fdset, NULL, &tv);
-                if (rc > 0) {
-                    if ((rc = send(networks.connect[id].fd, buffer, len, 0)) > 0)
-                        sentLen = rc;
-                    else if (rc == 0) {
-                        disconnect(id);
-                        sentLen = -1; /* disconnected with server */
-                    } else {
-                        sentLen = -2; /* network error */
-                    }
-                } else if (rc == 0) {
-                    sentLen = 0; /* timeouted and sent 0 bytes */
-                } else {
-                    sentLen = -2; /* network error */
-                }
-            } else if (networks.connect[id].protocol == 1) { /* UDP */
-                int rc = -1;
-                fd_set fdset;
-                struct timeval tv;
-
-                FD_ZERO(&fdset);
-                FD_SET(networks.connect[id].fd, &fdset);
-
-                tv.tv_sec = timeout_ms / 1000;
-                tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-                address.sin_port = htons(networks.connect[id].port);
-                address.sin_family = AF_INET;
-                address.sin_addr.s_addr= inet_addr(networks.connect[id].ip);
-
-                rc = select(networks.connect[id].fd + 1, NULL, &fdset, NULL, &tv);
-                if (rc > 0) {
-                    if ((rc = sendto(networks.connect[id].fd, buffer, len, 0, (struct sockaddr *)&address, sizeof(address))) > 0)
-                        sentLen = rc;
-                    else if (rc == 0) {
-                        disconnect(id);
-                        sentLen = -1; /* disconnected with server */
-                    } else {
-                        sentLen = -2; /* network error */
-                    }
-                } else if (rc == 0) {
-                    sentLen = 0; /* timeouted and sent 0 bytes */
-                } else {
-                    sentLen = -2; /* network error */
-                }
-            }
-        } else {
-            return AEC_DISCONNECT;
-        }
-    } else {
-        return AEC_DISCONNECT;
-    }
-
-    if (sentLen == -1) {
-        return AEC_DISCONNECT;
-    } else if (sentLen == -2) {
-        return AEC_NETWORK_ERROR;
-    } else if (sentLen == len) {
-        return AEC_OK;
-    } else {
-        return AEC_SEND_FAIL;
-    }
-}
-
 
 typedef struct Timer Timer;
 
@@ -1471,415 +1114,6 @@ static int left_ms(Timer* timer)
 static char expired(Timer* timer)
 {
     return 0 <= (int)OS_TicksToMSecs(OS_GetTicks()) - (int)(timer->end_time); /* is time_now over than end time */
-}
-
-static AT_ERROR_CODE read_socket(s32 id)
-{
-    int recvLen = 0;
-    int leftms;
-    int rc = -1;
-    struct timeval tv;
-    Timer timer;
-    fd_set fdset;
-    struct sockaddr_in address;
-    socklen_t addr_len;
-
-    u8 *buffer;
-    s32 len;
-    s32 timeout_ms = 10;
-
-    buffer = socket_cache[id].buffer;
-    len = SOCKET_CACHE_BUFFER_SIZE;
-
-    countdown_ms(&timer, timeout_ms);
-
-    do {
-        leftms = left_ms(&timer);
-        tv.tv_sec = leftms / 1000;
-        tv.tv_usec = (leftms % 1000) * 1000;
-
-        FD_ZERO(&fdset);
-        FD_SET(networks.connect[id].fd, &fdset);
-
-        rc = select(networks.connect[id].fd + 1, &fdset, NULL, NULL, &tv);
-        if (rc > 0) {
-            if (networks.connect[id].protocol == 0) { /* TCP */
-                rc = recv(networks.connect[id].fd, buffer + recvLen, len - recvLen, 0);
-            } else if (networks.connect[id].protocol == 1) { /* UDP */
-                address.sin_port = htons(networks.connect[id].port);
-                address.sin_family = AF_INET;
-                address.sin_addr.s_addr= inet_addr(networks.connect[id].ip);
-
-                addr_len = sizeof(address);
-
-                rc = recvfrom(networks.connect[id].fd, buffer + recvLen, len - recvLen, 0, (struct sockaddr *)&address, &addr_len);
-            }
-
-            if (rc > 0) {
-                /* received normally */
-                recvLen += rc;
-            } else if (rc == 0) {
-                /* has disconnected with server */
-                recvLen = -1;
-                break;
-            } else {
-                /* network error */
-                recvLen = -2;
-                break;
-            }
-        } else if (rc == 0) {
-            /* timeouted and return the length received */
-            break;
-        } else {
-            /* network error */
-            recvLen = -2;
-            break;
-        }
-    } while (recvLen < len && !expired(&timer)); /* expired() is redundant? */
-
-    if (recvLen >= 0) {
-        if (recvLen > 0) {
-            socket_cache[id].cnt = recvLen;
-            socket_cache[id].offset = 0;
-            socket_cache[id].flag = 1;
-        }
-
-        return AEC_OK;
-    } else if (recvLen == -1) {
-        return AEC_DISCONNECT;
-    } else if (recvLen == -2) {
-        return AEC_NETWORK_ERROR;
-    } else {
-        return AEC_UNDEFINED;
-    }
-}
-
-static AT_ERROR_CODE sockq(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    AT_ERROR_CODE aec;
-    s32 id;
-
-    id = para->u.sockq.id;
-
-    if (networks.count > 0) {
-        if (networks.connect[id].flag) {
-            if (socket_cache[id].flag) {
-                rsp->type = 0;
-                rsp->vptr = (void *)socket_cache[id].cnt;
-
-                return AEC_OK;
-            }
-
-            aec = read_socket(id);
-            if (aec != AEC_OK) {
-                return aec;
-            }
-
-            if (socket_cache[id].flag) {
-                rsp->type = 0;
-                rsp->vptr = (void *)socket_cache[id].cnt;
-
-                return AEC_OK;
-            } else {
-                rsp->type = 0;
-                rsp->vptr = (void *)0;
-
-                return AEC_OK;
-            }
-        } else {
-            return AEC_DISCONNECT;
-        }
-    } else {
-        return AEC_DISCONNECT;
-    }
-}
-
-static AT_ERROR_CODE sockr(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    AT_ERROR_CODE aec;
-    s32 id;
-    u8 *buffer;
-    s32 len,rlen;
-
-    id = para->u.sockr.id;
-    len = para->u.sockr.len;
-
-    if (networks.count > 0) {
-        if (networks.connect[id].flag) {
-            /* FUN_DEBUG("len = %d\r\n", len); */
-            if (len > 0) {
-                if (!socket_cache[id].flag) {
-
-                    aec = read_socket(id);
-                    if (aec != AEC_OK) {
-                        return aec;
-                    }
-                }
-
-                if (socket_cache[id].flag) {
-                    buffer = socket_cache[id].buffer;
-                    rlen = len < socket_cache[id].cnt ? len : socket_cache[id].cnt;
-
-                    serial_write(&buffer[socket_cache[id].offset], rlen);
-
-                    socket_cache[id].cnt -= rlen;
-                    socket_cache[id].offset += rlen;
-                    len -= rlen;
-
-                    if (socket_cache[id].cnt <= 0) {
-                        socket_cache[id].flag = 0;
-                    }
-                }
-            }
-        } else {
-            return AEC_DISCONNECT;
-        }
-    } else {
-        return AEC_DISCONNECT;
-    }
-
-    return AEC_OK;
-}
-
-static AT_ERROR_CODE sockc(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    s32 id;
-
-    id = para->u.sockc.id;
-
-    if (networks.count > 0) {
-        if (networks.connect[id].flag) {
-            closesocket(networks.connect[id].fd);
-            networks.connect[id].flag = 0;
-            networks.count--;
-
-            return AEC_OK;
-        }
-    }
-
-    return AEC_DISCONNECT;
-}
-#endif
-static int serversock_fd = -1;   /* server socked */
-static TaskHandle_t server_task_handle = NULL;
-static void server_task(void *arg) {
-  server_arg_t *server_arg;
-  server_arg = arg;
-  int ret;
-
-  do {
-    if (server_arg->protocol == 0) { /* TCP */
-      struct sockaddr_in server_addr;
-      struct sockaddr_in conn_addr;
-      int sock_conn; /* request socked */
-      socklen_t addr_len;
-      int err;
-      int option;
-
-      serversock_fd = socket(AF_INET, SOCK_STREAM, 0);
-      if (serversock_fd == -1) {
-        FUN_DEBUG("failed to create sock_fd!\r\n");
-        break;
-      }
-
-      FUN_DEBUG("sock fd = %d\r\n", sock_fd);
-
-      memset(&server_addr, 0, sizeof(server_addr));
-      server_addr.sin_family = AF_INET;
-      server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-      server_addr.sin_port = htons(server_arg->port);
-
-      option = 1;
-      if (setsockopt(serversock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&option, sizeof(option)) < 0) {
-        FUN_DEBUG("failed to setsockopt sock_fd!\r\n");
-        closesocket(serversock_fd);
-        break;
-      }
-
-//      option = 1;
-//      if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEPORT, (char *)&option, sizeof(option)) < 0) {
-//        FUN_DEBUG("failed to setsockopt sock_fd!\r\n");
-//        closesocket(sock_fd);
-//        break;
-//      }
-
-      err = bind(serversock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-      if (err < 0) {
-        FUN_DEBUG("bind err = %d\r\n", err);
-        FUN_DEBUG("failed to bind sock_fd!\r\n");
-        closesocket(serversock_fd);
-        break;
-      }
-
-      err = listen(serversock_fd, 1);
-      if (err < 0) {
-        FUN_DEBUG("failed to listen sock_fd!\r\n");
-        closesocket(serversock_fd);
-        break;
-      }
-
-      addr_len = sizeof(struct sockaddr_in);
-
-      // FIXME(Zhuoran) 此处阻塞在accept上，然后停掉server，g_server_enable=0，但是accept未跳出
-      // 然后又来一次CIPSERVER
-      while (g_server_enable) {
-        int linkId;
-
-        FUN_DEBUG("before accept!\r\n");
-        sock_conn = accept(serversock_fd, (struct sockaddr *)&conn_addr, &addr_len);
-        FUN_DEBUG("after accept!\r\n");
-
-        FUN_DEBUG("conn fd = %d\r\n", sock_conn);
-        for (linkId = 0; linkId < MAX_SOCKET_NUM; linkId++) {
-          if (networks.connect[linkId].flag == 0){
-            memset(&networks.connect[linkId], 0, sizeof(networks.connect[linkId]));
-            break;
-          }
-        }
-        if (networks.connect[linkId].flag != 0) {
-          // TODO no avaliable connect slot
-          // 关闭Server Socket
-          break;
-        }
-        networks.count++;
-
-        // set connect parameter
-        networks.connect[linkId].fd = sock_conn;
-        networks.connect[linkId].flag = 1;
-        networks.connect[linkId].protocol = 0;
-        networks.connect[linkId].port = conn_addr.sin_port;
-        // FIXME(Zhuoran.rong) add peer ip address
-        // networks.connect[linkId].ip = conn_addr.sin_port;
-        strcpy(networks.connect[linkId].type, "TCP");
-
-        ret = socket_task_create(linkId);
-        if (AEC_OK == ret) {
-          at_dump("+IPS:%d,CONNECTED", linkId);
-        } else {
-          at_dump("+IPS:%d,FAILED", linkId);
-        }
-      }
-
-      closesocket(serversock_fd);
-    } else if (server_arg->protocol == 1) { /* UDP */
-                                            /* do nothing */
-    }
-  } while (0);
-  
-
-  FUN_DEBUG("%s() end\r\n", __func__);
-  vTaskDelete(NULL);
-}
-
-#if 0
-static AT_ERROR_CODE sockd(at_callback_para_t *para, at_callback_rsp_t *rsp)
-{
-    s16 port;
-    s32 protocol;
-
-    port = para->u.sockd.port;
-    protocol = para->u.sockd.protocol;
-
-    if (port > 0) {
-        if (!g_server_enable) {
-            g_server_arg.port = para->u.sockd.port;
-            g_server_arg.protocol = para->u.sockd.protocol;
-            memset(&socket_cache[MAX_SOCKET_NUM], 0,sizeof(socket_cache_t));
-
-            if (protocol == 0) { /* TCP */
-                server_mutex_lock();
-                g_server_net.flag = 0;
-                g_server_net.sock_fd = -1;
-                g_server_net.conn_fd = -1;
-                server_mutex_unlock();
-
-                if (OS_SemaphoreCreate(&g_server_sem, 1, 1) != OS_OK) {
-                    FUN_DEBUG("create semaphore failed\r\n");
-
-                    return AEC_UNDEFINED;
-                }
-
-                if (OS_ThreadCreate(&g_server_thread,
-                                    "",
-                                    server_task,
-                                    &g_server_arg,
-                                    OS_PRIORITY_NORMAL,
-                                    SERVER_THREAD_STACK_SIZE) != OS_OK) {
-                    FUN_DEBUG("create server task failed\r\n");
-
-                    return AEC_UNDEFINED;
-                }
-
-                memset(&g_server_ctrl, 0, sizeof(g_server_ctrl));
-            } else if (protocol == 1) { /* UDP */
-                struct sockaddr_in  address;
-                int rc;
-                int fd;
-
-                fd = socket(AF_INET, SOCK_DGRAM, 0);
-                if (fd < 0) {
-                    return AEC_SOCKET_FAIL;
-                }
-
-                memset(&address, 0, sizeof(address));
-                address.sin_family = AF_INET;
-                address.sin_addr.s_addr =htonl(INADDR_ANY);
-                address.sin_port = htons(port);
-                /* for receive */
-                rc = bind(fd, (struct sockaddr *)&address, sizeof(address));
-                if (rc < 0) {
-                    closesocket(fd);
-                    return AEC_BIND_FAIL;
-                }
-
-                server_mutex_lock();
-                g_server_net.flag = 1;
-                g_server_net.sock_fd = -1;
-                g_server_net.conn_fd = fd;
-                server_mutex_unlock();
-            }
-
-            g_server_enable = 1;
-
-            return AEC_OK;
-        }
-    } else if (g_server_enable) {
-        u32 flag;
-        s32 sock_fd,conn_fd;
-
-        server_mutex_lock();
-        flag = g_server_net.flag;
-        sock_fd = g_server_net.sock_fd;
-        conn_fd = g_server_net.conn_fd;
-        server_mutex_unlock();
-
-        if (g_server_arg.protocol == 0) { /* TCP */
-            if (sock_fd != -1) {
-                FUN_DEBUG("close fd = %d\r\n", sock_fd);
-                closesocket(sock_fd);
-            }
-
-            if (flag) {
-                FUN_DEBUG("close fd = %d\r\n", conn_fd);
-                closesocket(conn_fd);
-            }
-
-            OS_SemaphoreDelete(&g_server_sem);
-            OS_ThreadDelete(&g_server_thread);
-
-        } else if (g_server_arg.protocol == 1) { /* UDP */
-            if (flag) {
-                FUN_DEBUG("close fd = %d\r\n", conn_fd);
-                closesocket(conn_fd);
-            }
-        }
-
-        g_server_enable = 0;
-
-        return AEC_OK;
-    }
-
-    return AEC_UNDEFINED;
 }
 
 static AT_ERROR_CODE wifi(at_callback_para_t *para, at_callback_rsp_t *rsp)
@@ -2487,6 +1721,19 @@ static AT_ERROR_CODE cipdomain(at_callback_para_t *para, at_callback_rsp_t *rsp)
 
 #endif
 
+static const char *get_socket_type(enum socket_type type){
+  switch (type) {
+    case SOCK_TYPE_UDP:
+      return "UDP";
+    case SOCK_TYPE_TCP:
+      return "TCP";
+    case SOCK_TYPE_TLS:
+      return "SSL";
+    default:
+      return "UNKNOW";
+  }
+}
+
 static AT_ERROR_CODE cipstatus(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
     uint16_t connect_cnt;
@@ -2494,10 +1741,10 @@ static AT_ERROR_CODE cipstatus(at_callback_para_t *para, at_callback_rsp_t *rsp)
     FUN_DEBUG("----->\r\n");
 
     for (connect_cnt = 0; connect_cnt < MAX_SOCKET_NUM; connect_cnt++) {
-        if (networks.connect[connect_cnt].flag) {
+        if (networks.connect[connect_cnt].status != SOCK_IDLE_CLOSE) {
             at_dump("+CIPSTART:%d,%s,%s,%d",
                     connect_cnt,
-                    networks.connect[connect_cnt].type,
+                    get_socket_type(networks.connect[connect_cnt].protocol),
                     networks.connect[connect_cnt].ip,
                     networks.connect[connect_cnt].port);
         }
@@ -2579,190 +1826,223 @@ static AT_ERROR_CODE set_apcfg(at_callback_para_t * para, at_callback_rsp_t * rs
     return AEC_OK;
 }
 
-typedef struct SocketSend_queueinf_def {
-  int datalen;
-  uint8_t *p_senddata;
-} SocketSend_queueinf_t;
 
-void socket0_task(void *pvParameters) {
-  SocketSend_queueinf_t sendinf;
-  int rc = -1;
-  fd_set fdset;
-  s32 timeout_ms = 100;
+static err_t tcp_receive_callback(void *arg, struct altcp_pcb *conn, struct pbuf *p, err_t err) {
+  int linkid = (int)arg;
+  struct pbuf *pt;
 
-  fd_set frset;
-  struct sockaddr_in address;
-  socklen_t addr_len;
-
-  struct timeval tv;
-
-  uint8_t id = (u32)pvParameters;
-  q_SocketSend[id] = xQueueCreate(QLEN_ATCMDSEND, sizeof(SocketSend_queueinf_t));
-  if (q_SocketSend[id] == NULL) {
-    printf("create queue %d failed\r\n", id);
-    return;
+  if (linkid >= MAX_SOCKET_NUM) {
+    printf("receive callback arg error!!!!\r\n");
+    return ERR_ARG;
   }
-
-  while (1) {
-    // 断开连接了，flag=0
-    if (networks.connect[id].flag == 0) {
-      xQueueReceive(q_SocketSend[id], &sendinf, pdMS_TO_TICKS(1));
-      vTaskDelay(pdMS_TO_TICKS(100));
-      continue;
-    }
-    if (xQueueReceive(q_SocketSend[id], &sendinf, pdMS_TO_TICKS(100)) == pdTRUE) {
-      if (networks.connect[id].fd == -1) {
-        at_dump("SOCKET %d ERROR", id);
-        free(sendinf.p_senddata);
-        continue;
-      }
-
-      if (networks.connect[id].protocol == 0) { /* TCP */
-
-        FD_ZERO(&fdset);
-        FD_SET(networks.connect[id].fd, &fdset);
-
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;
-        
-        // XXX 既然用了select了，为什么还每个socket创建一个线程？
-        rc = select(networks.connect[id].fd + 1, NULL, &fdset, NULL, &tv);
-        if (rc > 0) {
-          if ((rc = send(networks.connect[id].fd, sendinf.p_senddata, sendinf.datalen, 0)) > 0) {
-            at_dump("+IPS:%d,OK", id);
-          } else if (rc == 0) {
-            disconnect(id);
-          } else {
-            disconnect(id);
-          }
-        } else if (rc == 0) {
-          at_dump("+IPS:%d,TIMEOUT", id);
-        } else {
-          disconnect(id);
-        }
-      } else if (networks.connect[id].protocol == 1) { /* UDP */
-        FD_ZERO(&fdset);
-        FD_SET(networks.connect[id].fd, &fdset);
-
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-        address.sin_port = htons(networks.connect[id].port);
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = inet_addr(networks.connect[id].ip);
-
-        rc = select(networks.connect[id].fd + 1, NULL, &fdset, NULL, &tv);
-        if (rc > 0) {
-          if ((rc = sendto(networks.connect[id].fd, sendinf.p_senddata, sendinf.datalen, 0,
-                           (struct sockaddr *)&address, sizeof(address))) > 0) {
-            at_dump("+IPS:%d,OK", id);
-          } else if (rc == 0) {
-            disconnect(id);
-          } else {
-            disconnect(id);
-          }
-        } else if (rc == 0) {
-          at_dump("+IPS:%d,TIMEOUT", id);
-        } else {
-          disconnect(id);
-        }
-      }
-      free(sendinf.p_senddata);
-    }
-
-    tv.tv_sec = timeout_ms / 1000;
-    tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-    FD_ZERO(&frset);
-    FD_SET(networks.connect[id].fd, &frset);
-    memset(socket_cache[id].buffer, 0, SOCKET_CACHE_BUFFER_SIZE);
-    rc = select(networks.connect[id].fd + 1, &frset, NULL, NULL, &tv);
-    if (rc > 0) {
-      if (networks.connect[id].protocol == 0) { /* TCP */
-        rc = recv(networks.connect[id].fd, socket_cache[id].buffer, SOCKET_CACHE_BUFFER_SIZE, 0);
-      } else if (networks.connect[id].protocol == 1) { /* UDP */
-        address.sin_port = htons(networks.connect[id].port);
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = inet_addr(networks.connect[id].ip);
-
-        addr_len = sizeof(address);
-
-        rc = recvfrom(networks.connect[id].fd, socket_cache[id].buffer, SOCKET_CACHE_BUFFER_SIZE, 0,
-                      (struct sockaddr *)&address, &addr_len);
-      }
-
-      if (rc > 0) {
-        at_serial_lock();
-        at_dump("+IPD:%d,%d", id, rc);
-        at_data_output((char *)socket_cache[id].buffer, rc);
-        at_serial_unlock();
-
-      } else if (rc == 0) {
-        disconnect(id);
-      } else {
-        disconnect(id);
-      }
-    } else if (rc == 0) {
-    } else {
-      disconnect(id);
-    }
+  if (networks.connect[linkid].status != SOCK_CLIENT_CONNECTED) {
+    printf("linkid %d connection status error!\r\n", linkid);
+    return ERR_CONN;
   }
+  if (p == NULL){
+    networks.connect[linkid].status = SOCK_IDLE_CLOSE;
+    at_dump("+IPS:%d,CLOSED", linkid);
+    altcp_close(networks.connect[linkid].pcb.tcp);
+    networks.connect[linkid].pcb.tcp = NULL;
+
+    return ERR_OK;
+  }
+  at_serial_lock();
+  at_dump("+IPD:");
+  if (is_disp_ipd == 1) at_dump("%d,%d\r\n", linkid, p->tot_len);
+  for (pt = p; pt; pt = pt->next) {
+    at_data_output((char *)pt->payload, pt->len);
+  }
+  at_serial_unlock();
+  // release recv window size
+  altcp_recved(networks.connect[linkid].pcb.tcp, p->tot_len);
+  //XXX(Zhuoran) pbuf need free?
+  pbuf_free(p);
+  return ERR_OK;
 }
 
-AT_ERROR_CODE socket_task_create(int linkId) {
-  char task_name[16] = {0};
+static err_t tcp_sent_callback(void *arg, struct altcp_pcb *conn, u16_t len) {
+  int linkid = (int)arg;
+  if (linkid >= MAX_SOCKET_NUM) {
+    printf("receive callback arg error!!!!\r\n");
+    return ERR_ARG;
+  }
+  if (networks.connect[linkid].status != SOCK_CLIENT_CONNECTED) {
+    printf("linkid %d connection status error!\r\n", linkid);
+    return ERR_CONN;
+  }
+  printf("linkid %d peer acknowlege %d\r\n", linkid, len);
+  cipsend_totlen -= len;
+  if (cipsend_totlen <= 0){
+    at_dump("+IPS:%d,SEND DONE\n", linkid);
+  }
+  
+  return ERR_OK;
+}
 
-  if (linkId >= MAX_SOCKET_NUM) {
-    return AEC_SOCKET_FAIL;
+// in this case, the pcb already freed
+static void tcp_err_callback(void *arg, err_t err) {
+  int linkid = (int)arg;
+  if (linkid >= MAX_SOCKET_NUM) {
+    printf("connected callback arg error!!!!\r\n");
+    return ERR_ARG;
   }
 
-  sprintf(task_name, "socket%d_task", linkId);
-  if (networks.connect[linkId].ThreadHd == 0) {
-    if (xTaskCreate(socket0_task, task_name, SOCKET_TASK_STACK_SIZE, ((void *)linkId), 3,
-                    &socket_task_handler[linkId]) != pdPASS) {
-      FUN_DEBUG("socket task create error\r\n");
-      return AEC_SOCKET_FAIL;
-    }
-    networks.connect[linkId].ThreadHd = 1;
-  }
+  networks.connect[linkid].status = SOCK_IDLE_CLOSE;
+  at_dump("+IPS:%d,FAILED", linkid);
+  networks.connect[linkid].pcb.tcp = NULL;
+  return ERR_OK;
+}
 
-  return AEC_OK;
+static err_t tcp_connected_callback(void *arg, struct altcp_pcb *conn, err_t err) {
+  int linkid = (int)arg;
+  if (linkid >= MAX_SOCKET_NUM) {
+    printf("connected callback arg error!!!!\r\n");
+    return ERR_ARG;
+  }
+  if (err == ERR_OK) {
+    networks.connect[linkid].status = SOCK_CLIENT_CONNECTED;
+    at_dump("+IPS:%d,CONNECTED", linkid);
+    // register recv callbacks
+    altcp_recv(conn, tcp_receive_callback);
+    altcp_sent(conn, tcp_sent_callback);
+  } else {
+    networks.connect[linkid].status = SOCK_IDLE_CLOSE;
+    at_dump("+IPS:%d,FAILED", linkid);
+    altcp_close(networks.connect[linkid].pcb.tcp);
+    networks.connect[linkid].pcb.tcp = NULL;
+  }
+  return ERR_OK;
+}
+
+static void udp_receive_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, 
+    const ip_addr_t *addr, u16_t port) {
+  struct pbuf *pt;
+  int linkid = (int)arg;
+  if (linkid >= MAX_SOCKET_NUM) {
+    printf("receive callback arg error!!!!\r\n");
+    pbuf_free(p);
+    return ;
+  }
+  if (networks.connect[linkid].status == SOCK_IDLE_CLOSE) {
+    printf("linkid %d connection status error!\r\n", linkid);
+    pbuf_free(p);
+    return ;
+  }
+  at_serial_lock();
+  at_dump("+IPD:");
+  if (is_disp_ipd == 1) at_dump("%d,%d\r\n", linkid, p->tot_len);
+  for (pt = p; pt; pt = pt->next) {
+    at_data_output((char *)pt->payload, pt->len);
+  }
+  at_serial_unlock();
+  pbuf_free(p);
+  return ;
 }
 
 static AT_ERROR_CODE cipstart(at_callback_para_t *para, at_callback_rsp_t *rsp) {
   FUN_DEBUG("----->\r\n");
-  static int is_sockon_task_create = 0;
-  BaseType_t ret = pdPASS;
+  int linkid                      = para->u.net_param.linkId;
+  struct addrinfo *result         = NULL;
+  struct addrinfo hints_tcp       = {0, AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, NULL, NULL, NULL};
+  struct addrinfo hints_udp       = {0, AF_INET, SOCK_DGRAM, IPPROTO_UDP, 0, NULL, NULL, NULL};
 
-  memset(&sockontask_data, 0, sizeof(at_sockontask_para_t));
-  memcpy(&sockontask_data.para, para, sizeof(at_callback_para_t));
-  memcpy(&sockontask_data.rsp, rsp, sizeof(at_callback_rsp_t));
+  if (linkid >= MAX_SOCKET_NUM) {
+    return AEC_OUT_OF_RANGE;
+  }
 
-  if (0 == is_sockon_task_create) {
-    is_sockon_task_create = 1;
-    OS_queue_sockon_handler = xQueueCreate(10, sizeof(at_sockontask_para_t));
-    if (OS_queue_sockon_handler == NULL) {
-      FUN_DEBUG("queue create failed!\r\n");
+  rsp->status = 0;
+
+  if (networks.connect[linkid].status != SOCK_IDLE_CLOSE) {
+    sprintf(rsp->vptr, "+IPS:%d,ALREADY CONNECT", linkid);
+    rsp->type = 1;
+    rsp->status = 1;
+    return AEC_SOCKET_EXISTING;
+  }
+
+  // FIXME(Zhuoran) PLZ check ip length
+  strncpy(networks.connect[linkid].ip, para->u.net_param.hostname, IP_ADDR_SIZE);
+  networks.connect[linkid].port = para->u.net_param.port;
+
+  if (strcmp(para->u.net_param.networkType, "TCP") == 0) {
+    networks.connect[linkid].protocol = SOCK_TYPE_TCP;
+  } else if (strcmp(para->u.net_param.networkType, "UDP") == 0) {
+    networks.connect[linkid].protocol = SOCK_TYPE_UDP;
+  } else if (strcmp(para->u.net_param.networkType, "SSL") == 0) {
+    networks.connect[linkid].protocol = SOCK_TYPE_TLS;
+  } else {
+    return AEC_PARA_ERROR;
+  }
+
+  if (networks.connect[linkid].protocol == SOCK_TYPE_TCP) {
+    ip_addr_t ip_addr;
+    int rc;
+
+    //FIXME(Zhuoran) only support ipv4 now
+    if ((rc = getaddrinfo(networks.connect[linkid].ip, NULL, &hints_tcp, &result)) == 0) {
+      struct addrinfo *res = result;
+
+      while (res) {
+        if (res->ai_family == AF_INET) {
+          result = res;
+          break;
+        }
+        res = res->ai_next;
+      }
+
+      if (result->ai_family == AF_INET) {
+        ip_addr_t tmp = IPADDR4_INIT(((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr); 
+        ip_addr = tmp;
+      } else
+        rc = -1;
+
+      freeaddrinfo(result);
+    }
+
+    if (rc == 0) {
+      //FIXME(Zhuoran) only support ipv4 now
+      networks.connect[linkid].pcb.tcp = altcp_tcp_new_ip_type(IPADDR_TYPE_V4);
+      if (networks.connect[linkid].pcb.tcp == NULL)
+        return AEC_SOCKET_FAIL;
+
+      altcp_arg(networks.connect[linkid].pcb.tcp, (void *)(intptr_t)linkid);
+      rc = altcp_connect(networks.connect[linkid].pcb.tcp, &ip_addr, 
+          networks.connect[linkid].port, tcp_connected_callback);
+      if (rc != ERR_OK) {
+        altcp_close(networks.connect[linkid].pcb.tcp);
+        networks.connect[linkid].pcb.tcp = NULL;
+        return AEC_CONNECT_FAIL;
+      }
+      altcp_err(networks.connect[linkid].pcb.tcp, tcp_err_callback);
+
+      networks.connect[linkid].status = SOCK_CLIENT_CONNECTING;
+    } else {
+      return AEC_CONNECT_FAIL;
+    }
+
+    networks.count++;
+
+    rsp->status = 0;
+    return AEC_OK;
+  } else if (networks.connect[linkid].protocol == SOCK_TYPE_UDP) {
+    networks.connect[linkid].pcb.udp = udp_new_ip_type(IPADDR_TYPE_V4);
+    if (networks.connect[linkid].pcb.udp == NULL){
+        return AEC_SOCKET_FAIL;
+    }
+    if (udp_bind(networks.connect[linkid].pcb.udp, IP4_ADDR_ANY, 0) != ERR_OK) {
+      udp_remove(networks.connect[linkid].pcb.udp);
+      networks.connect[linkid].pcb.udp = NULL;
       return AEC_SOCKET_FAIL;
     }
 
-    ret = xTaskCreate(sockon_task, "sockon_task", 1024, NULL, 2, &OS_Thread_sockon_handler);
-    vTaskDelay(pdMS_TO_TICKS(1));
-    if (xQueueSend(OS_queue_sockon_handler, &sockontask_data, pdMS_TO_TICKS(200)) != pdPASS) {
-      ret = pdFAIL;
-    }
-  } else {
-    if (xQueueSend(OS_queue_sockon_handler, &sockontask_data, pdMS_TO_TICKS(200)) != pdPASS) {
-      ret = pdFAIL;
-    }
-  }
+    networks.connect[linkid].status = SOCK_CLIENT_CONNECTED;
 
-  if (ret == pdPASS) {
+    networks.count++;
+    rsp->status = 0;
     return AEC_OK;
-
   } else {
-    FUN_DEBUG("sockon_task create error\r\n");
-    return AEC_SOCKET_FAIL;
+    printf("not support tls now\r\n");
+    return AEC_UNSUPPORTED;
   }
 }
 
@@ -2776,7 +2056,7 @@ static AT_ERROR_CODE cipclose(at_callback_para_t *para, at_callback_rsp_t *rsp) 
   FUN_DEBUG("----->\r\n");
 
   if (para->u.close_id.id < MAX_SOCKET_NUM) {
-      if (networks.connect[para->u.close_id.id].flag == 0) {
+      if (networks.connect[para->u.close_id.id].status == SOCK_IDLE_CLOSE) {
           return AEC_SOCKET_EXISTING;
       }
       disconnect(para->u.close_id.id);
@@ -2796,59 +2076,88 @@ static AT_ERROR_CODE tcpservermaxconn(at_callback_para_t *para, at_callback_rsp_
 }
 #endif
 
+static err_t tcp_accept_callback(void *arg, struct altcp_pcb *new_conn, err_t err) {
+  int linkid;
+  ip_addr_t *remote_ip;
+
+  if (err != ERR_OK){
+    printf("accept error!\r\n");
+    // XXX(Zhuoran) Is there a better way to deal with it?
+    altcp_close(new_conn);
+    return ERR_CONN;
+  }
+  // find free slot to put connection
+  for (linkid = 0; linkid < MAX_SOCKET_NUM; linkid++) {
+    if (networks.connect[linkid].status == SOCK_IDLE_CLOSE){
+      memset(&networks.connect[linkid], 0, sizeof(networks.connect[linkid]));
+      break;
+    }
+  }
+  if (networks.connect[linkid].status != SOCK_IDLE_CLOSE) {
+    printf("no avalible connect slot\r\n");
+    // XXX(Zhuoran) Is there a better way to deal with it?
+    altcp_close(new_conn);
+    return ERR_CONN;
+  }
+  networks.count++;
+  // fill up necessary field
+  networks.connect[linkid].pcb.tcp = new_conn;
+  networks.connect[linkid].status = SOCK_CLIENT_CONNECTED;
+  networks.connect[linkid].protocol = SOCK_TYPE_TCP;
+  remote_ip = altcp_get_ip(new_conn, 0);
+  ipaddr_ntoa_r(remote_ip, networks.connect[linkid].ip, sizeof(networks.connect[linkid].ip));
+  networks.connect[linkid].port = altcp_get_port(new_conn, 0);
+  
+  at_dump("+IPS:%d,CONNECTED", linkid);
+  altcp_arg(new_conn, (void *)(intptr_t)linkid);
+  altcp_recv(new_conn, tcp_receive_callback);
+  altcp_sent(new_conn, tcp_sent_callback);
+  altcp_err(new_conn, tcp_err_callback);
+  return ERR_OK;
+}
+
 static AT_ERROR_CODE tcpserver(at_callback_para_t *para, at_callback_rsp_t *rsp) {
   FUN_DEBUG("----->\r\n");
-  s16 port;
   s32 protocol;
   int enable;
 
-  port = para->u.tcp_server.port;
   enable = para->u.tcp_server.enable;
-  protocol = 0; //tcp
+  protocol = SOCK_TYPE_TCP; //tcp
 
   if (enable) {
     if (!g_server_enable) {
       g_server_arg.port = para->u.tcp_server.port;
-      g_server_arg.protocol = 0;
-      memset(&socket_cache[MAX_SOCKET_NUM], 0, sizeof(socket_cache_t));
+      g_server_arg.protocol = SOCK_TYPE_TCP;
+      // too early
+      memset(&g_server_ctrl, 0, sizeof(g_server_ctrl));
 
-      g_server_enable = 1;
-
-      if (protocol == 0) { /* TCP */
-
-        g_server_sem = xSemaphoreCreateBinary();
-        if (g_server_sem == NULL) {
-          FUN_DEBUG("create semaphore failed\r\n");
-
-          return AEC_UNDEFINED;
+      if (protocol == SOCK_TYPE_TCP) { /* TCP */
+        err_t err;
+        g_server_ctrl.pcb.tcp = altcp_tcp_new_ip_type(IPADDR_TYPE_V4);
+        if (g_server_ctrl.pcb.tcp == NULL) {
+          return AEC_NOT_ENOUGH_MEMORY;
         }
 
-        memset(&g_server_ctrl, 0, sizeof(g_server_ctrl));
-        if (xTaskCreate(server_task, "server_task", SERVER_THREAD_STACK_SIZE, (void *)&g_server_arg, 5, &server_task_handle) != pdPASS) {
-          FUN_DEBUG("create server task failed\r\n");
-          return AEC_UNDEFINED;
-        }
-
-      } else if (protocol == 1) { /* UDP */
-        struct sockaddr_in address;
-        int rc;
-        int fd;
-
-        fd = socket(AF_INET, SOCK_DGRAM, 0);
-        if (fd < 0) {
-          return AEC_SOCKET_FAIL;
-        }
-
-        memset(&address, 0, sizeof(address));
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = htonl(INADDR_ANY);
-        address.sin_port = htons(port);
-        /* for receive */
-        rc = bind(fd, (struct sockaddr *)&address, sizeof(address));
-        if (rc < 0) {
-          closesocket(fd);
+        err = altcp_bind(g_server_ctrl.pcb.tcp, IP4_ADDR_ANY, g_server_arg.port);
+        if (err != ERR_OK) {
+          altcp_close(g_server_ctrl.pcb.tcp);
+          g_server_ctrl.pcb.tcp = NULL;
           return AEC_BIND_FAIL;
         }
+
+        // listen
+        g_server_ctrl.pcb.tcp = altcp_listen_with_backlog(g_server_ctrl.pcb.tcp, 5);
+        if (g_server_ctrl.pcb.tcp == NULL) {
+          // listen failed , origin pcb has been freed
+          return AEC_SOCKET_FAIL;
+        }
+        g_server_enable = 1;
+        
+        altcp_accept(g_server_ctrl.pcb.tcp, tcp_accept_callback);
+        
+        return AEC_OK;
+      } else if (protocol == SOCK_TYPE_UDP) { /* UDP */
+
       }
       return AEC_OK;
     }
@@ -2856,17 +2165,10 @@ static AT_ERROR_CODE tcpserver(at_callback_para_t *para, at_callback_rsp_t *rsp)
     if (g_server_enable) {
       g_server_enable = 0;
 
-      if (g_server_arg.protocol == 0) { /* TCP */
-        vSemaphoreDelete(g_server_sem);
-        if (serversock_fd >= 0) {
-            closesocket(serversock_fd);
-            serversock_fd = -1;
-        }
-        if (server_task_handle) {
-            vTaskDelete(server_task_handle);
-            server_task_handle = NULL;
-        }
-      } else if (g_server_arg.protocol == 1) { /* UDP */
+      if (g_server_arg.protocol == SOCK_TYPE_TCP) {
+        altcp_close(g_server_ctrl.pcb.tcp);
+        g_server_ctrl.pcb.tcp = NULL;
+      } else if (g_server_arg.protocol == SOCK_TYPE_UDP) { /* UDP */
         /* Do nothing */
       }
       return AEC_OK;
@@ -3034,39 +2336,81 @@ static AT_ERROR_CODE http_url_req(at_callback_para_t *para, at_callback_rsp_t *r
     return AEC_OK;
 }
 
+// callback context
+struct send_data_ctx {
+  int linkid;
+  uint8_t *buf;
+};
+// Send TCP/TLS data
+static void tcp_send_data(void *arg){
+  assert(arg != NULL);
+  connect_t *conn;
+  struct send_data_ctx *ctx = (struct send_data_ctx *)arg;
+  assert(ctx->buf != NULL);
+
+  conn = &networks.connect[ctx->linkid];
+  
+  altcp_write(conn->pcb.tcp, ctx->buf, cipsend_totlen, 0);
+  free(arg);
+}
+
+// Send UDP data
+static void udp_send_data(void *arg){
+  assert(arg != NULL);
+  connect_t *conn;
+  struct send_data_ctx *ctx = (struct send_data_ctx *)arg;
+  assert(ctx->buf != NULL);
+
+  // create pbuf
+  // copy data to pbuf
+  // send data
+  //
+
+  free(arg);
+}
+
 static AT_ERROR_CODE cipsend(at_callback_para_t *para, at_callback_rsp_t *rsp)
 {
-    s32 id;
     u8 *buffer;
-    s32 len;
+    connect_t *conn;
+    struct send_data_ctx *ctx;
     FUN_DEBUG("------>%s\r\n",__func__);
 
-    SocketSend_queueinf_t sendinf;
-
-    id      = para->u.sockw.id;
-    buffer  = para->u.sockw.buf;
-    len     = para->u.sockw.len;
-
-    if (id >= MAX_SOCKET_NUM) {
+    if (para->u.sockw.id >= MAX_SOCKET_NUM) {
         return AEC_DISCONNECT;
     }
-
-    printf("id:%d, len:%d, buffer:%s\r\n", id, len, buffer);
-    sendinf.p_senddata = malloc(SOCKET_CACHE_BUFFER_SIZE);
-    if(sendinf.p_senddata == NULL) {
-        at_dump("malloc buffer for atcmdSend failed");
-        return AEC_CMD_ERROR;
+    conn = &networks.connect[para->u.sockw.id];
+    if (conn->status != SOCK_CLIENT_CONNECTED) {
+      printf("linkid %d is not connected!\r\n", para->u.sockw.id);
+      return AEC_CMD_FAIL;
     }
-    sendinf.datalen =  len;
-    FUN_DEBUG("------>%s memcpy id = %d\r\n",__func__, id);
-    memcpy(sendinf.p_senddata, buffer, len);
-    printf("q_SocketSend[%d] = %p\r\n", id, q_SocketSend[id]);
-    if (xQueueSend(q_SocketSend[id], &sendinf, pdMS_TO_TICKS(10)) != pdPASS) {
-        at_dump("LinkId %d Send ERROR", id);
-        FUN_DEBUG("LinkId %d Send ERROR \r\n", id);
-        free(sendinf.p_senddata);
+    
+    // Record the total length of the data in order to judge 
+    // whether the transmission is completed in the asynchronous callback
+    cipsend_totlen = para->u.sockw.len;
+    
+    if (conn->protocol == SOCK_TYPE_TCP || conn->protocol == SOCK_TYPE_TLS) {
+      ctx = malloc(sizeof(struct send_data_ctx));
+      if (ctx == NULL) {
+        return AEC_NOT_ENOUGH_MEMORY;
+      }
+      
+      ctx->linkid = para->u.sockw.id;
+      ctx->buf = para->u.sockw.buf;
+      tcpip_callback(tcp_send_data, (void *)ctx);
+    } else if (conn->protocol == SOCK_TYPE_UDP) {
+      ctx = malloc(sizeof(struct send_data_ctx));
+      if (ctx == NULL) {
+        return AEC_NOT_ENOUGH_MEMORY;
+      }
+      
+      ctx->linkid = para->u.sockw.id;
+      ctx->buf = para->u.sockw.buf;
+      tcpip_callback(udp_send_data, (void *)ctx);
+    } else {
+      return AEC_UNSUPPORTED;
     }
-    FUN_DEBUG("------>%s xQueueSend Success\r\n",__func__);
+    
     return AEC_OK;
 }
 

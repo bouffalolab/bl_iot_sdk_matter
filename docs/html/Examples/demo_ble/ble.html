@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>13. BLE &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.4-3-g2d3014ed 文档</title>
+  <title>13. BLE &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.7 文档</title>
   
 
   
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                release_bl_iot_sdk_1.6.4-3-g2d3014ed
+                release_bl_iot_sdk_1.6.7
               </div>
             
           
@@ -223,7 +223,7 @@
 </div>
 </div></blockquote>
 </li>
-<li><p>依次使用 <code class="docutils literal notranslate"><span class="pre">cmd_init</span></code> 、 <code class="docutils literal notranslate"><span class="pre">cmd_auth</span></code> 进行相关的初始化；</p>
+<li><p>依次使用 <code class="docutils literal notranslate"><span class="pre">ble_init</span></code> 、 <code class="docutils literal notranslate"><span class="pre">ble_auth</span></code> 进行相关的初始化；</p>
 <blockquote>
 <div><div class="figure align-default">
 <img alt="" src="../../_images/image24.png" />
@@ -233,20 +233,48 @@
 </div>
 </div></blockquote>
 </li>
-<li><p>使用 <code class="docutils literal notranslate"><span class="pre">cmd_start_adv</span> <span class="pre">0</span> <span class="pre">0</span> <span class="pre">0080</span> <span class="pre">0080</span></code> 命令开启ble。</p>
+<li><p>使用 <code class="docutils literal notranslate"><span class="pre">ble_start_adv</span> <span class="pre">0</span> <span class="pre">0</span> <span class="pre">0x80</span> <span class="pre">0x80</span></code> 命令开启ble。</p>
 <blockquote>
 <div><div class="figure align-default">
 <img alt="" src="../../_images/image42.png" />
 </div>
 </div></blockquote>
 </li>
-<li><p>用户可以通过手机app <code class="docutils literal notranslate"><span class="pre">nRFConnect</span></code> scan附近的蓝牙，找到我们的设备并连接。</p>
+<li><p>用户可以通过手机app <code class="docutils literal notranslate"><span class="pre">Ble</span> <span class="pre">conneect</span></code> scan附近的蓝牙，找到我们的设备并连接。</p>
 <blockquote>
 <div><div class="figure align-default">
 <img alt="" src="../../_images/image51.png" />
 </div>
 <div class="figure align-default">
 <img alt="" src="../../_images/image6.png" />
+</div>
+</div></blockquote>
+</li>
+<li><p>使用 <code class="docutils literal notranslate"><span class="pre">ble_conn_update</span> <span class="pre">0x6</span> <span class="pre">0x6</span> <span class="pre">0x0</span> <span class="pre">0x1f4</span></code> 更新连接参数。</p>
+<blockquote>
+<div><div class="figure align-default">
+<img alt="" src="../../_images/image7.png" />
+</div>
+</div></blockquote>
+</li>
+<li><p>连接成功后使用 <code class="docutils literal notranslate"><span class="pre">ble_security</span> <span class="pre">2</span></code> 进行SMP过程。</p>
+<blockquote>
+<div><div class="figure align-default">
+<img alt="" src="../../_images/image8.png" />
+</div>
+</div></blockquote>
+</li>
+<li><p>在串口打印出 <code class="docutils literal notranslate"><span class="pre">Confirm</span> <span class="pre">passkey</span> <span class="pre">for</span> <span class="pre">xx:xx:xx:xx:xx:xx</span> <span class="pre">(random):</span> <span class="pre">xxxxxx</span></code> ,输入 <code class="docutils literal notranslate"><span class="pre">ble_auth_passkey_confirm</span></code> 命令初始化ble，打印的部分log如下。</p>
+<blockquote>
+<div><div class="figure align-default">
+<img alt="" src="../../_images/image9.png" />
+</div>
+</div></blockquote>
+</li>
+<li><p>在串口打印出 <code class="docutils literal notranslate"><span class="pre">Bonded</span> <span class="pre">with</span> <span class="pre">xx:xx:xx:xx:xx:xx</span> <span class="pre">(public)</span></code> ,表明SMP配对成功。</p>
+<blockquote>
+<div><div class="figure align-default">
+<img alt="" src="../../_images/image10.png" />
 </div>
 </div></blockquote>
 </li>

@@ -3173,6 +3173,7 @@ static AT_ERROR_CODE send_data_handler(at_para_t *at_para) {
         send_cache.linkID = sendDataPara.linkId;
         send_cache.length = sendDataPara.bufferlen;
         send_cache.status = 1;
+        //TODO(Zhuoran) Print > character
         return AEC_SEND_READY;
       }
     } else {

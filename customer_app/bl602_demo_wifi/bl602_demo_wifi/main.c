@@ -487,6 +487,16 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
             printf("[APP] [EVT] [PROV] [DISCONNECT] %lld\r\n", aos_now_ms());
         }
         break;
+        case CODE_WIFI_ON_AP_STA_ADD:
+        {
+            printf("[APP] [EVT] [AP] [ADD] %lld, sta idx is %lu\r\n", aos_now_ms(), (uint32_t)event->value);
+        }
+        break;
+        case CODE_WIFI_ON_AP_STA_DEL:
+        {
+            printf("[APP] [EVT] [AP] [DEL] %lld, sta idx is %lu\r\n", aos_now_ms(), (uint32_t)event->value);
+        }
+        break;
         default:
         {
             printf("[APP] [EVT] Unknown code %u, %lld\r\n", event->code, aos_now_ms());

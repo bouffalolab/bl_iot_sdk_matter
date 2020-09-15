@@ -34,6 +34,7 @@
 
 #include <lwip/inet.h>
 #include <lwip/netifapi.h>
+#include <aos/yloop.h>
 #include "bl_main.h"
 #include "bl_defs.h"
 #include "bl_cmds.h"
@@ -860,6 +861,7 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
     } else {
         os_printf("[WF]    ------ Potential illegal sta_idx\r\n");
     }
+    aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STA_ADD, ind->sta_idx);
 
     return 0;
 }
@@ -881,6 +883,7 @@ static int bl_rx_apm_sta_del_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
     } else {
         os_printf("[WF]    --------- Potential illegal sta_idx\r\n");
     }
+    aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STA_DEL, ind->sta_idx);
 
     return 0;
 }

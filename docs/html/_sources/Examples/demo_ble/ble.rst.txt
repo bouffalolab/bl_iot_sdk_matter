@@ -17,7 +17,7 @@ BLE
     .. figure:: imgs/image1.png
        :alt: 
 
-- 依次使用 ``cmd_init`` 、 ``cmd_auth`` 进行相关的初始化；
+- 依次使用 ``ble_init`` 、 ``ble_auth`` 进行相关的初始化；
 
     .. figure:: imgs/image2.png
        :alt: 
@@ -25,16 +25,36 @@ BLE
     .. figure:: imgs/image3.png
        :alt: 
 
-- 使用 ``cmd_start_adv 0 0 0080 0080`` 命令开启ble。
+- 使用 ``ble_start_adv 0 0 0x80 0x80`` 命令开启ble。
 
 
     .. figure:: imgs/image4.png
        :alt: 
 
-- 用户可以通过手机app ``nRFConnect`` scan附近的蓝牙，找到我们的设备并连接。
+- 用户可以通过手机app ``Ble conneect`` scan附近的蓝牙，找到我们的设备并连接。
 
     .. figure:: imgs/image5.png
        :alt: 
 
     .. figure:: imgs/image6.png
-       :alt: 
+       :alt:
+	   
+- 使用 ``ble_conn_update 0x6 0x6 0x0 0x1f4`` 更新连接参数。	
+	
+	.. figure:: imgs/image7.png
+	   :alt: 
+	   
+- 连接成功后使用 ``ble_security 2`` 进行SMP过程。
+
+	.. figure:: imgs/image8.png
+	   :alt:
+	   
+- 在串口打印出 ``Confirm passkey for xx:xx:xx:xx:xx:xx (random): xxxxxx`` ,输入 ``ble_auth_passkey_confirm`` 命令初始化ble，打印的部分log如下。
+	
+	.. figure:: imgs/image9.png
+	   :alt:
+	   
+- 在串口打印出 ``Bonded with xx:xx:xx:xx:xx:xx (public)`` ,表明SMP配对成功。
+	
+	.. figure:: imgs/image10.png
+	   :alt:	   
