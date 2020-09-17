@@ -630,20 +630,25 @@ static void __opt_feature_init(void)
 #endif
 }
 
-static void blsync_ble_start_entry (void *p_arg)
+static void app_delayed_action_bleadv(void *arg)
 {
     char *cmd1 = "ble_init\r\n";
     char *cmd2 = "ble_start_adv 0 0 0x100 0x100\r\n";
 
-    vTaskDelay(1000);
-    stack_ble();
-    vTaskDelay(1000);
-    stack_wifi();
-    vTaskDelay(1000);
     aos_cli_input_direct(cmd1, strlen(cmd1));
     aos_cli_input_direct(cmd2, strlen(cmd2));
+}
 
-    vTaskDelete(NULL);
+static void app_delayed_action_wifi(void *arg)
+{
+    stack_wifi();
+    aos_post_delayed_action(1000, app_delayed_action_bleadv, NULL);
+}
+
+static void app_delayed_action_ble(void *arg)
+{
+    stack_ble();
+    aos_post_delayed_action(1000, app_delayed_action_wifi, NULL);
 }
 
 static void aos_loop_proc(void *pvParameters)
@@ -652,9 +657,6 @@ static void aos_loop_proc(void *pvParameters)
     uint32_t fdt = 0, offset = 0;
     static StackType_t proc_stack_looprt[512];
     static StaticTask_t proc_task_looprt;
-
-    static StackType_t blsync_stack[512];
-    static StaticTask_t blsync_task;
 
     /*Init bloop stuff*/
     looprt_start(proc_stack_looprt, 512, &proc_task_looprt);
@@ -691,13 +693,7 @@ static void aos_loop_proc(void *pvParameters)
 
     aos_register_event_filter(EV_CLI, event_cb_cli, NULL);
 
-    xTaskCreateStatic(blsync_ble_start_entry,
-                      (char*)"blsync_ble",
-                      512,
-                      NULL,
-                      15,
-                      blsync_stack,
-                      &blsync_task);
+    aos_post_delayed_action(1000, app_delayed_action_ble, NULL);
 
     aos_loop_run();
 

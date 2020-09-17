@@ -1616,6 +1616,46 @@ void EF_Ctrl_Read_Direct_R0(uint32_t index, uint32_t *data, uint32_t len)
 }
 
 /****************************************************************************//**
+ * @brief  Write data to efuse region 0 without program
+ *
+ * @param  index: index of efuse in word
+ * @param  data: data buffer
+ * @param  len: data length
+ *
+ * @return None
+ *
+*******************************************************************************/
+void EF_Ctrl_Write_R0(uint32_t index, uint32_t *data, uint32_t len)
+{
+    uint32_t *pEfuseStart0=(uint32_t *)(EF_DATA_BASE+0x00);
+
+    /* Switch to AHB clock */
+    EF_Ctrl_Sw_AHB_Clk_0();
+
+    /* Add delay for CLK to be stable */
+    BL602_Delay_US(4);
+
+    BL602_MemCpy4(pEfuseStart0+index,data,len);
+}
+
+/****************************************************************************//**
+ * @brief  Read data from efuse region 0 without reload
+ *
+ * @param  index: index of efuse in word
+ * @param  data: data buffer
+ * @param  len: data length
+ *
+ * @return None
+ *
+*******************************************************************************/
+void EF_Ctrl_Read_R0(uint32_t index, uint32_t *data, uint32_t len)
+{
+    uint32_t *pEfuseStart0=(uint32_t *)(EF_DATA_BASE+0x00);
+
+    BL602_MemCpy4(data,pEfuseStart0+index,len);
+}
+
+/****************************************************************************//**
  * @brief  Clear efuse data register
  *
  * @param  index: index of efuse in word

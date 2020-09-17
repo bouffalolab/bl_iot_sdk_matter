@@ -320,7 +320,6 @@ void ADC_Scan_Channel_Config(ADC_Chan_Type posChList[],ADC_Chan_Type negChList[]
     tmpVal=BL_RD_REG(AON_BASE,AON_GPADC_REG_CONFIG1);     
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_SCAN_LENGTH,scanLength-1);
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,AON_GPADC_CONT_CONV_EN,contEn);
-    tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_CLK_ANA_INV);
     tmpVal=BL_SET_REG_BIT(tmpVal,AON_GPADC_SCAN_EN);
     BL_WR_REG(AON_BASE,AON_GPADC_REG_CONFIG1,tmpVal);
 }

@@ -18,12 +18,8 @@ struct bt_conn *default_conn = NULL;
 #endif
 
 struct bt_data ad_discov[2] = {
-	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-    #if defined(BL602)
-    BT_DATA(BT_DATA_NAME_COMPLETE, "BL602-BLE-DEV", 13),
-    #else
-    BT_DATA(BT_DATA_NAME_COMPLETE, "BL702-BLE-DEV", 13),
-    #endif
+	BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL)),
+    BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, 13),
 };
 
 #define vOutputString(...)  printf(__VA_ARGS__)
@@ -495,11 +491,17 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
     /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
     get_uint8_from_string(&argv[2], &tmp);
-	 vOutputString("tmp 0x%x\r\n",tmp);
+	vOutputString("tmp 0x%x\r\n",tmp);
     if(tmp == 0 || tmp == 1 || tmp == 2){
-		
-        if(tmp == 1)
+    
+        if(tmp == 1){
             ad_discov[0].data = 0;
+        }
+        
+		const char *name = bt_get_name();
+		struct bt_data data = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE,name, strlen(name));
+       	ad_discov[1] = data;
+       	
         ad = ad_discov;
         ad_len = ARRAY_SIZE(ad_discov);
 
@@ -513,14 +515,11 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
         get_uint16_from_string(&argv[4], &param.interval_max);
 
       	vOutputString("interval min 0x%x\r\n",param.interval_min);  
-      	
       	vOutputString("interval max 0x%x\r\n",param.interval_max);  
     }
 	
     if(adv_type == 1){
-		
-        err = bt_le_adv_start(&param, ad, ad_len, &ad_discov[0], 1);
-		
+        err = bt_le_adv_start(&param, ad, ad_len, &ad_discov[0], 1);	
     }else{
         err = bt_le_adv_start(&param, ad, ad_len, NULL, 0);
     }

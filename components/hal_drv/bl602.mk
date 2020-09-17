@@ -58,7 +58,7 @@ COMPONENT_OBJS := $(patsubst %.cpp,%.o, $(COMPONENT_OBJS))
 
 ##
 ifeq ($(CONFIG_BT),1)
-CPPFLAGS += -DCONF_BLE_ENABLE
+CPPFLAGS += -DCFG_BLE_ENABLE
 else
 endif
 

@@ -48,7 +48,7 @@ static uint32_t factory_addr = 0;
 #ifndef FEATURE_WIFI_DISABLE
 #include <bl60x_fw_api.h>
 
-#ifdef CONF_BLE_ENABLE
+#ifdef CFG_BLE_ENABLE
 #include "ble_lib_api.h"
 #endif
 static int update_mac_config_get_mac_from_dtb(const void *fdt, int offset1, uint8_t mac_addr[6])
@@ -424,6 +424,10 @@ break_scan:
     if (0 == set) {
         blog_info("Using Default pwr offset\r\n");//all zeros actually
     }
+#ifdef CFG_BLE_ENABLE
+    extern void ble_rf_set_pwr_offset(int8_t offset);
+    ble_rf_set_pwr_offset(poweroffset[6]-10); // use 2442MHz offset
+#endif
     //blog_buf_int8(poweroffset, 14);
     //TODO FIXME POWER OFFSET
     //bl60x_fw_power_offset_set(poweroffset);
@@ -721,7 +725,7 @@ static int hal_board_load_fdt_info(const void *dtb)
             pwr_table_ble = 0;
         }
         blog_info("set pwr_table_ble = %ld in dts\r\n", pwr_table_ble);
-#ifdef CONF_BLE_ENABLE
+#ifdef CFG_BLE_ENABLE
         ble_controller_set_tx_pwr(pwr_table_ble);
 #endif
     }

@@ -297,6 +297,8 @@ void EF_Ctrl_Program_Direct_R0(uint32_t index, uint32_t *data, uint32_t len);
 void EF_Ctrl_Read_Direct_R0(uint32_t index, uint32_t *data, uint32_t len);
 void EF_Ctrl_Program_Direct(uint32_t index, uint32_t *data, uint32_t len);
 void EF_Ctrl_Read_Direct(uint32_t index, uint32_t *data, uint32_t len);
+void EF_Ctrl_Write_R0(uint32_t index, uint32_t *data, uint32_t len);
+void EF_Ctrl_Read_R0(uint32_t index, uint32_t *data, uint32_t len);
 void EF_Ctrl_Clear(uint32_t index, uint32_t len);
 void EF_Ctrl_Crc_Enable(void);
 BL_Sts_Type EF_Ctrl_Crc_Is_Busy(void);
