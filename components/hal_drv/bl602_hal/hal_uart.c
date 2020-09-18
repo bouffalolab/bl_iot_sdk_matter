@@ -325,7 +325,7 @@ static void fdt_uart_module_init(const void *fdt, int uart_offset)
         }
         path = (char *)result;
 
-        /* set id */
+        /* set baudrate */
         addr_prop = fdt_getprop(fdt, offset1, "baudrate", &lentmp);
         if (addr_prop == NULL) {
             blog_info("uart[%d] baudrate NULL.\r\n", i);
@@ -341,24 +341,26 @@ static void fdt_uart_module_init(const void *fdt, int uart_offset)
         }
         id = BL_FDT32_TO_U8(addr_prop, 0);
 
+        /* set buffer size */
         offset2 = fdt_subnode_offset(fdt, offset1, "buf_size");
         if (0 >= offset2) {
-            blog_info("uart[%d] buf_size  NULL.\r\n", i);
-            continue;
+            blog_info("uart[%d] buf_size NULL, will use default.\r\n", i);
+            rx_buf_size = 512;
+            tx_buf_size = 512;
+        } else {
+            addr_prop = fdt_getprop(fdt, offset2, "rx_size", &lentmp);
+            if (addr_prop == NULL) {
+                blog_info("uart[%d] %s NULL.\r\n", i, "rx_size");
+                continue;
+            }
+            rx_buf_size = BL_FDT32_TO_U32(addr_prop, 0);
+            addr_prop = fdt_getprop(fdt, offset2, "tx_size", &lentmp);
+            if (addr_prop == NULL) {
+                blog_info("uart[%d] %s NULL.\r\n", i, "tx_size");
+                continue;
+            }
+            tx_buf_size = BL_FDT32_TO_U32(addr_prop, 0);
         }
-
-        addr_prop = fdt_getprop(fdt, offset2, "rx_size", &lentmp);
-        if (addr_prop == NULL) {
-            blog_info("uart[%d] %s NULL.\r\n", i, "rx_size");
-            continue;
-        }
-        rx_buf_size = BL_FDT32_TO_U32(addr_prop, 0);
-        addr_prop = fdt_getprop(fdt, offset2, "tx_size", &lentmp);
-        if (addr_prop == NULL) {
-            blog_info("uart[%d] %s NULL.\r\n", i, "tx_size");
-            continue;
-        }
-        tx_buf_size = BL_FDT32_TO_U32(addr_prop, 0);
         blog_info("uart[%d] rx_buf_size %d, tx_buf_size %d\r\n", i, rx_buf_size, tx_buf_size);
 
         for (j = 0; j < 4; j++) {

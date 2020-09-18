@@ -464,7 +464,7 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	const struct bt_data *ad;
 	size_t ad_len;
 	int err = 0;
-    uint8_t adv_type, tmp;
+    uint8_t adv_type, mode;
 	
     if(argc != 3 && argc != 5){
         vOutputString("Number of Parameters is not correct\r\n");
@@ -488,14 +488,23 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
         vOutputString("Arg1 is invalid\r\n");
         return;
     }
-
-    /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
-    get_uint8_from_string(&argv[2], &tmp);
-	vOutputString("tmp 0x%x\r\n",tmp);
-    if(tmp == 0 || tmp == 1 || tmp == 2){
     
-        if(tmp == 1){
-            ad_discov[0].data = 0;
+    /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
+    get_uint8_from_string(&argv[2], &mode);
+	vOutputString("mode 0x%x\r\n",mode);
+    if(mode == 0 || mode == 1 || mode == 2){
+    
+        if(mode == 0){
+            struct bt_data gen_disc_data = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL));
+            ad_discov[0] = gen_disc_data;
+        }else if(mode == 1){
+			struct bt_data non_disc_data = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,BT_LE_AD_NO_BREDR);
+            ad_discov[0] = non_disc_data;
+        }else if(mode == 2){
+			struct bt_data limt_disc_data = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_LIMITED));
+			ad_discov[0] = limt_disc_data;
+        }else{
+			vOutputString("Invalied AD Mode 0x%x\r\n",mode);
         }
         
 		const char *name = bt_get_name();
@@ -518,7 +527,7 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
       	vOutputString("interval max 0x%x\r\n",param.interval_max);  
     }
 	
-    if(adv_type == 1){
+    if(adv_type == 1 || adv_type == 0){
         err = bt_le_adv_start(&param, ad, ad_len, &ad_discov[0], 1);	
     }else{
         err = bt_le_adv_start(&param, ad, ad_len, NULL, 0);
