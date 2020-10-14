@@ -184,6 +184,13 @@ include $(BL60X_SDK_PATH)/make_scripts_riscv/common.mk
 include $(BL60X_SDK_PATH)/make_scripts_riscv/toolchain.mk
 
 all:
+ifeq ("$(OS)","Windows_NT")
+else
+ifeq ("$(CONFIG_CHIP_NAME)", "BL602")
+	#@cd $(BL60X_SDK_PATH)/image_conf; python3 flash_build.py $(PROJECT_NAME) $(CONFIG_CHIP_NAME)
+	@cd $(BL60X_SDK_PATH)/image_conf; ./flash_build $(PROJECT_NAME) $(CONFIG_CHIP_NAME)
+endif
+endif
 	@echo "Building Finish. To flash build output."
 
 

@@ -70,6 +70,8 @@ void bl60x_fw_dump_data(void);
 void bl60x_fw_dump_statistic(int forced);
 void bl60x_current_time_us(long long *time_now);
 
+int bl60x_check_mac_status(int *is_ok);
+
 enum {
     /// Background
     API_AC_BK = 0,

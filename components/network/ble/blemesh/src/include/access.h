@@ -155,14 +155,14 @@ struct bt_mesh_msg_ctx {
 	/** TTL, or BT_MESH_TTL_DEFAULT for default TTL. */
 	u8_t  send_ttl;
 
-	/** Change by Espressif, opcode of a received message.
+	/** opcode of a received message.
      *  Not used for sending message. */
     u32_t recv_op;
 
-    /** Change by Espressif, model corresponds to the message */
+    /** model corresponds to the message */
     struct bt_mesh_model *model;
 
-    /** Change by Espressif, if the message is sent by a server
+    /** if the message is sent by a server
      *  model. Not used for receiving message. */
     bool srv_send;
 };

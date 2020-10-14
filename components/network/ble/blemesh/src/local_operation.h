@@ -1,13 +1,5 @@
 /*  Bluetooth Mesh */
 
-/*
- * Copyright (c) 2017 Intel Corporation
- * Additional Copyright (c) 2020 Espressif Systems (Shanghai) PTE LTD
- * Additional Copyright 2016-2020 Bouffalolab
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #ifndef __LOCAL_OPERATION_H__
 #define __LOCAL_OPERATION_H__
 

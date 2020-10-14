@@ -7,6 +7,7 @@
 #include "cli.h"
 #include "ble_cli_cmds.h"
 
+
 #define 		PASSKEY_MAX  		0xF423F
 #define 		NAME_LEN 			30
 #define 		CHAR_SIZE_MAX       512
@@ -895,7 +896,7 @@ static void ble_auth_passkey(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 static void exchange_func(struct bt_conn *conn, u8_t err,
 			  struct bt_gatt_exchange_params *params)
 {
-	vOutputString("Exchange %s\r\n", err == 0U ? "successful" : "failed");
+	vOutputString("Exchange %s MTU Size =%d \r\n", err == 0U ? "successful" : "failed",bt_gatt_get_mtu(conn));
 }
 
 static struct bt_gatt_exchange_params exchange_params;
@@ -1139,7 +1140,7 @@ static void ble_write(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		return;
 	}
 
-    get_uint16_from_string(&argv[1], &write_params.handle);
+    get_uint16_from_string(&argv[1], &write_params.handle);  
     get_uint16_from_string(&argv[2], &write_params.offset);
     get_uint16_from_string(&argv[3], &write_params.length);
     data_len = write_params.length > sizeof(gatt_write_buf)? (sizeof(gatt_write_buf)):(write_params.length);

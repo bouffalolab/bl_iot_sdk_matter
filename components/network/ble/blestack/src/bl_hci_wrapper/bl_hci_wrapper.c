@@ -257,7 +257,7 @@ static void bl_onchiphci_rx_packet_handler(uint8_t pkt_type, uint16_t src_id, ui
     }
     
     if(!buf){
-		if((++monitor)&0xff){
+		if(((++monitor)&0xff) == 0){
 			puts("hci_rx_pool is not available\n");
 		}
         #if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)

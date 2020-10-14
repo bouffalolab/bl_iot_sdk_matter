@@ -381,7 +381,11 @@
 *  CONFIG_BT_WORK_QUEUE_STACK_SIZE:Work queue stack size.
 */
 #ifndef CONFIG_BT_WORK_QUEUE_STACK_SIZE
+#ifndef CONFIG_BT_MESH
 #define CONFIG_BT_WORK_QUEUE_STACK_SIZE 1536//1280//512
+#else
+#define CONFIG_BT_WORK_QUEUE_STACK_SIZE 2048
+#endif /* CONFIG_BT_MESH */
 #endif
 
 /**
@@ -526,7 +530,11 @@
 #define CONFIG_BT_DEVICE_NAME_DYNAMIC 1
 #endif
 
-#define CONFIG_BT_DEVICE_NAME_MAX 20
+// max lenght of ADV payload is 37 bytes (by BT core spec)
+// AdvA field takes up 6 bytes
+// if only Local Name is appended, then max lenght of Local Name shall be
+// 37-6-2=31 bytes, where UUID of Local Name takes up 2 bytes
+#define CONFIG_BT_DEVICE_NAME_MAX 29
 
 #if defined(CONFIG_BT_GAP_PERIPHERAL_PREF_PARAMS)
 #define CONFIG_BT_PERIPHERAL_PREF_MIN_INT 0x0018

@@ -1099,6 +1099,12 @@ void cmd_tsen(char *buf, int len, int argc, char **argv)
     tsen_adc_get(NULL, 1);
 }
 
+void cmd_mfg(char *buf, int len, int argc, char **argv)
+{
+    bl_sys_mfg_config();
+    hal_reboot();
+}
+
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
@@ -1126,6 +1132,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         {"load0w", "load word from 0", cmd_load0w},
         {"aligntc", "align case test", cmd_align},
         {"tsen", "tsen test", cmd_tsen},
+        {"mfg", "mfg", cmd_mfg},
 };
 
 static void _cli_init()

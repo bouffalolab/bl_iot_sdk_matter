@@ -97,6 +97,68 @@ int backtrace_riscv(int (*print_func)(const char *fmt, ...), uintptr_t *regs)
     return 0;
 }
 
+#define VALID_PC_START_XIP (0x23000000)
+#define VALID_FP_START_XIP (0x42000000)
+
+static inline void backtrace_stack_app(int (*print_func)(const char *fmt, ...), unsigned long *fp, int depth) {
+  uintptr_t *pc;
+
+  while (depth--) {
+    if ((((uintptr_t)fp & 0xff000000ul) != VALID_PC_START_XIP) && (((uintptr_t)fp & 0xff000000ul) != VALID_FP_START_XIP)) {
+      print_func("!!");
+      return;
+    }
+
+    pc = fp[-1];
+
+    if ((((uintptr_t)pc & 0xff000000ul) != VALID_PC_START_XIP) && (((uintptr_t)pc & 0xff000000ul) != VALID_FP_START_XIP)) {
+      print_func("!!");
+      return;
+    }
+
+    if (pc > VALID_FP_START_XIP) {
+      /* there is a function that does not saved ra,
+      * skip!
+      * this value is the next fp
+      */
+      fp = (uintptr_t *)pc;
+    } else if ((uintptr_t)pc > VALID_PC_START_XIP) {
+      print_func(" %p", pc);
+      fp = (uintptr_t *)fp[-2];
+
+      if (pc == (uintptr_t *)0) {
+        break;
+      }
+    }
+  }
+}
+
+int backtrace_now_app(int (*print_func)(const char *fmt, ...)) {
+  static int processing_backtrace = 0;
+  unsigned long *fp;
+
+  if (processing_backtrace == 0) {
+    processing_backtrace = 1;
+  } else {
+    print_func("backtrace nested...\r\n");
+    return;
+  }
+
+#if defined(__GNUC__)
+  __asm__("add %0, x0, fp"
+	  : "=r"(fp));
+#else
+#error "Compiler is not gcc!"
+#endif
+
+  print_func(">> ");
+  backtrace_stack_app(print_func, fp, 256);
+  print_func(" <<\r\n");
+
+  processing_backtrace = 0;
+
+}
+
 #else
 int backtrace_riscv(int (*print_func)(const char *fmt, ...), uintptr_t *regs)
 {

@@ -35,6 +35,7 @@
 #include <lwip/dns.h>
 #include <aos/yloop.h>
 #include <bl60x_fw_api.h>
+#include <dns_server.h>
 #include "bl_main.h"
 #include "wifi_mgmr.h"
 #include "wifi_mgmr_profile.h"
@@ -522,6 +523,7 @@ void dhcpd_start(struct netif *netif);
     os_printf(DEBUG_HEADER "              channel  %ld;\r\n", ap->channel);
     bl_main_apm_start(ap->ssid, ap->psk, ap->channel, wifiMgmr.wlan_ap.vif_index, ap->hidden_ssid);
     wifiMgmr.inf_ap_enabled = 1;
+    dns_server_init();
     aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STARTED, 0);
 
     return false;
@@ -1203,6 +1205,7 @@ static void disconnect_retry(timer_cb_arg_t data)
 
 static void stateDisconnect_enter(void *stateData, struct event *event)
 {
+    int is_ok = 0;
     disconnectData_t *stateDisconnect_data;
 
     stateDisconnect_data = stateData;
@@ -1223,6 +1226,12 @@ static void stateDisconnect_enter(void *stateData, struct event *event)
         os_printf(DEBUG_HEADER "Will NOT retry connect\r\n");
     }
     aos_post_event(EV_WIFI, CODE_WIFI_ON_DISCONNECT, wifiMgmr.wifi_mgmr_stat_info.status_code);
+    if (0 == bl60x_check_mac_status(&is_ok) && 0 == is_ok) {
+        aos_post_event(EV_WIFI, CODE_WIFI_ON_EMERGENCY_MAC, 0);
+        //TODO Fix ugly header file hack
+void helper_record_dump();
+            helper_record_dump();
+    }
 
     if (_pending_task_is_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT)) {
         os_printf(DEBUG_HEADER "Pending Scan Sent\r\n");

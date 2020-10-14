@@ -31,6 +31,10 @@ COMPONENT_SRCS := bl602_std/StdDriver/Src/bl602_uart.c \
                   bl602_std/StdDriver/Src/bl602_pwm.c \
                   bl602_std/StdDriver/Src/bl602_l1c.c \
                   bl602_std/StdDriver/Src/bl602_ef_ctrl.c \
+                  bl602_std/StdDriver/Src/bl602_ef_ctrl.c \
+                  bl602_std/StdDriver/Src/bl602_mfg_efuse.c \
+                  bl602_std/StdDriver/Src/bl602_mfg_flash.c \
+                  bl602_std/StdDriver/Src/bl602_mfg_media.c \
                   bl602_std/StdDriver/Src/bl602_dac.c \
                   bl602_std/StdDriver/Src/bl602_ir.c \
                   bl602_std/StdDriver/Src/bl602_spi.c \

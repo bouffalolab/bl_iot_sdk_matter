@@ -36,4 +36,4 @@ CONFIG_BT_MESH ?= 1
 CONFIG_BLE_TP_SERVER?=1
 
 #blog enable components format :=blog_testc cli vfs helper
-LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop
+LOG_ENABLED_COMPONENTS:=blog_testc hal_drv loopset looprt bloop blsync_ble

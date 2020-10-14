@@ -27,6 +27,7 @@
 #include "access.h"
 #include "foundation.h"
 
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
 #include "generic_client.h"
 #endif
@@ -39,6 +40,7 @@
 #if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
 #include "lighting_server.h"
 #endif
+#endif /* CONFIG_BT_MESH_MODEL */
 
 static const struct bt_mesh_comp *dev_comp;
 static u16_t dev_primary_addr;
@@ -55,6 +57,7 @@ static const struct {
 #if defined(CONFIG_BT_MESH_HEALTH_CLI)
 	{ BT_MESH_MODEL_ID_HEALTH_CLI, bt_mesh_health_cli_init },
 #endif
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
     { BT_MESH_MODEL_ID_GEN_ONOFF_CLI,             bt_mesh_gen_onoff_cli_init             },
     { BT_MESH_MODEL_ID_GEN_LEVEL_CLI,             bt_mesh_gen_level_cli_init             },
@@ -103,6 +106,7 @@ static const struct {
     { BT_MESH_MODEL_ID_LIGHT_LC_SRV,              bt_mesh_light_lc_srv_init              },
     { BT_MESH_MODEL_ID_LIGHT_LC_SETUP_SRV,        bt_mesh_light_lc_setup_srv_init        },
 #endif
+#endif /* CONFIG_BT_MESH_MODEL */
 };
 
 void bt_mesh_model_foreach(void (*func)(struct bt_mesh_model *mod,
@@ -642,14 +646,6 @@ void bt_mesh_model_recv(struct bt_mesh_net_rx *rx, struct net_buf_simple *buf)
 				continue;
 			}
 
-	        /* The following three operations are added by Espressif.
-	         * 1. Update the "recv_op" with the opcode got from the buf;
-	         * 2. Update the model pointer with the found model;
-	         * 3. Update the "srv_send" to be true when received a message.
-	         *    This flag will be used when a server model sends a status
-	         *    message, and has no impact on the client messages.
-	         * Most of these info will be used by the application layer.
-	         */
 	        rx->ctx.recv_op = opcode;
 	        rx->ctx.model = model;
 	        rx->ctx.srv_send = true;

@@ -34,8 +34,8 @@
 #include "ble_cli_cmds.h"
 #if defined(CONFIG_BT_MESH)
 #include "mesh_cli_cmds.h"
+#if defined(CONFIG_BT_MESH_MODEL)
 #if (defined(CONFIG_BT_MESH_MODEL_GEN_SRV) || defined(CONFIG_BT_MESH_MODEL_GEN_CLI))
-//#include "gen_srv.h"
 #include "bfl_ble_mesh_generic_model_api.h"
 #include "bl_gpio.h"
 #endif
@@ -44,6 +44,12 @@
 #endif
 #include "bfl_ble_mesh_local_data_operation_api.h"
 #include "bfl_ble_mesh_networking_api.h"
+#else
+#if (defined(CONFIG_BT_MESH_MODEL_GEN_SRV) || defined(CONFIG_BT_MESH_MODEL_GEN_CLI))
+#include "gen_srv.h"
+#include "bl_gpio.h"
+#endif
+#endif /* CONFIG_BT_MESH_MODEL */
 
 #endif
 #include "hci_driver.h"
@@ -109,6 +115,7 @@ void model_gen_cb(uint8_t value)
     bl_gpio_output_set(LED_PIN, value); 
 }
 
+#if defined(CONFIG_BT_MESH_MODEL)
 static void example_handle_gen_onoff_msg(bfl_ble_mesh_model_t *model,
 										 bfl_ble_mesh_msg_ctx_t *ctx,
 										 bfl_ble_mesh_server_recv_gen_onoff_set_t *set)
@@ -314,6 +321,7 @@ static void example_ble_mesh_lighting_server_cb(bfl_ble_mesh_lighting_server_cb_
     }
 }
 #endif /*CONFIG_BT_MESH_MODEL_LIGHT_SRV*/
+#endif /* CONFIG_BT_MESH_MODEL */
 #endif /*CONFIG_BT_MESH*/
 
 void bt_enable_cb(int err)
@@ -326,13 +334,18 @@ void bt_enable_cb(int err)
 
 #if defined(CONFIG_BT_MESH)
         blemesh_cli_register();
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-        bl_gpio_enable_output(LED_PIN, LED_PIN_PULLUP, LED_PIN_PULDONW);
+        bl_gpio_enable_output(LED_PIN, LED_PIN_PULLUP, LED_PIN_PULDONW);	
 		bfl_ble_mesh_register_generic_server_callback(example_ble_mesh_generic_server_cb);
 #endif
 #if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
 		bfl_ble_mesh_register_lighting_server_callback(example_ble_mesh_lighting_server_cb);
 #endif
+#else
+		bl_gpio_enable_output(LED_PIN, LED_PIN_PULLUP, LED_PIN_PULDONW);
+		mesh_gen_srv_callback_register(model_gen_cb);
+#endif /* CONFIG_BT_MESH_MODEL */
 #endif
 
 #if defined(CONFIG_BT_WIFIPROV_SERVER)

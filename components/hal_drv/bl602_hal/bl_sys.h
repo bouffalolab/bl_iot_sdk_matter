@@ -34,6 +34,7 @@
 
 int bl_sys_logall_enable(void);
 int bl_sys_logall_disable(void);
+void bl_sys_mfg_config(void);
 int bl_sys_reset_por(void);
 void bl_sys_reset_system(void);
 int bl_sys_isxipaddr(uint32_t addr);

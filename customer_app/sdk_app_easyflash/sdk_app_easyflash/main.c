@@ -56,6 +56,7 @@
 #include <hal_board.h>
 #include <bl_sys_time.h>
 #include <bl_romfs.h>
+#include <bl_sys.h>
 #include <fdt.h>
 
 #include <easyflash.h>
@@ -279,7 +280,7 @@ void bfl_main()
     /*Init UART In the first place*/
     bl_uart_init(0, 16, 7, 255, 255, 2 * 1000 * 1000);
     puts("Starting bl602 now....\r\n");
-    GLB_Set_EM_Sel(0);
+    bl_sys_init();
 
     _dump_boot_info();
 

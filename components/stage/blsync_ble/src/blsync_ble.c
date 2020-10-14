@@ -18,6 +18,7 @@
 static bl_ble_sync_t *gp_index = NULL;
 struct bt_conn *blsync_conn = NULL;
 struct bt_gatt_exchange_params blsync_exchg_mtu;
+static unsigned int isRegister = 0;
 
 static void wifiprov_ccc_cfg_changed(const struct bt_gatt_attr *attr,u16_t value);
 
@@ -373,8 +374,11 @@ int bl_ble_sync_start(bl_ble_sync_t *index,
     gp_index->scaning = 0;
     index->task_runing = 0;
     index->stop_flag = 0;
-    
-	bt_conn_cb_register(&blsync_conn_callbacks);
+    if ( !isRegister )
+    {
+        isRegister = 1;
+        bt_conn_cb_register(&blsync_conn_callbacks);
+    }
     bt_gatt_service_register((struct bt_gatt_service *)&wifiprov_server);
 
     index->task_handle = xTaskCreateStatic(__bl_ble_sync_task,

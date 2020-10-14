@@ -29,12 +29,9 @@
  */
 #ifndef __WIFI_PROV_API_H__
 #define __WIFI_PROV_API_H__
-int wifi_prov_api_event_trigger_connect(void);
+#include "blsync_ble.h"
+int wifi_prov_api_event_trigger_connect(struct wifi_conn *info);
 int wifi_prov_api_event_trigger_disconnect(void);
-
-/*set len to the ssid len, if ssid is NOT '\0' tailed*/
-int wifi_prov_api_event_trigger_ssid(const char *ssid, int len);
-
-/*set len to the ssid len, if ssid is NOT '\0' tailed*/
-int wifi_prov_api_event_trigger_password(const char *password, int len);
+int wifi_prov_api_event_trigger_scan(void(*complete)(void *));
+int wifi_prov_api_event_state_get(void(*state_get)(void *));
 #endif

@@ -48,6 +48,12 @@ int bl_sys_logall_disable(void)
     return 0;
 }
 
+void bl_sys_mfg_config(void)
+{
+    char *cpubuf = "0mfg";
+    memcpy(((char *)(0x4000F100)), cpubuf, 4);
+}
+
 int bl_sys_reset_por(void)
 {
     GLB_SW_POR_Reset();

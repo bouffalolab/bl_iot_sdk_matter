@@ -82,6 +82,7 @@
 #include <libfdt.h>
 #include <blog.h>
 #include "at_server.h"
+#include "blsync_ble_app.h"
 
 #define TASK_PRIORITY_FW            ( 30 )
 #define mainHELLO_TASK_PRIORITY     ( 20 )
@@ -100,6 +101,9 @@
 #define WIFI_AP_PSM_INFO_GW_MAC         "conf_ap_gw_mac"
 #define CLI_CMD_AUTOSTART1              "cmd_auto1"
 #define CLI_CMD_AUTOSTART2              "cmd_auto2"
+
+#define CODE_CLI_BLSYNC_START 0x01
+#define CODE_CLI_BLSYNC_STOP  0x02
 
 extern void ble_stack_start(void);
 
@@ -189,6 +193,89 @@ static void _chan_str_to_hex(uint8_t *chan_band, uint16_t *chan_freq, char *chan
     (*chan_freq) = freq;
 }
 
+typedef struct _wifi_item {
+    char ssid[32];
+    uint32_t ssid_len;
+    uint8_t bssid[6];
+    uint8_t channel;
+    uint8_t auth;
+    int8_t rssi;
+} _wifi_item_t;
+
+struct _wifi_conn {
+    char ssid[32];
+    char ssid_tail[1];
+    char pask[64];
+};
+
+struct _wifi_state {
+    char ip[16];
+    char gw[16];
+    char mask[16];
+    char ssid[32];
+    char ssid_tail[1];
+    uint8_t bssid[6];
+    uint8_t state;
+};
+
+static void scan_item_cb(wifi_mgmr_ap_item_t *env, uint32_t *param1, wifi_mgmr_ap_item_t *item)
+{
+    _wifi_item_t wifi_item;
+    void (*complete)(void *) = (void (*)(void *))param1;
+
+    wifi_item.auth = item->auth;
+    wifi_item.rssi = item->rssi;
+    wifi_item.channel = item->channel;
+    wifi_item.ssid_len = item->ssid_len;
+    memcpy(wifi_item.ssid, item->ssid, sizeof(wifi_item.ssid));
+    memcpy(wifi_item.bssid, item->bssid, sizeof(wifi_item.bssid));
+
+    if (complete) {
+        complete(&wifi_item);
+    }
+}
+
+static void scan_complete_cb(void *p_arg, void *param)
+{
+    wifi_mgmr_scan_ap_all(NULL, p_arg, scan_item_cb);
+}
+
+static void wifiprov_scan(void *p_arg)
+{
+    wifi_mgmr_scan(p_arg, scan_complete_cb);
+}
+
+static void wifiprov_wifi_state_get(void *p_arg)
+{
+    int tmp_state;
+    wifi_mgmr_sta_connect_ind_stat_info_t info;
+    ip4_addr_t ip, gw, mask;
+    struct _wifi_state state;
+    void (*state_get_cb)(void *) = (void (*)(void *))p_arg;
+
+    memset(&state, 0, sizeof(state));
+    memset(&info, 0, sizeof(info));
+    wifi_mgmr_state_get(&tmp_state);
+    wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
+    wifi_mgmr_sta_connect_ind_stat_get(&info);
+
+    state.state = tmp_state;
+    strcpy(state.ip, ip4addr_ntoa(&ip));
+    strcpy(state.mask, ip4addr_ntoa(&mask));
+    strcpy(state.gw, ip4addr_ntoa(&gw));
+    memcpy(state.ssid, info.ssid, sizeof(state.ssid));
+    memcpy(state.bssid, info.bssid, sizeof(state.bssid));
+    state.ssid_tail[0] = 0;
+
+    printf("IP  :%s \r\n", state.ip);
+    printf("GW  :%s \r\n", state.gw);
+    printf("MASK:%s \r\n", state.mask);
+
+    if (state_get_cb) {
+        state_get_cb(&state);
+    }
+}
+
 static void _connect_wifi()
 {
     /*XXX caution for BIG STACK*/
@@ -199,7 +286,7 @@ static void _connect_wifi()
     uint8_t mac[6];
     uint8_t band = 0;
     uint16_t freq = 0;
-    int wifi_mode, wifi_auto;
+    int wifi_mode = 0, wifi_auto = 0;
 
     at_key_value_get(SAVE_KEY_WIFI_MODE, &wifi_mode);
     if (wifi_mode != 1) {
@@ -286,16 +373,44 @@ static void _connect_wifi()
 
 static void wifi_sta_connect(char *ssid, char *password)
 {
+    int auto_conn = 0;
     wifi_interface_t wifi_interface;
 
     wifi_interface = wifi_mgmr_sta_enable();
     wifi_mgmr_sta_connect(wifi_interface, ssid, password, NULL, NULL, 0, 0);
+    
+    at_key_value_get(SAVE_KEY_WIFI_AUTO, &auto_conn);
+    if (auto_conn) {
+        wifi_mgmr_sta_autoconnect_enable();
+    } else {
+        wifi_mgmr_sta_autoconnect_disable();
+    }
+}
+
+static uint8_t ble_sync_auto = 0;
+static void event_cb_cli(input_event_t *event, void *p_arg)
+{
+    switch (event->code) {
+        case CODE_CLI_BLSYNC_START :
+            if (event->value) {
+                ble_sync_auto = 1;
+            } else {
+                ble_sync_auto = 0;
+            }
+            blsync_ble_start();
+            break;
+        case CODE_CLI_BLSYNC_STOP :
+            blsync_ble_stop();
+            printf("blsync ble stop\r\n");
+            break;
+        default :
+            break;
+    }
 }
 
 static void event_cb_wifi_event(input_event_t *event, void *private_data)
 {
-    static char *ssid;
-    static char *password;
+    struct _wifi_conn *conn_info;
 
     switch (event->code) {
         case CODE_WIFI_ON_INIT_DONE:
@@ -328,11 +443,12 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
             );
             wifi_mgmr_state_get(&state);
             if (state == WIFI_STATE_PSK_ERROR) {
-                at_server_notify(AT_ASYNC_PASK_ERROR);
+                at_server_notify(AT_ASYNC_PSK_ERROR);
             }
             if (state == WIFI_STATE_NO_AP_FOUND) {
                 at_server_notify(AT_ASYNC_NO_AP_FOUND);
             }
+            at_server_notify(AT_WIFI_DISCONNECT);
         }
         break;
         case CODE_WIFI_ON_CONNECTING:
@@ -362,19 +478,7 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
         {
             printf("[APP] [EVT] GOT IP %lld\r\n", aos_now_ms());
             printf("[SYS] Memory left is %d Bytes\r\n", xPortGetFreeHeapSize());
-        }
-        break;
-        case CODE_WIFI_ON_PROV_SSID:
-        {
-            printf("[APP] [EVT] [PROV] [SSID] %lld: %s\r\n",
-                    aos_now_ms(),
-                    event->value ? (const char*)event->value : "UNKNOWN"
-            );
-            if (ssid) {
-                vPortFree(ssid);
-                ssid = NULL;
-            }
-            ssid = (char*)event->value;
+            at_server_notify(AT_WIFI_IP_GET);
         }
         break;
         case CODE_WIFI_ON_PROV_BSSID:
@@ -388,28 +492,36 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
             }
         }
         break;
-        case CODE_WIFI_ON_PROV_PASSWD:
-        {
-            printf("[APP] [EVT] [PROV] [PASSWD] %lld: %s\r\n", aos_now_ms(),
-                    event->value ? (const char*)event->value : "UNKNOWN"
-            );
-            if (password) {
-                vPortFree(password);
-                password = NULL;
-            }
-            password = (char*)event->value;
-        }
-        break;
         case CODE_WIFI_ON_PROV_CONNECT:
         {
             printf("[APP] [EVT] [PROV] [CONNECT] %lld\r\n", aos_now_ms());
-            printf("connecting to %s:%s...\r\n", ssid, password);
-            wifi_sta_connect(ssid, password);
+            conn_info = (struct _wifi_conn *)event->value;
+            at_key_value_set(WIFI_AP_PSM_INFO_SSID, conn_info->ssid);
+            at_key_value_set(WIFI_AP_PSM_INFO_PASSWORD, conn_info->pask);
+            at_server_notify_with_ctx(AT_WIFI_PRVO_DUMP, NULL, 0);
+            if (ble_sync_auto) {
+                wifi_sta_connect(conn_info->ssid, conn_info->pask);
+            }
         }
         break;
         case CODE_WIFI_ON_PROV_DISCONNECT:
         {
             printf("[APP] [EVT] [PROV] [DISCONNECT] %lld\r\n", aos_now_ms());
+            wifi_mgmr_sta_disconnect();
+            vTaskDelay(1000);
+            wifi_mgmr_sta_disable(NULL);
+        }
+        break;
+        case CODE_WIFI_ON_PROV_SCAN_START:
+        {
+            printf("[APP] [EVT] [PROV] [SCAN] %lld\r\n", aos_now_ms());
+            wifiprov_scan((void *)event->value);
+        }
+        break;
+        case CODE_WIFI_ON_PROV_STATE_GET:
+        {
+            printf("[APP] [EVT] [PROV] [STATE] %lld\r\n", aos_now_ms());
+            wifiprov_wifi_state_get((void *)event->value);
         }
         break;
         default:
@@ -553,6 +665,7 @@ static void aos_loop_proc(void *pvParameters)
     }
 
     aos_register_event_filter(EV_WIFI, event_cb_wifi_event, NULL);
+    aos_register_event_filter(EV_CLI, event_cb_cli, NULL);
 
     at_server_init();
     usr_at_cmd_register();

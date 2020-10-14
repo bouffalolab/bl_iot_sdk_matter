@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>BL602 SDK Starter Guide &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.9 文档</title>
+  <title>BL602 SDK Starter Guide &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.10 文档</title>
   
 
   
@@ -61,7 +61,7 @@
             
             
               <div class="version">
-                release_bl_iot_sdk_1.6.9
+                release_bl_iot_sdk_1.6.10
               </div>
             
           
@@ -110,6 +110,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_ble/ble.html">13. BLE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_mesh/mesh.html">14. Mesh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_blsync_ble/blsync_ble.html">15. BLSYNC-BLE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Examples/sdk_app_easyflash_boottimes/easyflash_boottimes.html">16. Easyflash4 boot times</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul>
@@ -209,10 +210,10 @@
 <li><p>打开终端，安装make，命令：<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">update</span></code>、<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">make</span></code></p></li>
 </ul>
 <div class="figure align-default">
-<img alt="" src="../../_images/image118.png" />
+<img alt="" src="../../_images/image126.png" />
 </div>
 <div class="figure align-default">
-<img alt="" src="../../_images/image217.png" />
+<img alt="" src="../../_images/image220.png" />
 </div>
 <ul class="simple">
 <li><p>安装串口工具此处选用的<code class="docutils literal notranslate"><span class="pre">Gtkterm</span></code>
@@ -220,7 +221,7 @@
 <li><p>安装解压软件，命令：<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">unzip</span></code></p></li>
 </ul>
 <div class="figure align-default">
-<img alt="" src="../../_images/image315.png" />
+<img alt="" src="../../_images/image318.png" />
 </div>
 <ul class="simple">
 <li><p>进入SDK文件所在的目录后开始解压，命令：<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">work</span></code>、<code class="docutils literal notranslate"><span class="pre">unzip</span> <span class="pre">bl_iot_sdk.zip</span></code></p></li>
@@ -234,10 +235,10 @@
 <h2>硬件连接<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
 <p>模块的相关引脚连接如下图所示，其中图一是模块的正面图，其标号1处用跳线帽短接，标号2处将左边两根排针短接，标号3处将上面的两根排针短接；图二是模块的背面图，将 <code class="docutils literal notranslate"><span class="pre">IO8</span></code> 和 <code class="docutils literal notranslate"><span class="pre">LOW</span></code> 两根排针短接。</p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image119.png" />
+<img alt="" src="../../_images/image1110.png" />
 </div>
 <div class="figure align-default">
-<img alt="" src="../../_images/image122.png" />
+<img alt="" src="../../_images/image127.png" />
 </div>
 </div>
 <div class="section" id="id3">
@@ -245,12 +246,12 @@
 <ul>
 <li><p>进入需要编译的工程目录，命令：<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">customer_app/bl602_demo_event</span></code>，进行编译，命令<code class="docutils literal notranslate"><span class="pre">./genromap</span></code></p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image47.png" />
+<img alt="" src="../../_images/image48.png" />
 </div>
 </li>
 <li><p>查看编译生成的build_out文件夹，命令：<code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">build_out</span></code></p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image56.png" />
+<img alt="" src="../../_images/image57.png" />
 </div>
 </li>
 </ul>

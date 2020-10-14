@@ -144,6 +144,14 @@ ssize_t vfs_uart_read(file_t *fp, void *buf, size_t nbytes)
         uart_dev = (uart_dev_t *)(fp->node->i_arg);
 
         if ((nbytes > 0) && (uart_dev != NULL)) {
+#if defined(CFG_USB_CDC_ENABLE)
+            extern int usb_cdc_is_port_open(void);
+            extern int usb_cdc_read(uint8_t *data, uint32_t len);
+            if(usb_cdc_is_port_open()){
+                return usb_cdc_read((uint8_t *)buf, nbytes);
+            }
+#endif
+
             aos_mutex_lock((aos_mutex_t*)&(uart_dev->mutex), AOS_WAIT_FOREVER);
 
             ret = 0;
@@ -183,6 +191,13 @@ ssize_t vfs_uart_write(file_t *fp, const void *buf, size_t nbytes)
         uart_dev = (uart_dev_t *)(fp->node->i_arg);
 
         if (uart_dev != NULL) {
+#if defined(CFG_USB_CDC_ENABLE)
+            extern int usb_cdc_is_port_open(void);
+            extern int usb_cdc_write(const uint8_t *data, uint32_t len);
+            if(usb_cdc_is_port_open()){
+                return usb_cdc_write((const uint8_t *)buf, nbytes);
+            }
+#endif
 
             ret = xStreamBufferSend(uart_dev->tx_ringbuf_handle, buf, nbytes, 0);
 

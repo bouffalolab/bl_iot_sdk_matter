@@ -32,6 +32,7 @@
    Examples/demo_ble/ble
    Examples/demo_mesh/mesh
    Examples/demo_blsync_ble/blsync_ble
+   Examples/sdk_app_easyflash_boottimes/easyflash_boottimes
 
 .. toctree::
    :caption: Components

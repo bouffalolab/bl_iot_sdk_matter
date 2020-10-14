@@ -171,9 +171,7 @@
 #define MBEDTLS_SHA1_ALT
 #endif
 #if defined(MBEDTLS_SHA256_C)
-#if !defined(CONFIG_PLAT_AOS_ESP32)
 #define MBEDTLS_SHA256_ALT
-#endif
 #endif
 #endif /* MBEDTLS_MD_ALT */
 

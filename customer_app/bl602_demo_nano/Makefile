@@ -18,7 +18,7 @@ $(info ****** Please SET BL60X_SDK_PATH ******)
 $(info ****** Trying SDK PATH [$(BL60X_SDK_PATH)])
 endif
 
-COMPONENTS_NETWORK := sntp
+COMPONENTS_NETWORK := sntp dns_server
 COMPONENTS_BLSYS   := bltime blfdt blmtd blota bloop loopadc looprt loopset
 COMPONENTS_BLE     := blecontroller blestack
 
@@ -35,6 +35,9 @@ ifeq ($(CONFIG_BT),1)
 INCLUDE_COMPONENTS += $(COMPONENTS_BLE)
 ifeq ($(CONFIG_BT_MESH),1)
 INCLUDE_COMPONENTS += blemesh
+endif
+ifeq ($(CONFIG_BT_MESH_MODEL),1)
+INCLUDE_COMPONENTS += blemesh_model
 endif
 endif
 include $(BL60X_SDK_PATH)/make_scripts_riscv/project.mk

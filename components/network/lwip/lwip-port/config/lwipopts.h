@@ -31,7 +31,6 @@
 
 #define LWIP_TIMEVAL_PRIVATE    0
 
-#define LWIP_ALTCP                      1
 /**
  * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
  * this lets tcpip_input() grab the mutex for input packets as well,

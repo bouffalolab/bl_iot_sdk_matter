@@ -1324,7 +1324,7 @@ static void console_cb_read(int fd, void *param)
 {
     char buffer[16];
     int ret;
-                                                                                                                                                
+
     ret = aos_read(fd, buffer, sizeof(buffer));
     if (ret > 0) {
         if (ret <= sizeof(buffer)) {

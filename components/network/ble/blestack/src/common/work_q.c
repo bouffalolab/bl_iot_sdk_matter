@@ -206,7 +206,8 @@ void k_delayed_work_del_timer(struct k_delayed_work *work)
 
 int k_delayed_work_free(struct k_delayed_work *work)
 {
-	k_delayed_work_cancel(work);
+	remv_timer_record(work);
+	k_delayed_work_del_timer(work);
 	return 0;
 }
 

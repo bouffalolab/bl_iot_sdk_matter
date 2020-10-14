@@ -12,6 +12,7 @@ COMPONENT_SRCS := src/utils_hex.c \
                   src/utils_sha256.c \
                   src/utils_fec.c \
                   src/utils_log.c \
+                  src/utils_dns.c \
                   src/utils_list.c \
                   src/utils_rbtree.c \
                   src/utils_hexdump.c \

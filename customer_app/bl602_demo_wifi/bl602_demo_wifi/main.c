@@ -439,6 +439,12 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
             printf("[SYS] Memory left is %d Bytes\r\n", xPortGetFreeHeapSize());
         }
         break;
+        case CODE_WIFI_ON_EMERGENCY_MAC:
+        {
+            printf("[APP] [EVT] EMERGENCY MAC %lld\r\n", aos_now_ms());
+            hal_reboot();//one way of handling emergency is reboot. Maybe we should also consider solutions
+        }
+        break;
         case CODE_WIFI_ON_PROV_SSID:
         {
             printf("[APP] [EVT] [PROV] [SSID] %lld: %s\r\n",

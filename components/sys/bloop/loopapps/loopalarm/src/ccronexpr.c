@@ -60,7 +60,7 @@ static const char* const MONTHS_ARR[] = { "FOO", "JAN", "FEB", "MAR", "APR", "MA
 
 /* forward declarations for platforms that may need them */
 /* can be hidden in time.h */
-#if !defined(_WIN32) && !defined(__AVR__) && !defined(ESP8266) && !defined(ANDROID)
+#if !defined(_WIN32) && !defined(__AVR__) && !defined(ANDROID)
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
 time_t timegm(struct tm* __tp);
 struct tm *localtime_r(const time_t *timep, struct tm *result);
@@ -78,25 +78,7 @@ time_t cron_mktime_gm(struct tm* tm) {
 #elif defined(__AVR__)
 /* https://www.nongnu.org/avr-libc/user-manual/group__avr__time.html */
     return mk_gmtime(tm);
-#elif defined(ESP8266)
-    /* https://linux.die.net/man/3/timegm */
-    /* http://www.catb.org/esr/time-programming/ */
-    /* portable version of timegm() */
-    time_t ret;
-    char *tz;
-    tz = getenv("TZ");
-    if (tz)
-        tz = strdup(tz);
-    setenv("TZ", "UTC+0", 1);
-    tzset();
-    ret = mktime(tm);
-    if (tz) {
-        setenv("TZ", tz, 1);
-        free(tz);
-    } else
-        unsetenv("TZ");
-    tzset();
-    return ret;
+
 #elif defined(ANDROID)
     /* https://github.com/adobe/chromium/blob/cfe5bf0b51b1f6b9fe239c2a3c2f2364da9967d7/base/os_compat_android.cc#L20 */
     static const time_t kTimeMax = ~(1L << (sizeof (time_t) * CHAR_BIT - 1));

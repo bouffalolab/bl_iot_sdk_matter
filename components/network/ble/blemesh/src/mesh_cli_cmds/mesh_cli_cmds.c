@@ -16,8 +16,9 @@
 #include "adv.h"
 #include "beacon.h"
 #include "hci_core.h"
+#include "log.h"
+#if defined(CONFIG_BT_MESH_MODEL)
 #if (defined(CONFIG_BT_MESH_MODEL_GEN_SRV) || defined(CONFIG_BT_MESH_MODEL_GEN_CLI))
-//#include "gen_srv.h"
 #include "bfl_ble_mesh_generic_model_api.h"
 #endif
 #if (defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV) || defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI))
@@ -25,6 +26,11 @@
 #endif
 #include "bfl_ble_mesh_local_data_operation_api.h"
 #include "bfl_ble_mesh_networking_api.h"
+#else
+#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
+#include "gen_srv.h"
+#endif
+#endif /* CONFIG_BT_MESH_MODEL */
 
 
 #if defined(CONFIG_BT_SETTINGS)
@@ -58,7 +64,7 @@ static struct {
 	.dst = BT_MESH_ADDR_UNASSIGNED,
 };
 
-#if defined(BL602)
+#if defined(BL602) || defined(BL702)
 #define vOutputString(...)  printf(__VA_ARGS__)
 #else
 #define vOutputString(...)  bl_print(SYSTEM_UART_ID, PRINT_MODULE_CLI, __VA_ARGS__)
@@ -90,6 +96,7 @@ static void blemesh_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 static void blemesh_set_dev_uuid(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_input_num(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
 static void blemesh_gen_oo_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
@@ -98,6 +105,7 @@ static void blemesh_light_lgn_cli(char *pcWriteBuffer, int xWriteBufferLen, int 
 static void blemesh_light_ctl_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_light_hsl_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
+#endif /* CONFIG_BT_MESH_MODEL */
 static void blemesh_pb(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_reset(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void blemesh_net_send(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -174,9 +182,8 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 };
 
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-//struct bt_mesh_gen_onoff_srv onoff_srv = {
-//};
 BFL_BLE_MESH_MODEL_PUB_DEFINE(onoff_pub, 2 + 3, ROLE_NODE);
 static bfl_ble_mesh_gen_onoff_srv_t onoff_server = {
     .rsp_ctrl.get_auto_rsp = BFL_BLE_MESH_SERVER_AUTO_RSP,
@@ -235,14 +242,24 @@ BFL_BLE_MESH_MODEL_PUB_DEFINE(hsl_cli_pub, 2 + 1, ROLE_NODE);
 static bfl_ble_mesh_client_t hsl_client;
 #endif
 
+#else
+#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
+struct bt_mesh_gen_onoff_srv onoff_srv = {
+};
+#endif
+#endif /* CONFIG_BT_MESH_MODEL */
 
 static struct bt_mesh_model sig_models[] = {
 	BT_MESH_MODEL_CFG_SRV(&cfg_srv),
 	BT_MESH_MODEL_CFG_CLI(&cfg_cli),
 	BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 	BT_MESH_MODEL_HEALTH_CLI(&health_cli),
+#if !defined(CONFIG_BT_MESH_MODEL)
 	#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-	//BT_MESH_MODEL_GEN_ONOFF(&onoff_srv),
+	BT_MESH_MODEL_GEN_ONOFF(&onoff_srv),
+	#endif
+#else
+	#if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
 	BFL_BLE_MESH_MODEL_GEN_ONOFF_SRV(&onoff_pub, &onoff_server),
 	#endif
 	#if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
@@ -266,6 +283,7 @@ static struct bt_mesh_model sig_models[] = {
     #if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
 	BFL_BLE_MESH_MODEL_LIGHT_HSL_CLI(&hsl_cli_pub, &hsl_client),
     #endif
+#endif /* CONFIG_BT_MESH_MODEL */
 };
 
 #define VENDOR_DATA_LEN (BT_MESH_TX_SDU_MAX-4-3)
@@ -311,7 +329,7 @@ static const struct bt_mesh_comp comp = {
 	.elem_count = ARRAY_SIZE(elements),
 };
 
-#if defined(BL602)
+#if defined(BL602) || defined(BL702)
 const struct cli_command btMeshCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 #else
 const struct cli_command btMeshCmdSet[] = {
@@ -343,6 +361,7 @@ const struct cli_command btMeshCmdSet[] = {
      
     {"blemesh_input_str", "\r\nblemesh_input_str:[input Alphanumeric in provisionging procedure]\r\n\
      [Max Size:16 Characters, e.g.123ABC]\r\n", blemesh_input_str},
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
 	{"blemesh_gen_oo_cli", "\r\blemesh_gen_oo_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t onoff tid trans_time delay]\r\n\
      []\r\n", blemesh_gen_oo_cli},
@@ -355,6 +374,7 @@ const struct cli_command btMeshCmdSet[] = {
      {"blemesh_light_hsl_cli", "\r\blemesh_light_hsl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en lightness hue saturation tid trans_time delay]\r\n\
      []\r\n", blemesh_light_hsl_cli},
 #endif
+#endif /* CONFIG_BT_MESH_MODEL */
 
     #if defined(BL70X)
     {NULL, NULL, "No handler / Invalid command", NULL}
@@ -646,6 +666,7 @@ static void blemesh_input_str(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	input_act = BT_MESH_NO_INPUT;
 }
 
+#if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
 void ble_mesh_generic_onoff_client_model_cb(bfl_ble_mesh_generic_client_cb_event_t event,
         bfl_ble_mesh_generic_client_cb_param_t *param)
@@ -1168,7 +1189,7 @@ static void blemesh_light_hsl_cli(char *pcWriteBuffer, int xWriteBufferLen, int 
 	vOutputString("exit %s\n", __func__);
 }
 #endif
-
+#endif /* CONFIG_BT_MESH_MODEL */
 
 static int input(bt_mesh_input_action_t act, u8_t size)
 {
