@@ -14,7 +14,7 @@
 #include <zephyr/types.h>
 #include <misc/util.h>
 #include <zephyr.h>
-#include "config.h"
+#include "../../port/include/config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -138,6 +138,19 @@ static inline void net_buf_simple_init(struct net_buf_simple *buf,
 }
 
 /**
+ * @brief Initialize a net_buf_simple object with data.
+ *
+ * Initialized buffer object with external data.
+ *
+ * @param buf Buffer to initialize.
+ * @param data External data pointer
+ * @param size Amount of data the pointed data buffer if able to fit.
+ */
+void net_buf_simple_init_with_data(struct net_buf_simple *buf,
+				   void *data, size_t size);
+
+/**
+
  *  @brief Reset buffer
  *
  *  Reset buffer data so it can be reused for other purposes.
@@ -149,6 +162,19 @@ static inline void net_buf_simple_reset(struct net_buf_simple *buf)
 	buf->len  = 0;
 	buf->data = buf->__buf;
 }
+
+/**
+ * Clone buffer state, using the same data buffer.
+ *
+ * Initializes a buffer to point to the same data as an existing buffer.
+ * Allows operations on the same data without altering the length and
+ * offset of the original.
+ *
+ * @param original Buffer to clone.
+ * @param clone The new clone.
+ */
+void net_buf_simple_clone(const struct net_buf_simple *original,
+			  struct net_buf_simple *clone);
 
 /**
  *  @brief Prepare data to be added at the end of the buffer
@@ -214,6 +240,30 @@ void net_buf_simple_add_le16(struct net_buf_simple *buf, u16_t val);
  *  @param val 16-bit value to be added.
  */
 void net_buf_simple_add_be16(struct net_buf_simple *buf, u16_t val);
+
+/**
+ * @brief Add 24-bit value at the end of the buffer
+ *
+ * Adds 24-bit value in little endian format at the end of buffer.
+ * Increments the data length of a buffer to account for more data
+ * at the end.
+ *
+ * @param buf Buffer to update.
+ * @param val 24-bit value to be added.
+ */
+void net_buf_simple_add_le24(struct net_buf_simple *buf, uint32_t val);
+
+/**
+ * @brief Add 24-bit value at the end of the buffer
+ *
+ * Adds 24-bit value in big endian format at the end of buffer.
+ * Increments the data length of a buffer to account for more data
+ * at the end.
+ *
+ * @param buf Buffer to update.
+ * @param val 24-bit value to be added.
+ */
+void net_buf_simple_add_be24(struct net_buf_simple *buf, uint32_t val);
 
 /**
  *  @brief Add 32-bit value at the end of the buffer
@@ -283,6 +333,28 @@ void net_buf_simple_push_be16(struct net_buf_simple *buf, u16_t val);
  *  @param val 8-bit value to be pushed to the buffer.
  */
 void net_buf_simple_push_u8(struct net_buf_simple *buf, u8_t val);
+
+/**
+ * @brief Push 24-bit value to the beginning of the buffer
+ *
+ * Adds 24-bit value in little endian format to the beginning of the
+ * buffer.
+ *
+ * @param buf Buffer to update.
+ * @param val 24-bit value to be pushed to the buffer.
+ */
+void net_buf_simple_push_le24(struct net_buf_simple *buf, uint32_t val);
+
+/**
+ * @brief Push 24-bit value to the beginning of the buffer
+ *
+ * Adds 24-bit value in big endian format to the beginning of the
+ * buffer.
+ *
+ * @param buf Buffer to update.
+ * @param val 24-bit value to be pushed to the buffer.
+ */
+void net_buf_simple_push_be24(struct net_buf_simple *buf, uint32_t val);
 
 /**
  *  @brief Remove data from the beginning of the buffer.
@@ -522,6 +594,10 @@ struct net_buf {
 	u8_t user_data[CONFIG_NET_BUF_USER_DATA_SIZE] __net_buf_align;
 };
 
+#if defined(BFLB_DYNAMIC_ALLOC_MEM)
+typedef void (*destroy_cb_t)(struct net_buf *buf);
+#endif
+
 struct net_buf_data_cb {
 	u8_t * (*alloc)(struct net_buf *buf, size_t *size, s32_t timeout);
 	u8_t * (*ref)(struct net_buf *buf, u8_t *data);
@@ -538,8 +614,11 @@ struct net_buf_pool {
 	struct k_lifo free;
 
 	/** Number of buffers in pool */
+    #if defined(BFLB_DYNAMIC_ALLOC_MEM)
+    u16_t buf_count;
+    #else
 	const u16_t buf_count;
-
+    #endif
 	/** Number of uninitialized buffers */
 	u16_t uninit_count;
 
@@ -553,7 +632,16 @@ struct net_buf_pool {
 	/** Name of the pool. Used when printing pool information. */
 	const char *name;
 #endif /* CONFIG_NET_BUF_POOL_USAGE */
+    #if defined(BFLB_DYNAMIC_ALLOC_MEM)
+    /** Optional destroy callback when buffer is freed. */
+	void (*destroy)(struct net_buf *buf);
 
+	/** Data allocation handlers. */
+	struct net_buf_data_alloc *alloc;
+
+	/** Start of buffer storage array */
+	struct net_buf * __bufs;
+    #else
 	/** Optional destroy callback when buffer is freed. */
 	void (*const destroy)(struct net_buf *buf);
 
@@ -562,6 +650,7 @@ struct net_buf_pool {
 
 	/** Start of buffer storage array */
 	struct net_buf * const __bufs;
+    #endif
 };
 
 #if defined(CONFIG_NET_BUF_POOL_USAGE)
@@ -655,6 +744,7 @@ extern const struct net_buf_data_cb net_buf_fixed_cb;
  *  @param _data_size Maximum data payload per buffer.
  *  @param _destroy   Optional destroy callback when buffer is freed.
  */
+#if !defined(BFLB_DYNAMIC_ALLOC_MEM)
 #define NET_BUF_POOL_FIXED_DEFINE(_name, _count, _data_size, _destroy)        \
 	static struct net_buf net_buf_##_name[_count];               \
 	static u8_t net_buf_data_##_name[_count][_data_size];        \
@@ -670,6 +760,7 @@ extern const struct net_buf_data_cb net_buf_fixed_cb;
 			__in_section(_net_buf_pool, static, _name) =            \
 		NET_BUF_POOL_INITIALIZER(_name, &net_buf_fixed_alloc_##_name, \
 					 net_buf_##_name, _count, _destroy)
+#endif
 
 #if (!BFLB_BLE)
 extern const struct net_buf_data_cb net_buf_var_cb;
@@ -708,6 +799,8 @@ extern const struct net_buf_data_cb net_buf_var_cb;
 		NET_BUF_POOL_INITIALIZER(_name, &net_buf_data_alloc_##_name,  \
 					 _net_buf_##_name, _count, _destroy)
 #endif
+
+#if !defined(BFLB_DYNAMIC_ALLOC_MEM)
 /** @def NET_BUF_POOL_DEFINE
  *  @brief Define a new pool for buffers
  *
@@ -731,7 +824,12 @@ extern const struct net_buf_data_cb net_buf_var_cb;
 #define NET_BUF_POOL_DEFINE(_name, _count, _size, _ud_size, _destroy)        \
 	BUILD_ASSERT(_ud_size <= CONFIG_NET_BUF_USER_DATA_SIZE);             \
 	NET_BUF_POOL_FIXED_DEFINE(_name, _count, _size, _destroy)
+#endif
 
+#if defined(BFLB_DYNAMIC_ALLOC_MEM)
+void net_buf_init(struct net_buf_pool *buf_pool, u16_t buf_count, size_t data_size, destroy_cb_t destroy);
+void net_buf_deinit(struct net_buf_pool *buf_pool);
+#endif
 /**
  *  @brief Looks up a pool based on its ID.
  *

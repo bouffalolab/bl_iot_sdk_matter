@@ -1152,14 +1152,6 @@ int bt_gatt_service_register(struct bt_gatt_service *svc)
 	return 0;
 }
 
-
-#ifdef BFLB_BLE_PATCH_AVOID_SEC_GATT_DISC
-void bt_gatt_cancle_sc_work(void)
-{
-    k_delayed_work_cancel(&gatt_sc.work);
-}
-#endif
-
 int bt_gatt_service_unregister(struct bt_gatt_service *svc)
 {
 	__ASSERT(svc, "invalid parameters\n");
@@ -2380,6 +2372,40 @@ static void gatt_mtu_rsp(struct bt_conn *conn, u8_t err, const void *pdu,
 
 	params->func(conn, err, params);
 }
+#if defined(CONFIG_BLE_AT_CMD)
+int bt_at_gatt_exchange_mtu(struct bt_conn *conn, struct bt_gatt_exchange_params *params,u16_t mtu_size)
+{
+	struct bt_att_exchange_mtu_req *req;
+	struct net_buf *buf;
+	u16_t mtu;
+
+	__ASSERT(conn, "invalid parameter\n");
+	__ASSERT(params && params->func, "invalid parameters\n");
+
+	if (conn->state != BT_CONN_CONNECTED) {
+		return -ENOTCONN;
+	}
+
+	buf = bt_att_create_pdu(conn, BT_ATT_OP_MTU_REQ, sizeof(*req));
+	if (!buf) {
+		return -ENOMEM;
+	}
+  
+	mtu = mtu_size;
+  
+    #if defined(CONFIG_BLE_AT_CMD)
+	set_mtu_size(mtu);
+    #endif
+
+	BT_DBG("Client MTU %u", mtu);
+
+	req = net_buf_add(buf, sizeof(*req));
+	req->mtu = sys_cpu_to_le16(mtu);
+
+	return gatt_send(conn, buf, gatt_mtu_rsp, params, NULL);
+
+}
+#endif
 
 int bt_gatt_exchange_mtu(struct bt_conn *conn,
 			 struct bt_gatt_exchange_params *params)

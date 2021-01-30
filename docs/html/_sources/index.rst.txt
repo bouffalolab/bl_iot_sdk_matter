@@ -1,17 +1,17 @@
-.. user manual documentation master file, created by
-   sphinx-quickstart on Wed Jul  3 15:54:19 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. iot_version = BL602
+user manual documentation master file, created by
+sphinx-quickstart on Wed Jul  3 15:54:19 2019.
+You can adapt this file completely to your liking, but it should at least
+contain the root `toctree` directive.
 
 .. toctree::
    :caption: Developer_Environment
    :numbered:
-   
+
    Developer_Environment/Developer_Environment
    Developer_Environment/BLFlashEnv/BLFlashEnv
    Developer_Environment/freedom_studio/freedom_studio
    Developer_Environment/eclipse/eclipse
-
 
 .. toctree::
    :caption: Examples
@@ -38,28 +38,29 @@
    :caption: Components
    :numbered:
 
-   Components/arch
+   Components/Middleware/dts/devicetree
+   Components/arch/arch
    Components/Command_line/helper
    Components/Command_line/aos_cli
    Components/Hal_drv/gpio
    Components/Middleware/bloop/bloop
    Components/Middleware/blsync/blsync
-   Components/Middleware/dts/devicetree
-   Components/Middleware/log/blog
    Components/Middleware/security/security
-   Components/Middleware/vfs/vfs
-   Components/Middleware/yloop/yloop
    Components/Network/httpc/httpc
    Components/Network/https/https
    Components/Network/tls/tls
    Components/BLE/provision_WiFi/provision_WiFi
+   Components/Middleware/log/blog
+   Components/Middleware/vfs/vfs
+   Components/Middleware/yloop/yloop
    Components/BLE/mesh/mesh
    Components/BLE/ble_stack/ble_stack
-   
+
 .. toctree::
    :caption: API
    :numbered:
-   
+
    API/sys/cronalarms
    API/wifi/wifi_mgmr
    API/sys/utils_getopt
+

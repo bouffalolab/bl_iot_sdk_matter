@@ -44,13 +44,8 @@
 
 void i2c_set_freq(int freq, int i2cx)
 {
-    uint32_t tmp;
-
-    tmp = 32000000 / (freq * 1000);
-    tmp = tmp / 4 -1;
-
-    I2C_SetPrd(i2cx, tmp);
-
+    I2C_SetSclSync(i2cx, 0);
+    I2C_ClockSet(i2cx, freq);
     return;
 }
 

@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>16. Easyflash4 boot times &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.10 文档</title>
+  <title>16. Easyflash4 boot times &mdash; BL602 IoT SDK  文档</title>
   
 
   
@@ -38,7 +38,7 @@
     
     <link rel="index" title="索引" href="../../genindex.html" />
     <link rel="search" title="搜索" href="../../search.html" />
-    <link rel="next" title="1. arch" href="../../Components/arch.html" />
+    <link rel="next" title="1. device tree" href="../../Components/Middleware/dts/devicetree.html" />
     <link rel="prev" title="15. BLSYNC-BLE" href="../demo_blsync_ble/blsync_ble.html" /> 
 </head>
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                release_bl_iot_sdk_1.6.10
+                BL602
               </div>
             
           
@@ -131,21 +131,21 @@
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/arch.html">1. arch</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">2. helper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">3. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">4. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">5. BLOOP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">6. BLSYNC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">7. device tree</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">8. blog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">9. Security</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">10. AOS VFS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">11. yloop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">12. HTTPC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">13. HTTPS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">14. TLS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">15. Provision_WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">1. device tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/arch/arch.html">2. arch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">3. helper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">4. cli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">5. GPIO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">6. BLOOP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">7. BLSYNC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">8. Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">9. HTTPC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">10. HTTPS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">11. TLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">12. Provision_WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">13. blog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">14. AOS VFS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">15. yloop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/mesh/mesh.html">16. Mesh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/ble_stack/ble_stack.html">17. BLE</a></li>
 </ul>
@@ -279,7 +279,7 @@
 <span id="gc"></span><h3><span class="section-number">16.2.4. </span>4.添加 KV5 KV6，触发 GC （Garbage Clear）<a class="headerlink" href="#kv5-kv6-gc-garbage-clear" title="永久链接至标题">¶</a></h3>
 <blockquote>
 <div><div class="figure align-default">
-<img alt="" src="../../_images/image47.png" />
+<img alt="" src="../../_images/image46.png" />
 </div>
 </div></blockquote>
 <ul class="simple">
@@ -342,7 +342,7 @@
 <li><p>测试结果如下图：</p>
 <blockquote>
 <div><div class="figure align-default">
-<a class="reference internal image-reference" href="../../_images/image56.png"><img alt="" src="../../_images/image56.png" style="width: 900px; height: 450px;" /></a>
+<a class="reference internal image-reference" href="../../_images/image55.png"><img alt="" src="../../_images/image55.png" style="width: 900px; height: 450px;" /></a>
 </div>
 </div></blockquote>
 </li>
@@ -373,7 +373,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../../Components/arch.html" class="btn btn-neutral float-right" title="1. arch" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../../Components/Middleware/dts/devicetree.html" class="btn btn-neutral float-right" title="1. device tree" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="../demo_blsync_ble/blsync_ble.html" class="btn btn-neutral float-left" title="15. BLSYNC-BLE" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> 上一页</a>

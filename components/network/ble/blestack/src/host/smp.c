@@ -275,8 +275,59 @@ struct k_sem sc_local_pkey_ready;
 static K_SEM_DEFINE(sc_local_pkey_ready, 0, 1);
 #endif
 
+#if defined(CONFIG_BLE_AT_CMD)
+static u8_t get_io_capa(void);
+static u8_t get_auth(struct bt_conn *conn, u8_t auth);
+
+int ble_set_smp_paramters(const struct smp_parameters *paras)
+{
+    if(!paras){
+        return -1;
+    }
+    
+    memcpy(&user_smp_paras,paras,sizeof(struct smp_parameters));
+    return 0;
+}
+
+int ble_get_smp_paramters(const struct bt_conn *conn,struct smp_parameters *paras)
+{
+    if(!paras ){
+        return -1;
+    }
+    
+    if(user_smp_paras.set)
+        paras->auth = user_smp_paras.auth;
+    else
+        paras->auth = BT_SMP_AUTH_BONDING_FLAGS | BT_SMP_AUTH_SC;
+    
+    paras->iocap = get_io_capa();
+    
+    if(user_smp_paras.set)
+        paras->key_size = user_smp_paras.key_size;
+    else
+        paras->key_size = BT_SMP_MAX_ENC_KEY_SIZE;
+    
+    if(user_smp_paras.set)
+        paras->init_key = user_smp_paras.init_key;
+    else
+	    paras->init_key = SEND_KEYS;
+
+    if(user_smp_paras.set)
+        paras->rsp_key = user_smp_paras.rsp_key;
+    else
+	    paras->rsp_key = RECV_KEYS;
+    
+    return 0;
+}
+#endif
+
 static u8_t get_io_capa(void)
 {
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set){
+        return user_smp_paras.iocap;
+    }else{
+#endif
 	if (!bt_auth) {
 		goto no_callbacks;
 	}
@@ -328,6 +379,9 @@ no_callbacks:
 	} else {
 		return BT_SMP_IO_NO_INPUT_OUTPUT;
 	}
+#if defined(CONFIG_BLE_AT_CMD)
+    }
+#endif
 }
 
 #if !defined(CONFIG_BT_SMP_SC_PAIR_ONLY)
@@ -2300,7 +2354,7 @@ static u8_t legacy_pairing_random(struct bt_smp *smp)
 	if (memcmp(smp->pcnf, tmp, sizeof(smp->pcnf))) {
 		return BT_SMP_ERR_CONFIRM_FAILED;
 	}
-
+    
 	if (IS_ENABLED(CONFIG_BT_CENTRAL) &&
 	    conn->role == BT_HCI_ROLE_MASTER) {
 		u8_t ediv[2], rand[8];
@@ -2556,33 +2610,43 @@ void bt_set_oob_data_flag(bool enable)
 
 static u8_t get_auth(struct bt_conn *conn, u8_t auth)
 {
-	if (sc_supported) {
-		auth &= BT_SMP_AUTH_MASK_SC;
-	} else {
-		auth &= BT_SMP_AUTH_MASK;
-	}
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set)
+       return user_smp_paras.auth;
+    else{
+#endif
+    	if (sc_supported) {
+    		auth &= BT_SMP_AUTH_MASK_SC;
+    	} else {
+    		auth &= BT_SMP_AUTH_MASK;
+    	}
 
-	#if defined(CONFIG_BT_STACK_PTS)
-	if((get_io_capa() == BT_SMP_IO_NO_INPUT_OUTPUT) ||
-	    (!mitm  && 
-	    (conn->required_sec_level < BT_SECURITY_L3))) {
-	#else
-	if ((get_io_capa() == BT_SMP_IO_NO_INPUT_OUTPUT) ||
-	    (!IS_ENABLED(CONFIG_BT_SMP_ENFORCE_MITM) &&
-	    (conn->required_sec_level < BT_SECURITY_L3))) {
-	#endif
-		auth &= ~(BT_SMP_AUTH_MITM);
-	} else {
-		auth |= BT_SMP_AUTH_MITM;
-	}
+    	#if defined(CONFIG_BT_STACK_PTS)
+    	if((get_io_capa() == BT_SMP_IO_NO_INPUT_OUTPUT) ||
+    	    (!mitm  && 
+    	    (conn->required_sec_level < BT_SECURITY_L3))) {
+    	#else
+    	if ((get_io_capa() == BT_SMP_IO_NO_INPUT_OUTPUT) ||
+    	    (!IS_ENABLED(CONFIG_BT_SMP_ENFORCE_MITM) &&
+    	    (conn->required_sec_level < BT_SECURITY_L3))) {
+    	#endif
+    		auth &= ~(BT_SMP_AUTH_MITM);
+    	} else {
+    		auth |= BT_SMP_AUTH_MITM;
+    	}
 
-	if (bondable) {
-		auth |= BT_SMP_AUTH_BONDING;
-	} else {
-		auth &= ~BT_SMP_AUTH_BONDING;
-	}
+    	if (bondable) {
+    		auth |= BT_SMP_AUTH_BONDING;
+    	} else {
+    		auth &= ~BT_SMP_AUTH_BONDING;
+    	}
 
-	return auth;
+    	return auth;
+        
+#if defined(CONFIG_BLE_AT_CMD)
+    }
+#endif
+
 }
 
 static bool sec_level_reachable(struct bt_conn *conn)
@@ -2806,9 +2870,27 @@ static u8_t smp_pairing_req(struct bt_smp *smp, struct net_buf *buf)
 	rsp->io_capability = get_io_capa();
 	rsp->oob_flag = oobd_present ? BT_SMP_OOB_PRESENT :
 				       BT_SMP_OOB_NOT_PRESENT;
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set)
+        rsp->max_key_size = user_smp_paras.key_size;
+    else
+#endif
 	rsp->max_key_size = BT_SMP_MAX_ENC_KEY_SIZE;
+
+
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set){
+        rsp->init_key_dist = (req->init_key_dist & user_smp_paras.rsp_key);
+        rsp->resp_key_dist = (req->resp_key_dist & user_smp_paras.init_key);  
+    }else{
+#endif
+
 	rsp->init_key_dist = (req->init_key_dist & RECV_KEYS);
 	rsp->resp_key_dist = (req->resp_key_dist & SEND_KEYS);
+    
+#if defined(CONFIG_BLE_AT_CMD)
+    }
+#endif
 
 	if ((rsp->auth_req & BT_SMP_AUTH_SC) &&
 	    (req->auth_req & BT_SMP_AUTH_SC)) {
@@ -2969,8 +3051,25 @@ static int smp_send_pairing_req(struct bt_conn *conn)
 	req->io_capability = get_io_capa();
 	req->oob_flag = oobd_present ? BT_SMP_OOB_PRESENT :
 				       BT_SMP_OOB_NOT_PRESENT;
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set)
+        req->max_key_size = user_smp_paras.key_size;
+    else
+#endif
 	req->max_key_size = BT_SMP_MAX_ENC_KEY_SIZE;
+
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set)
+        req->init_key_dist = user_smp_paras.init_key;
+    else
+#endif
 	req->init_key_dist = SEND_KEYS;
+
+#if defined(CONFIG_BLE_AT_CMD)
+    if(user_smp_paras.set)
+        req->resp_key_dist = user_smp_paras.rsp_key;
+    else
+#endif
 	req->resp_key_dist = RECV_KEYS;
 
 	smp->local_dist = SEND_KEYS;

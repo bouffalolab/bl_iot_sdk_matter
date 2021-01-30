@@ -163,3 +163,19 @@ int bt_smp_sign_verify(struct bt_conn *conn, struct net_buf *buf);
  *  @return 0 in success, error code otherwise
  */
 int bt_smp_sign(struct bt_conn *conn, struct net_buf *buf);
+
+#if defined(CONFIG_BLE_AT_CMD)
+struct smp_parameters{
+    u8_t auth;
+    u8_t iocap;
+    u16_t key_size;
+    u8_t init_key;
+    u8_t rsp_key;
+    u8_t set;
+};
+
+struct smp_parameters user_smp_paras;
+int ble_set_smp_paramters(const struct smp_parameters *paras);
+int ble_get_smp_paramters(const struct bt_conn *conn,struct smp_parameters *paras);
+#endif
+

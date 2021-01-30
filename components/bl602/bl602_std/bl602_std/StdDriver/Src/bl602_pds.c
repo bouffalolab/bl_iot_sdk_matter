@@ -343,6 +343,23 @@ PDS_STS_Type PDS_Get_PdsStstus(void)
 }
 
 /****************************************************************************//**
+ * @brief  PDS wakeup IRQHandler install
+ *
+ * @param  None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type PDS_WAKEUP_IRQHandler_Install(void)
+{
+#ifndef BFLB_USE_HAL_DRIVER
+    //Interrupt_Handler_Register(PDS_WAKEUP_IRQn,PDS_WAKEUP_IRQHandler);
+#endif
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
  * @brief  Install PDS interrupt callback function
  *
  * @param  intType: PDS int type
@@ -757,7 +774,7 @@ BL_Err_Type ATTR_CLOCK_SECTION PDS_Power_Off_PLL(void)
  *
 *******************************************************************************/
 #ifndef BL602_USE_HAL_DRIVER
-void __IRQ PDS_WAKEUP_IRQHandler(void)
+void PDS_WAKEUP_IRQHandler(void)
 {
     for(PDS_INT_Type intType=PDS_INT_WAKEUP;intType<PDS_INT_MAX;intType++){
         if(PDS_Get_IntStatus(intType)&&(pdsIntCbfArra[intType][0]!=NULL)){

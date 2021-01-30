@@ -7,11 +7,12 @@
 #include <stdint.h>
 #include <string.h>
 #include "types.h"
+#include "bl_port.h"
 
 #define BT_UINT_MAX        0xffffffff
 #define BL_WAIT_FOREVER    0xffffffffu
 #define BL_NO_WAIT         0x0
-#define ms2tick(ms) (((ms)+portTICK_PERIOD_MS-1)/portTICK_PERIOD_MS)
+#define ms2tick            pdMS_TO_TICKS
 
 typedef struct {
     void *hdl;
@@ -171,11 +172,15 @@ typedef struct k_timer {
  */
 void k_timer_init(k_timer_t *timer, k_timer_handler_t handle, void *args);
 
+void* k_timer_get_id(void* hdl);
+
 /**
  * @brief Start a timer.
  *
  */
 void k_timer_start(k_timer_t *timer, uint32_t timeout);
+
+void k_timer_reset(k_timer_t *timer);
 
 /**
  * @brief Stop a timer.

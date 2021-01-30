@@ -324,16 +324,7 @@ static int bl_send_msg(struct bl_hw *bl_hw, const void *msg_params,
 
     msg = container_of((void *)msg_params, struct lmac_msg, param);
 
-    if (!test_bit(RWNX_DEV_STARTED, &bl_hw->drv_flags) &&
-        reqid != MM_RESET_CFM && reqid != MM_VERSION_CFM &&
-        reqid != MM_START_CFM && reqid != MM_SET_IDLE_CFM &&
-        reqid != ME_CONFIG_CFM && reqid != MM_SET_PS_MODE_CFM &&
-        reqid != ME_CHAN_CONFIG_CFM) {
-        os_printf("%s: bypassing (RWNX_DEV_RESTARTING set) 0x%02x\n", __func__, reqid);
-        os_free(msg);
-        RWNX_DBG(RWNX_FN_LEAVE_STR);
-        return -EBUSY;
-    } else if (!bl_hw->ipc_env) {
+    if (!bl_hw->ipc_env) {
         os_printf("%s: bypassing (restart must have failed)\r\n", __func__);
         os_free(msg);
         RWNX_DBG(RWNX_FN_LEAVE_STR);
@@ -528,7 +519,6 @@ int bl_send_me_chan_config_req(struct bl_hw *bl_hw)
             break;
     }
 
-    req->chan5G_cnt = 0;
     /* Send the ME_CHAN_CONFIG_REQ message to LMAC FW */
     return bl_send_msg(bl_hw, req, 1, ME_CHAN_CONFIG_CFM, NULL);
 }
@@ -562,11 +552,9 @@ int bl_send_start(struct bl_hw *bl_hw)
     if (!start_req_param)
         return -ENOMEM;
 
-    //TODO where get the phy_cfg ?
-    //FIXME we use magic here, since we know the first u32 is cal_en
-    bl_hw->phy_config.parameters[0] = 0x01;
-    /* Set parameters for the START message */
-    memcpy(&start_req_param->phy_cfg, &bl_hw->phy_config, sizeof(bl_hw->phy_config));
+    memset(&start_req_param->phy_cfg, 0, sizeof(start_req_param->phy_cfg));
+    //XXX magic number
+    start_req_param->phy_cfg.parameters[0] = 0x1;
     start_req_param->uapsd_timeout = (u32_l)bl_hw->mod_params->uapsd_timeout;
     start_req_param->lp_clk_accuracy = (u16_l)bl_hw->mod_params->lp_clk_ppm;
 

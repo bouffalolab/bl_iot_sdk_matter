@@ -1,3 +1,0 @@
-release_bl_iot_sdk_1.6.10
-a0_final-42-gaac0c9e
-f76e39a

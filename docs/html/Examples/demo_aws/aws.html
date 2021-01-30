@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>2. aws &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.10 文档</title>
+  <title>2. aws &mdash; BL602 IoT SDK  文档</title>
   
 
   
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                release_bl_iot_sdk_1.6.10
+                BL602
               </div>
             
           
@@ -120,21 +120,21 @@
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/arch.html">1. arch</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">2. helper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">3. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">4. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">5. BLOOP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">6. BLSYNC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">7. device tree</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">8. blog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">9. Security</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">10. AOS VFS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">11. yloop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">12. HTTPC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">13. HTTPS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">14. TLS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">15. Provision_WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">1. device tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/arch/arch.html">2. arch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">3. helper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">4. cli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">5. GPIO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">6. BLOOP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">7. BLSYNC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">8. Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">9. HTTPC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">10. HTTPS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">11. TLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">12. Provision_WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">13. blog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">14. AOS VFS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">15. yloop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/mesh/mesh.html">16. Mesh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/ble_stack/ble_stack.html">17. BLE</a></li>
 </ul>
@@ -219,7 +219,7 @@
 <li><p>在 <code class="docutils literal notranslate"><span class="pre">customer_app/bl602_demo_ble_pds/bl602_demo_ble_pds/aws_iot_main.c</span></code> 文件的头部有相关证书及配置，此处的配置只限于本示例演示使用（同时只能一处使用），用户需要根据实际情况修改文件开头的宏定义，下图是配置的一部分</p>
 <blockquote>
 <div><div class="figure align-default">
-<img alt="" src="../../_images/image14.png" />
+<img alt="" src="../../_images/image11.png" />
 </div>
 </div></blockquote>
 </li>
@@ -227,17 +227,17 @@
 <li><p>在终端输入开启wifi的命令： <code class="docutils literal notranslate"><span class="pre">stack_wifi</span></code> ，输入连接wifi的命令： <code class="docutils literal notranslate"><span class="pre">wifi_sta_connect</span> <span class="pre">&lt;name&gt;</span> <span class="pre">&lt;key&gt;</span></code> ，并确认wifi连接成功（如输入：wifi_sta_connect bl_test_005 12345678）；</p>
 <blockquote>
 <div><div class="figure align-default">
-<img alt="" src="../../_images/image23.png" />
+<img alt="" src="../../_images/image21.png" />
 </div>
 <div class="figure align-default">
-<img alt="" src="../../_images/image32.png" />
+<img alt="" src="../../_images/image3.png" />
 </div>
 </div></blockquote>
 </li>
 <li><p>在终端输入 <code class="docutils literal notranslate"><span class="pre">aws</span></code> 不断打印如下图所示log即表明连接成功。</p>
 <blockquote>
 <div><div class="figure align-default">
-<img alt="" src="../../_images/image41.png" />
+<img alt="" src="../../_images/image4.png" />
 </div>
 </div></blockquote>
 </li>

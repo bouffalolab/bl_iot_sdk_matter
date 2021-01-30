@@ -23,6 +23,7 @@
 #include "mesh.h"
 #include "adv.h"
 #include "net.h"
+#include "transport.h"
 #include "prov.h"
 #include "beacon.h"
 #include "foundation.h"
@@ -109,6 +110,8 @@ static struct bt_mesh_proxy_client {
 	},
 };
 
+static sys_slist_t idle_waiters;
+static atomic_t pending_notifications;
 #if defined(BFLB_BLE)
 static u8_t client_buf_data[CLIENT_BUF_SIZE * CONFIG_BT_MAX_CONN];
 #else
@@ -286,6 +289,14 @@ static void proxy_cfg(struct bt_mesh_proxy_client *client)
 				 &rx, &buf);
 	if (err) {
 		BT_ERR("Failed to decode Proxy Configuration (err %d)", err);
+		return;
+	}
+
+	rx.local_match = 1U;
+
+	if (bt_mesh_rpl_check(&rx, NULL)) {
+		BT_WARN("Replay: src 0x%04x dst 0x%04x seq 0x%06x",
+			rx.ctx.addr, rx.ctx.recv_dst, rx.seq);
 		return;
 	}
 
@@ -550,7 +561,7 @@ static void proxy_connected(struct bt_conn *conn, u8_t err)
 	struct bt_mesh_proxy_client *client;
 	int i;
 
-	BT_DBG("conn %p err 0x%02x", conn, err);
+	BT_WARN("proxy_connected conn %p err 0x%02x", conn, err);
 
 	conn_count++;
 
@@ -584,7 +595,7 @@ static void proxy_disconnected(struct bt_conn *conn, u8_t reason)
 {
 	int i;
 
-	BT_DBG("conn %p reason 0x%02x", conn, reason);
+	BT_WARN("proxy_disconnected conn %p reason 0x%02x", conn, reason);
 
 	conn_count--;
 
@@ -967,16 +978,6 @@ static bool client_filter_match(struct bt_mesh_proxy_client *client,
 
 	BT_DBG("filter_type %u addr 0x%04x", client->filter_type, addr);
 
-	if (client->filter_type == WHITELIST) {
-		for (i = 0; i < ARRAY_SIZE(client->filter); i++) {
-			if (client->filter[i] == addr) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	if (client->filter_type == BLACKLIST) {
 		for (i = 0; i < ARRAY_SIZE(client->filter); i++) {
 			if (client->filter[i] == addr) {
@@ -985,6 +986,18 @@ static bool client_filter_match(struct bt_mesh_proxy_client *client,
 		}
 
 		return true;
+	}
+
+	if (addr == BT_MESH_ADDR_ALL_NODES) {
+		return true;
+	}
+
+	if (client->filter_type == WHITELIST) {
+		for (i = 0; i < ARRAY_SIZE(client->filter); i++) {
+			if (client->filter[i] == addr) {
+				return true;
+			}
+		}
 	}
 
 	return false;
@@ -1024,23 +1037,54 @@ bool bt_mesh_proxy_relay(struct net_buf_simple *buf, u16_t dst)
 
 #endif /* CONFIG_BT_MESH_GATT_PROXY */
 
-static int proxy_send(struct bt_conn *conn, const void *data, u16_t len)
+static void notify_complete(struct bt_conn *conn, void *user_data)
 {
+	sys_snode_t *n;
+
+	if (atomic_dec(&pending_notifications) > 1) {
+		return;
+	}
+
+	BT_DBG("");
+
+	while ((n = sys_slist_get(&idle_waiters))) {
+		CONTAINER_OF(n, struct bt_mesh_proxy_idle_cb, n)->cb();
+	}
+}
+
+static int proxy_send(struct bt_conn *conn, const void *data,
+		      u16_t len)
+{
+	struct bt_gatt_notify_params params = {
+		.data = data,
+		.len = len,
+		.func = notify_complete,
+	};
+	int err;
+
 	BT_DBG("%u bytes: %s", len, bt_hex(data, len));
 
 #if defined(CONFIG_BT_MESH_GATT_PROXY)
 	if (gatt_svc == MESH_GATT_PROXY) {
-		return bt_gatt_notify(conn, &proxy_attrs[3], data, len);
+		params.attr = &proxy_attrs[3];
 	}
 #endif
-
 #if defined(CONFIG_BT_MESH_PB_GATT)
 	if (gatt_svc == MESH_GATT_PROV) {
-		return bt_gatt_notify(conn, &prov_attrs[3], data, len);
+		params.attr = &prov_attrs[3];
 	}
 #endif
 
-	return 0;
+	if (!params.attr) {
+		return 0;
+	}
+
+	err = bt_gatt_notify_cb(conn, &params);
+	if (!err) {
+		atomic_inc(&pending_notifications);
+	}
+
+	return err;
 }
 
 static int proxy_segment_and_send(struct bt_conn *conn, u8_t type,
@@ -1113,7 +1157,7 @@ static const struct bt_data prov_ad[] = {
 #define NODE_ID_LEN  19
 #define NET_ID_LEN   11
 
-#define NODE_ID_TIMEOUT K_SECONDS(CONFIG_BT_MESH_NODE_ID_TIMEOUT)
+#define NODE_ID_TIMEOUT (CONFIG_BT_MESH_NODE_ID_TIMEOUT * MSEC_PER_SEC)
 
 static u8_t proxy_svc_data[NODE_ID_LEN] = { 0x28, 0x18, };
 
@@ -1198,7 +1242,7 @@ static bool advertise_subnet(struct bt_mesh_subnet *sub)
 	}
 
 	return (sub->node_id == BT_MESH_NODE_IDENTITY_RUNNING ||
-		bt_mesh_gatt_proxy_get() == BT_MESH_GATT_PROXY_ENABLED);
+		bt_mesh_gatt_proxy_get() != BT_MESH_GATT_PROXY_NOT_SUPPORTED);
 }
 
 static struct bt_mesh_subnet *next_sub(void)
@@ -1235,6 +1279,7 @@ static int sub_count(void)
 
 static s32_t gatt_proxy_advertise(struct bt_mesh_subnet *sub)
 {
+	/* Modified by bouffalo */
 	s32_t remaining = K_FOREVER;
 	int subnet_count;
 
@@ -1242,12 +1287,12 @@ static s32_t gatt_proxy_advertise(struct bt_mesh_subnet *sub)
 
 	if (conn_count == CONFIG_BT_MAX_CONN) {
 		BT_DBG("Connectable advertising deferred (max connections)");
-		return remaining;
+		return K_FOREVER;
 	}
 
 	if (!sub) {
 		BT_WARN("No subnets to advertise on");
-		return remaining;
+		return K_FOREVER;
 	}
 
 	if (sub->node_id == BT_MESH_NODE_IDENTITY_RUNNING) {
@@ -1265,11 +1310,7 @@ static s32_t gatt_proxy_advertise(struct bt_mesh_subnet *sub)
 	}
 
 	if (sub->node_id == BT_MESH_NODE_IDENTITY_STOPPED) {
-		if (bt_mesh_gatt_proxy_get() == BT_MESH_GATT_PROXY_ENABLED) {
-			net_id_adv(sub);
-		} else {
-			return gatt_proxy_advertise(next_sub());
-		}
+		net_id_adv(sub);
 	}
 
 	subnet_count = sub_count();
@@ -1283,15 +1324,16 @@ static s32_t gatt_proxy_advertise(struct bt_mesh_subnet *sub)
 		 * second long (to avoid excessive rotation).
 		 */
 		max_timeout = NODE_ID_TIMEOUT / MAX(subnet_count, 6);
-		max_timeout = MAX(max_timeout, K_SECONDS(1));
+		max_timeout = MAX(max_timeout, 1 * MSEC_PER_SEC);
 
-		if (remaining > max_timeout || remaining < 0) {
+		/* Modified by bouffalo */
+		if (remaining > max_timeout || remaining == K_FOREVER) {
 			remaining = max_timeout;
 		}
 	}
 
 	BT_DBG("Advertising %d ms for net_idx 0x%04x", remaining, sub->net_idx);
-
+	/* Modified by bouffalo */
 	return remaining;
 }
 #endif /* GATT_PROXY */
@@ -1317,6 +1359,7 @@ static size_t gatt_prov_adv_create(struct bt_data prov_sd[2])
 		} else {
 			prov_sd[0].type = BT_DATA_URI;
 			prov_sd[0].data_len = uri_len;
+			/*Fix warnning by bouffalo */
 			prov_sd[0].data = (const u8_t *)prov->uri;
 			sd_space -= 2 + uri_len;
 			prov_sd_len++;
@@ -1333,7 +1376,7 @@ static size_t gatt_prov_adv_create(struct bt_data prov_sd[2])
 			prov_sd[prov_sd_len].type = BT_DATA_NAME_COMPLETE;
 			prov_sd[prov_sd_len].data_len = name_len;
 		}
-
+		/*Fix warnning by bouffalo */
 		prov_sd[prov_sd_len].data = (const u8_t *)name;
 		prov_sd_len++;
 	}
@@ -1426,4 +1469,14 @@ int bt_mesh_proxy_init(void)
 	bt_conn_cb_register(&conn_callbacks);
 
 	return 0;
+}
+
+void bt_mesh_proxy_on_idle(struct bt_mesh_proxy_idle_cb *cb)
+{
+	if (!atomic_get(&pending_notifications)) {
+		cb->cb();
+		return;
+	}
+
+	sys_slist_append(&idle_waiters, &cb->n);
 }

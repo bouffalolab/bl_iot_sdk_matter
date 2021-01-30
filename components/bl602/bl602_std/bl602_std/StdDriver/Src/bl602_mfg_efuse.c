@@ -297,6 +297,30 @@ int8_t mfg_efuse_read_poweroffset(int8_t pwrOffset[14],uint8_t reload)
     }
 }
 
+int8_t mfg_efuse_read_poweroffset_ate(int8_t *pwrOffset)
+{
+    int8_t pwrOffsetTmp;
+    uint16_t i;
+    uint8_t hdiv=0,bdiv=0;
+
+    bdiv=GLB_Get_BCLK_Div();
+    hdiv=GLB_Get_HCLK_Div();
+
+    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_XTAL);
+    
+    if(SUCCESS != EF_Ctrl_Read_TxPower_ATE(&pwrOffsetTmp)){
+        return -1;
+    }
+    
+    *pwrOffset = pwrOffsetTmp;
+    GLB_Set_System_CLK_Div(hdiv,bdiv);
+    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+
+
+    return 0;
+
+}
+
 uint8_t mfg_efuse_is_macaddr_slot_empty(uint8_t reload)
 {
     uint8_t empty=0;    

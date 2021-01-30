@@ -79,6 +79,9 @@ struct bt_keys *bt_keys_get_type(int type, u8_t id, const bt_addr_le_t *addr);
 struct bt_keys *bt_keys_find(int type, u8_t id, const bt_addr_le_t *addr);
 struct bt_keys *bt_keys_find_irk(u8_t id, const bt_addr_le_t *addr);
 struct bt_keys *bt_keys_find_addr(u8_t id, const bt_addr_le_t *addr);
+#if defined(CONFIG_BLE_AT_CMD)
+bt_addr_le_t *bt_get_keys_address(u8_t id);
+#endif
 
 void bt_keys_add_type(struct bt_keys *keys, int type);
 void bt_keys_clear(struct bt_keys *keys);

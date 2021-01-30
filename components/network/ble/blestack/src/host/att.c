@@ -55,9 +55,13 @@ struct bt_attr_data {
 	u16_t offset;
 };
 
+#if !defined(BFLB_DYNAMIC_ALLOC_MEM)
 /* Pool for incoming ATT packets */
 NET_BUF_POOL_DEFINE(prep_pool, CONFIG_BT_ATT_PREPARE_COUNT, BT_ATT_MTU,
 		    sizeof(struct bt_attr_data), NULL);
+#else
+struct net_buf_pool prep_pool;
+#endif
 #endif /* CONFIG_BT_ATT_PREPARE_COUNT */
 
 enum {
@@ -90,6 +94,16 @@ extern volatile u8_t event_flag;
 
 static struct bt_att bt_req_pool[CONFIG_BT_MAX_CONN];
 static struct bt_att_req cancel;
+
+
+#if defined(CONFIG_BLE_AT_CMD)
+static u16_t mtu_size = BT_ATT_MTU;
+void set_mtu_size(u16_t size)
+{
+	mtu_size = size;
+}
+#endif
+
 
 static void att_req_destroy(struct bt_att_req *req)
 {
@@ -1767,13 +1781,11 @@ static u8_t att_notify(struct bt_att *att, struct net_buf *buf)
 {
 	struct bt_conn *conn = att->chan.chan.conn;
 	u16_t handle;
-
+    
 	handle = net_buf_pull_le16(buf);
-
 	BT_DBG("handle 0x%04x", handle);
 
 	bt_gatt_notification(conn, handle, buf->data, buf->len);
-
 	return 0;
 }
 
@@ -2305,8 +2317,15 @@ void bt_att_init(void)
 		.cid		= BT_L2CAP_CID_ATT,
 		.accept		= bt_att_accept,
 	};
-
+    
 	bt_l2cap_le_fixed_chan_register(&chan);
+    #endif
+
+    #if CONFIG_BT_ATT_PREPARE_COUNT > 0
+    #if defined(BFLB_DYNAMIC_ALLOC_MEM)
+    k_lifo_init(&prep_pool.free, CONFIG_BT_ATT_PREPARE_COUNT);
+    net_buf_init(&prep_pool, CONFIG_BT_ATT_PREPARE_COUNT, BT_ATT_MTU, NULL);
+    #endif
     #endif
 
 	bt_gatt_init();

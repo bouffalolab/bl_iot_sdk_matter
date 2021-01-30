@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>BL602 SDK Starter Guide &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.10 文档</title>
+  <title>BL602 SDK Starter Guide &mdash; BL602 IoT SDK  文档</title>
   
 
   
@@ -61,7 +61,7 @@
             
             
               <div class="version">
-                release_bl_iot_sdk_1.6.10
+                BL602
               </div>
             
           
@@ -114,21 +114,21 @@
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/arch.html">1. arch</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">2. helper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">3. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">4. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">5. BLOOP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">6. BLSYNC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">7. device tree</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">8. blog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">9. Security</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">10. AOS VFS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">11. yloop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">12. HTTPC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">13. HTTPS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">14. TLS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">15. Provision_WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">1. device tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/arch/arch.html">2. arch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">3. helper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">4. cli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">5. GPIO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">6. BLOOP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">7. BLSYNC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">8. Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">9. HTTPC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">10. HTTPS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">11. TLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">12. Provision_WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">13. blog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">14. AOS VFS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">15. yloop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/mesh/mesh.html">16. Mesh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/ble_stack/ble_stack.html">17. BLE</a></li>
 </ul>
@@ -228,10 +228,10 @@
 <li><p>安装解压软件，命令：<code class="docutils literal notranslate"><span class="pre">pacman</span> <span class="pre">-S</span> <span class="pre">unzip</span></code>，还可选安装如下组件：<code class="docutils literal notranslate"><span class="pre">pacman</span> <span class="pre">-S</span> <span class="pre">git</span></code>、<code class="docutils literal notranslate"><span class="pre">pacman</span> <span class="pre">-S</span> <span class="pre">tmux</span></code>
 等</p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image49.png" />
+<img alt="" src="../../_images/image48.png" />
 </div>
 <div class="figure align-default">
-<img alt="" src="../../_images/image58.png" />
+<img alt="" src="../../_images/image57.png" />
 </div>
 </li>
 <li><p>对源文件压缩包进行解压，命令：<code class="docutils literal notranslate"><span class="pre">unzip</span> <span class="pre">bl_iot_sdk.zip</span></code></p>
@@ -270,17 +270,17 @@
 <div class="section" id="bin">
 <h2>bin文件下载<a class="headerlink" href="#bin" title="永久链接至标题">¶</a></h2>
 <ul>
-<li><p>打开<code class="docutils literal notranslate"><span class="pre">bl_iot_sdk/tools/flash_tool</span></code>文件中的<code class="docutils literal notranslate"><span class="pre">simple_flasher.exe</span></code>程序</p></li>
+<li><p>打开<code class="docutils literal notranslate"><span class="pre">bl_iot_sdk/tools/flash_tool</span></code>文件中的<code class="docutils literal notranslate"><span class="pre">BLDevCube.exe</span></code>程序</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">chip</span> <span class="pre">type</span></code>选择<code class="docutils literal notranslate"><span class="pre">BL602/604</span></code>，打开后界面参数参考下图配置：</p>
 <div class="figure align-default">
 <img alt="" src="../../_images/image93.png" />
 </div>
-<p>点击<code class="docutils literal notranslate"><span class="pre">download</span></code>，出现如下图所示表明下载成功：</p>
+<p>点击<code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">&amp;</span> <span class="pre">Download</span></code>，出现如下图所示表明下载成功：</p>
 <div class="figure align-default">
 <img alt="" src="../../_images/image103.png" />
 </div>
 </li>
-<li><p>打开串口终端，点击 <code class="docutils literal notranslate"><span class="pre">settings</span></code> 配置为如下图所示，其中 <code class="docutils literal notranslate"><span class="pre">DTR</span></code> 需要勾选上， <code class="docutils literal notranslate"><span class="pre">RTS</span></code> 不勾选。</p>
+<li><p>打开串口终端，点击 <code class="docutils literal notranslate"><span class="pre">Settings</span></code> 配置为如下图所示，其中 <code class="docutils literal notranslate"><span class="pre">DTR</span></code> 需要勾选上， <code class="docutils literal notranslate"><span class="pre">RTS</span></code> 不勾选。</p>
 <div class="figure align-default">
 <img alt="" src="../../_images/image129.png" />
 </div>

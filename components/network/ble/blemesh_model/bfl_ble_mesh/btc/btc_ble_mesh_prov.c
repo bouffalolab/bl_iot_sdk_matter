@@ -966,7 +966,7 @@ uint16_t btc_ble_mesh_get_primary_addr(void)
 
 uint16_t *btc_ble_mesh_model_find_group(bfl_ble_mesh_model_t *mod, uint16_t addr)
 {
-    return bt_mesh_model_find_group((struct bt_mesh_model *)mod, addr);
+    return bt_mesh_model_find_group((struct bt_mesh_model **)&mod, addr);
 }
 
 bfl_ble_mesh_elem_t *btc_ble_mesh_elem_find(u16_t addr)
@@ -2017,7 +2017,7 @@ void btc_ble_mesh_model_call_handler(btc_msg_t *msg)
 
     switch (msg->act) {
     case BTC_BLE_MESH_ACT_MODEL_PUBLISH: {
-        if (arg->model_publish.device_role == PROVISIONER) {
+        if (arg->model_publish.device_role == ROLE_PROVISIONER) {
             bt_mesh_role_param_t common = {0};
             common.model = (struct bt_mesh_model *)(arg->model_publish.model);
             common.role  = arg->model_publish.device_role;

@@ -5,8 +5,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cli.h"
+#include "bl_port.h"
 #include "ble_cli_cmds.h"
 
+#if defined(CONFIG_BLE_MULTI_ADV)
+#include "multi_adv.h"
+#endif
 
 #define 		PASSKEY_MAX  		0xF423F
 #define 		NAME_LEN 			30
@@ -14,6 +18,7 @@
 
 static u8_t 	selected_id = BT_ID_DEFAULT;
 bool 			ble_inited 	= false;
+
 #if defined(CONFIG_BT_CONN)
 struct bt_conn *default_conn = NULL;
 #endif
@@ -26,25 +31,49 @@ struct bt_data ad_discov[2] = {
 #define vOutputString(...)  printf(__VA_ARGS__)
 
 static void ble_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#if defined(BL702)
+static void ble_set_2M_phy(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void ble_set_default_phy(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 static void ble_get_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_set_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#if defined(CONFIG_BT_OBSERVER)
 static void ble_start_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_stop_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 static void ble_read_local_address(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+#if defined(CONFIG_BT_PERIPHERAL)
+
 static void ble_set_adv_channel(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_stop_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+#endif
+#if defined(CONFIG_BLE_TP_SERVER)
+static void ble_tp_start(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
+
+#if defined(CONFIG_BT_CONN)
+#if defined(CONFIG_BT_CENTRAL)
 static void ble_connect(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
+
 static void ble_disconnect(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_select_conn(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void ble_unpair(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_conn_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void ble_unpair(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+#endif
+
+#if defined(CONFIG_BT_SMP)
 static void ble_security(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_auth(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_auth_cancel(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_auth_passkey_confirm(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_auth_pairing_confirm(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_auth_passkey(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 static void ble_exchange_mtu(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_discover(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_read(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -55,7 +84,10 @@ static void ble_unsubscribe(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 static void ble_set_data_len(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_get_all_conn_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
+#if defined(CONFIG_BLE_MULTI_ADV)
+static void ble_start_multi_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void ble_stop_multi_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 #if defined(CONFIG_SET_TX_PWR)
 static void ble_set_tx_pwr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
@@ -69,7 +101,11 @@ const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
     {"ble_get_device_name", "\r\nble_get_device_name:[Read local device name]\r\n Parameter[Null]\r\n", ble_get_device_name},
 
     {"ble_set_device_name", "\r\nble_set_device_name:\r\n\[Lenth of name]\r\n\[name]\r\n", ble_set_device_name},
+#if defined(CONFIG_BLE_TP_SERVER)
 
+    {"ble_tp_start", "\r\nble_tp_start:\r\n\
+    [TP test,1:enable, 0:disable]\r\n", ble_tp_start},
+#endif
 
 #if defined(CONFIG_BT_OBSERVER)
     {"ble_start_scan", "\r\nble_start_scan:\r\n\
@@ -185,6 +221,15 @@ const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 
 #else
     {"ble_init", "", ble_init},
+        
+#if defined(CONFIG_BLE_TP_SERVER)
+    {"ble_tp_start", "", ble_tp_start},
+#endif
+
+    #if defined(BL702)
+    {"ble_set_2M_Phy", "", ble_set_2M_phy},
+    {"ble_set_default_phy", "", ble_set_default_phy},
+    #endif
 #if defined(BFLB_DISABLE_BT)
     {"ble_disable", "", ble_disable},
 #endif
@@ -198,6 +243,10 @@ const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
     {"ble_set_adv_channel", "", ble_set_adv_channel},
     {"ble_start_adv", "", ble_start_advertise},
     {"ble_stop_adv", "", ble_stop_advertise},
+#if defined(CONFIG_BLE_MULTI_ADV)
+    {"ble_start_multi_adv", "", ble_start_multi_advertise},
+    {"ble_stop_multi_adv", "", ble_stop_multi_advertise},
+#endif
     {"ble_read_local_address", "", ble_read_local_address},
 #endif
 #if defined(CONFIG_BT_CONN)
@@ -312,6 +361,9 @@ static void ble_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
         return;
     }
 
+    #if defined(CONFIG_BLE_MULTI_ADV)
+    bt_le_multi_adv_thread_init();
+    #endif
     #if defined(CONFIG_BT_CONN)
     default_conn = NULL;
     bt_conn_cb_register(&conn_callbacks);
@@ -319,7 +371,49 @@ static void ble_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
     ble_inited = true;
     vOutputString("Init successfully \r\n");
 }
+#if defined(BL702)
+static void ble_set_2M_phy(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    if(!default_conn){
+        vOutputString("Not connected \r\n");
+        return;
+    }
+    if(!hci_le_set_phy(default_conn)){
+        vOutputString("Set ble 2M Phy successfully \r\n");
+    }else{
+        vOutputString("Failed to set ble 2M Phy\r\n");
+    }
 
+}
+
+static void ble_set_default_phy(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    u8_t phy = 0;
+    u8_t default_phy = 0;
+    
+    if(!default_conn){
+        vOutputString("Not connected \r\n");
+        return;
+    }
+    get_uint8_from_string(&argv[1], &phy);
+    
+    if(phy == 0){
+        default_phy = BT_HCI_LE_PHY_PREFER_1M;
+    }else if(phy == 1){
+        default_phy = BT_HCI_LE_PHY_PREFER_2M;
+    }else if(phy == 2){
+        default_phy = BT_HCI_LE_PHY_PREFER_CODED;
+    }else{
+        vOutputString("Invaild parameter\r\n");
+    }
+    
+    if(!hci_le_set_default_phy(default_conn,default_phy)){
+        vOutputString("Set ble default(2M) Phy successfully \r\n");
+    }else{
+        vOutputString("Failed to set ble default(2M) Phy\r\n");
+    }
+}
+#endif
 static void ble_get_device_name(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	const char *device_name = bt_get_name();
@@ -344,7 +438,22 @@ static void ble_set_device_name(char *pcWriteBuffer, int xWriteBufferLen, int ar
 		vOutputString("Invaild lenth(%d)\r\n",strlen(argv[1]));
 	}
 }
+#if defined(CONFIG_BLE_TP_SERVER)
+static void ble_tp_start(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    extern u8_t tp_start;
+    
+    get_uint8_from_string(&argv[1], &tp_start);
+    if( tp_start == 1 ){
+        vOutputString("Ble Throughput enable\r\n");
+    }else if(tp_start == 0){
+        vOutputString("Ble Throughput disable\r\n");
+    }else{
+        vOutputString("Invalid parameter\r\n");
+    }
+}
 
+#endif
 
 #if defined(CONFIG_BT_OBSERVER)
 static bool data_cb(struct bt_data *data, void *user_data)
@@ -462,9 +571,9 @@ static void ble_set_adv_channel(char *pcWriteBuffer, int xWriteBufferLen, int ar
 static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     struct bt_le_adv_param param;
-	const struct bt_data *ad;
-	size_t ad_len;
-	int err = 0;
+    const struct bt_data *ad;
+    size_t ad_len;
+    int err = 0;
     uint8_t adv_type, mode;
 	
     if(argc != 3 && argc != 5){
@@ -492,7 +601,7 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
     
     /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
     get_uint8_from_string(&argv[2], &mode);
-	vOutputString("mode 0x%x\r\n",mode);
+    vOutputString("mode 0x%x\r\n",mode);
     if(mode == 0 || mode == 1 || mode == 2){
     
         if(mode == 0){
@@ -508,9 +617,9 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
 			vOutputString("Invalied AD Mode 0x%x\r\n",mode);
         }
         
-		const char *name = bt_get_name();
-		struct bt_data data = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE,name, strlen(name));
-       	ad_discov[1] = data;
+        const char *name = bt_get_name();
+        struct bt_data data = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE,name, strlen(name));
+        ad_discov[1] = data;
        	
         ad = ad_discov;
         ad_len = ARRAY_SIZE(ad_discov);
@@ -551,6 +660,72 @@ static void ble_stop_advertise(char *pcWriteBuffer, int xWriteBufferLen, int arg
     }
 }
 
+#if defined(CONFIG_BLE_MULTI_ADV)
+static void ble_start_multi_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    struct bt_le_adv_param param_1, param_2;
+    struct bt_data *ad_1, *ad_2;
+    size_t ad_len_1, ad_len_2;
+    int err_1, err_2;
+    int instant_id_1, instant_id_2;
+
+    param_1.id = 0;
+    param_1.interval_min = 0x00A0;
+    param_1.interval_max = 0x00A0;
+    param_1.options = BT_LE_ADV_OPT_CONNECTABLE;
+
+    const char *name_1 = "multi_adv_connect_0x0001";
+    struct bt_data flag_1 = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL));
+    struct bt_data data_1 = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE, name_1, strlen(name_1));
+    ad_discov[0] = flag_1;
+    ad_discov[0] = data_1;
+    ad_1 = ad_discov;
+    ad_len_1 = ARRAY_SIZE(ad_discov);
+
+    err_1 = bt_le_multi_adv_start(&param_1, ad_1, ad_len_1, NULL, 0, &instant_id_1);
+    if(err_1){
+        vOutputString("Failed to start multi adv_1 (err_1%d)\r\n", err_1);
+    }else{
+        vOutputString("Multi Adv started --> instant_id: %d\r\n", instant_id_1);
+    }
+
+    param_2.id = 0;
+    param_2.interval_min = 0x0140;
+    param_2.interval_max = 0x0140;
+    param_2.options = 0;
+
+    const char *name_2 = "multi_adv_nonconn_0x0002";
+    struct bt_data flag_2 = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL));
+    struct bt_data data_2 = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE, name_2, strlen(name_2));
+    ad_discov[0] = flag_2;
+    ad_discov[0] = data_2;
+    ad_2 = ad_discov;
+    ad_len_2 = ARRAY_SIZE(ad_discov);
+
+    err_2 = bt_le_multi_adv_start(&param_2, ad_2, ad_len_2, NULL, 0, &instant_id_2);
+    if(err_2){
+        vOutputString("Failed to start multi adv_2 (err_2: %d)\r\n", err_2);
+    }else{
+        vOutputString("Multi Adv started --> instant_id: %d\r\n", instant_id_2);
+    }
+}
+
+static void ble_stop_multi_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    uint8_t instant_id;
+
+    get_uint8_from_string(&argv[1], &instant_id);
+    printf("Try to stop multi adv instant of: %d\n", instant_id);
+
+    if(bt_le_multi_adv_stop(instant_id)) {
+        vOutputString("Multi adv instant %d stop failed\r\n", instant_id);
+    }
+    else
+    {
+        vOutputString("Multi adv instant %d stop successed\r\n", instant_id);
+    }
+}
+#endif //CONFIG_BLE_MULTI_ADV
 
 #endif //#if defined(CONFIG_BT_PERIPHERAL)
 
@@ -1110,7 +1285,6 @@ static void ble_read(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 }
 
 static struct bt_gatt_write_params write_params;
-static u8_t gatt_write_buf[CHAR_SIZE_MAX];
 
 static void write_func(struct bt_conn *conn, u8_t err,
 		       struct bt_gatt_write_params *params)
@@ -1124,6 +1298,7 @@ static void ble_write(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 {
 	int err;
     uint16_t data_len;
+    u8_t *gatt_write_buf;
 
     if(argc != 5){
         vOutputString("Number of Parameters is not correct\r\n");
@@ -1143,15 +1318,23 @@ static void ble_write(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
     get_uint16_from_string(&argv[1], &write_params.handle);  
     get_uint16_from_string(&argv[2], &write_params.offset);
     get_uint16_from_string(&argv[3], &write_params.length);
-    data_len = write_params.length > sizeof(gatt_write_buf)? (sizeof(gatt_write_buf)):(write_params.length);
+    data_len = write_params.length;
+    gatt_write_buf = k_malloc(data_len);
+    if(!gatt_write_buf)
+    {
+        vOutputString("Failed to alloc buffer for the data\r\n");
+        return;
+    }
     get_bytearray_from_string(&argv[4], gatt_write_buf,data_len);
     
-	write_params.data = gatt_write_buf;
+	write_params.data = k_malloc(data_len);;
 	write_params.length = data_len;
 	write_params.func = write_func;
 	
 	err = bt_gatt_write(default_conn, &write_params);
 
+    k_free(gatt_write_buf);
+    
 	if (err) {
 		vOutputString("Write failed (err %d)\r\n", err);
 	} else {
@@ -1165,6 +1348,7 @@ static void ble_write_without_rsp(char *pcWriteBuffer, int xWriteBufferLen, int 
 	int err;
 	u16_t len;
 	bool sign;
+    u8_t *gatt_write_buf;
 
     if(argc != 5){
         vOutputString("Number of Parameters is not correct\r\n");
@@ -1179,10 +1363,17 @@ static void ble_write_without_rsp(char *pcWriteBuffer, int xWriteBufferLen, int 
     get_uint8_from_string(&argv[1], (uint8_t *)&sign);
     get_uint16_from_string(&argv[2], &handle);
 	get_uint16_from_string(&argv[3], &len);
-    len = len > sizeof(gatt_write_buf)? (sizeof(gatt_write_buf)):(len);
+    gatt_write_buf = k_malloc(len);
+    if(!gatt_write_buf)
+    {
+        vOutputString("Failed to alloc buffer for the data\r\n");
+        return;
+    }
 	get_bytearray_from_string(&argv[4], gatt_write_buf,len);
 	
 	err = bt_gatt_write_without_response(default_conn, handle, gatt_write_buf, len, sign);
+
+    k_free(gatt_write_buf);
 
 	vOutputString("Write Complete (err %d)\r\n", err);
 }
@@ -1193,13 +1384,30 @@ static u8_t notify_func(struct bt_conn *conn,
 			struct bt_gatt_subscribe_params *params,
 			const void *data, u16_t length)
 {
+#if defined(CONFIG_BLE_TP_TEST)
+    static u32_t time = 0;
+    static int len = 0;
+#endif  
+
     if (!params->value) {
         vOutputString("Unsubscribed\r\n");
         params->value_handle = 0U;
         return BT_GATT_ITER_STOP;
     }
 
-    vOutputString("Notification: data length %u\r\n", length);
+#if defined(CONFIG_BLE_TP_TEST)    
+    if(!time){
+        time = k_now_ms();
+    }
+    len += length;
+    if(k_now_ms()- time >= 1000){
+        vOutputString("data_len=[%d]\r\n",len);
+        time = k_now_ms();
+        len = 0;
+    }
+#endif   
+
+    //vOutputString("Notification: data length %u\r\n", length);
     return BT_GATT_ITER_CONTINUE;
 }
 
@@ -1313,12 +1521,17 @@ static void ble_set_tx_pwr(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	}
 
     get_uint8_from_string(&argv[1],&power);
-
-    if(power > 0x14){
-        vOutputString("ble_set_tx_pwr, invalid value, value shall be in [0x%x - 0x%x]\r\n", 0x00, 0x14);
+    #if defined(BL602)
+    if(power > 21){
+        vOutputString("ble_set_tx_pwr, invalid value, value shall be in [%d - %d]\r\n", 0, 21);
         return;
     }
-        
+    #elif defined(BL702)
+    if(power > 14){
+        vOutputString("ble_set_tx_pwr, invalid value, value shall be in [%d - %d]\r\n", 0, 14);
+        return;
+    }
+	#endif
     err = bt_set_tx_pwr((int8_t)power);
 
     if(err){

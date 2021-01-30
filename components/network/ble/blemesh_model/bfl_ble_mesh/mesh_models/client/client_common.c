@@ -183,7 +183,7 @@ static s32_t bt_mesh_client_calc_timeout(struct bt_mesh_msg_ctx *ctx,
     bool need_seg = false;
     u8_t mic_size = 0;
 
-    if (msg->len > BLE_MESH_SDU_UNSEG_MAX || ctx->send_rel) {
+    if (msg->len > BT_MESH_SDU_UNSEG_MAX || ctx->send_rel) {
         need_seg = true;    /* Needs segmentation */
     }
 
@@ -521,24 +521,24 @@ int bt_mesh_set_client_model_role(bt_mesh_role_param_t *common)
 
     switch (common->role) {
 #if CONFIG_BLE_MESH_NODE
-    case NODE:
+    case ROLE_NODE:
         /* no matter if provisioner is enabled/disabled , node role can be used to send messages */
-        client->msg_role = NODE;
+        client->msg_role = ROLE_NODE;
         break;
 #endif
 #if CONFIG_BLE_MESH_PROVISIONER
-    case PROVISIONER:
+    case ROLE_PROVISIONER:
         /* if provisioner is not enabled, provisioner role can't be used to send messages */
         if (!bt_mesh_is_provisioner_en()) {
             BT_ERR("%s, Provisioner is disabled", __func__);
             return -EINVAL;
         }
-        client->msg_role = PROVISIONER;
+        client->msg_role = ROLE_PROVISIONER;
         break;
 #endif
 #if CONFIG_BLE_MESH_FAST_PROV
-    case FAST_PROV:
-        client->msg_role = FAST_PROV;
+    case ROLE_FAST_PROV:
+        client->msg_role = ROLE_FAST_PROV;
         break;
 #endif
     default:

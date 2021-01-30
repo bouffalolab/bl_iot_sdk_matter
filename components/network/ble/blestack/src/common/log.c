@@ -22,7 +22,7 @@
 const char *bt_hex_real(const void *buf, size_t len)
 {
 	static const char hex[] = "0123456789abcdef";
-	#ifdef CONFIG_BTSOONP_PRINT
+	#if defined (CONFIG_BT_DEBUG_MONITOR)
 	static char str[255];
 	#else
 	static char str[128];

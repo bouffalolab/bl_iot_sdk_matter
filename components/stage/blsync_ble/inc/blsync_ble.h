@@ -106,4 +106,20 @@ int bl_ble_sync_start(bl_ble_sync_t *index,
 
 int bl_ble_sync_stop(bl_ble_sync_t *index);
 
+#if defined(CONFIG_BT_MESH)
+#include "include/access.h"
+const struct bt_mesh_model_op vnd_sync_op[4];
+
+#define BFL_BLE_MESH_MODEL_VND_SYNC_SRV()         \
+		BT_MESH_MODEL_VND_CB(BL_COMP_ID, BT_MESH_VND_MODEL_ID_SYNC_SRV, vnd_sync_op, \
+								NULL, NULL, NULL)
+
+int bl_blemesh_sync_start(bl_ble_sync_t *index,
+                       struct blesync_wifi_func *func,
+                       pfn_complete_cb_t cb,
+                       void *cb_arg);
+
+int bl_blemesh_sync_stop(bl_ble_sync_t *index);
+#endif/* CONFIG_BT_MESH */
+
 #endif 

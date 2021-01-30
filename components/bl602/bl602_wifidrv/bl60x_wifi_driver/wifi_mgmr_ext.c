@@ -444,8 +444,14 @@ static void wifi_eth_ap_enable(struct netif *netif, uint8_t mac[6])
 
 wifi_interface_t wifi_mgmr_ap_enable()
 {
-    wifiMgmr.wlan_ap.mode = 1;//ap mode
-    wifi_eth_ap_enable(&(wifiMgmr.wlan_ap.netif), wifiMgmr.wlan_ap.mac);
+    //printf("wifiMgmr.wlan_ap.mode = %d \r\n", wifiMgmr.wlan_ap.mode);
+    //TODO should add lock to avoid being called at the same time
+    if (wifiMgmr.inf_ap_enabled) {
+        /*nothing here*/
+    } else {
+        wifiMgmr.wlan_ap.mode = 1;//ap mode
+        wifi_eth_ap_enable(&(wifiMgmr.wlan_ap.netif), wifiMgmr.wlan_ap.mac);
+    }
     return &(wifiMgmr.wlan_ap);
 }
 
@@ -478,8 +484,8 @@ int wifi_mgmr_ap_mac_get(uint8_t mac[6])
 int wifi_mgmr_ap_ip_get(uint32_t *ip, uint32_t *gw, uint32_t *mask)
 {
     *ip = netif_ip4_addr(&wifiMgmr.wlan_ap.netif)->addr;
-    *gw = netif_ip4_netmask(&wifiMgmr.wlan_ap.netif)->addr;
-    *mask = netif_ip4_gw(&wifiMgmr.wlan_ap.netif)->addr;
+    *mask = netif_ip4_netmask(&wifiMgmr.wlan_ap.netif)->addr;
+    *gw = netif_ip4_gw(&wifiMgmr.wlan_ap.netif)->addr;
 
     return 0;
 }

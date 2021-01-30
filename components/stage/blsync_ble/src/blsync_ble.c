@@ -15,6 +15,11 @@
 #include "cJSON.h"
 #include "hci_core.h"
 
+#if defined(CONFIG_BT_MESH_SYNC)
+#include "include/mesh.h"
+#include "transport.h"
+#endif
+
 static bl_ble_sync_t *gp_index = NULL;
 struct bt_conn *blsync_conn = NULL;
 struct bt_gatt_exchange_params blsync_exchg_mtu;
@@ -316,7 +321,15 @@ static void __bl_ble_sync_task (void *p_arg)
             if (index->p_cur_conn) {
                 protocol_mtu = bt_gatt_get_mtu(index->p_cur_conn) - 3;
             }
-
+			#if defined(CONFIG_BT_MESH_SYNC) 
+            if(protocol_mtu){
+                protocol_mtu = protocol_mtu > BT_MESH_TX_VND_SDU_MAX_SHORT ? 
+							BT_MESH_TX_VND_SDU_MAX_SHORT:protocol_mtu;
+            }
+            else{
+                protocol_mtu = BT_MESH_TX_VND_SDU_MAX_SHORT;
+            }
+			#endif
             if (pro_trans_read(index->pro_handle, recv_buf.buf,
                                recv_buf.len, protocol_mtu) != PRO_OK) {
                 blog_info("protocol analyze failed\r\n");
@@ -412,4 +425,137 @@ int bl_ble_sync_stop(bl_ble_sync_t *index)
     }
     return 0;
 }
+
+#if defined(CONFIG_BT_MESH_SYNC)
+static void vnd_sync_get(struct bt_mesh_model *model,
+                struct bt_mesh_msg_ctx *ctx,
+                struct net_buf_simple *buf)
+{
+	blog_info_hexdump("vnd_sync_get \n", buf->data, buf->len);
+#if 1
+	if (!gp_index || gp_index->rbuf_len == 0) {
+		blog_info("bl_blemesh_sync_start not call or len is zero\n");
+		return ;
+	}
+
+	blog_info("read length %d\r\n", gp_index->rbuf_len);
+	pro_trans_ack(gp_index->pro_handle);
+
+	NET_BUF_SIMPLE_DEFINE(msg, BT_MESH_TX_SDU_MAX);
+	bt_mesh_model_msg_init(&msg, BLE_MESH_MODEL_VND_OP_SYC_STATUS);
+	
+	if(gp_index->rbuf_len < BT_MESH_TX_VND_SDU_MAX_SHORT){
+		net_buf_simple_add_mem(&msg, gp_index->attr_read_buf, gp_index->rbuf_len);
+		gp_index->rbuf_len = 0;
+	}
+	else{
+		net_buf_simple_add_mem(&msg, gp_index->attr_read_buf, BT_MESH_TX_VND_SDU_MAX_SHORT);
+		gp_index->rbuf_len -= BT_MESH_TX_VND_SDU_MAX_SHORT;
+	}
+
+	bt_mesh_model_send(model, ctx, &msg, NULL, NULL);
+	return;
+#else
+	/* For data transition test */
+	NET_BUF_SIMPLE_DEFINE(msg, BT_MESH_TX_SDU_MAX);
+
+	bt_mesh_model_msg_init(&msg, BLE_MESH_MODEL_VND_OP_SYC_STATUS);
+	net_buf_simple_add_mem(&msg, buf->data, buf->len);
+
+	bt_mesh_model_send(model, ctx, &msg, NULL, NULL);
+#endif
+	return;
+}
+
+static void vnd_sync_set(struct bt_mesh_model *model,
+                struct bt_mesh_msg_ctx *ctx,
+                struct net_buf_simple *buf)
+{
+	blog_info_hexdump("vnd_sync_set \n", buf->data, buf->len);
+#if 1
+	if(!gp_index){
+		blog_info("bl_blemesh_sync_start not call\n");
+		return;
+	}
+	//gp_index->p_cur_conn = conn;
+
+	blog_info("write length %d\r\n", buf->len);
+	blog_info_hexdump("data", buf->data, buf->len);
+
+	gp_index->send_buf.len = buf->len;
+	memcpy(gp_index->send_buf.buf, buf->data, buf->len);
+	xQueueSend(gp_index->xQueue1, &gp_index->send_buf, 0);
+#else
+	/* For data transition test */
+	if (ctx->recv_op == BLE_MESH_MODEL_VND_OP_SYC_SET_UNACK) {
+		blog_info("Set unack");
+		return;
+	}
+	blog_info("Send status");
+	NET_BUF_SIMPLE_DEFINE(msg, BT_MESH_TX_SDU_MAX);
+
+	bt_mesh_model_msg_init(&msg, BLE_MESH_MODEL_VND_OP_SYC_STATUS);
+	net_buf_simple_add_mem(&msg, buf->data, buf->len);
+
+	bt_mesh_model_send(model, ctx, &msg, NULL, NULL);
+
+	return;
+#endif
+}
+
+/* Mapping of message handlers for Vendor sync Server (0x0001) */
+const struct bt_mesh_model_op vnd_sync_op[4] = {
+	{ BLE_MESH_MODEL_VND_OP_SYC_GET,       0, vnd_sync_get },
+	{ BLE_MESH_MODEL_VND_OP_SYC_SET,       1, vnd_sync_set },
+	{ BLE_MESH_MODEL_VND_OP_SYC_SET_UNACK, 1, vnd_sync_set },
+	BT_MESH_MODEL_OP_END,
+};
+
+int bl_blemesh_sync_start(bl_ble_sync_t *index,
+                       struct blesync_wifi_func *func,
+                       pfn_complete_cb_t cb,
+                       void *cb_arg)
+{
+	if (index == NULL || func == NULL) {
+		blog_info("ble sync init failed\r\n");
+		return -1;
+	}
+
+	memset(index, 0, sizeof(bl_ble_sync_t));
+	gp_index = index;
+	index->wifi_func = func;
+	index->complete_cb = cb;
+	index->p_arg = cb_arg;
+	gp_index->scaning = 0;
+	index->task_runing = 0;
+	index->stop_flag = 0;
+
+	index->task_handle = xTaskCreateStatic(__bl_ble_sync_task, (char*)"pro",
+							BLE_PROV_TASK_STACK_SIZE, index, 10,
+							index->stack, &index->task);
+	return 0;
+}
+
+int bl_blemesh_sync_stop(bl_ble_sync_t *index)
+{
+	if (index == NULL) {
+		return -1;
+	}
+
+	index->stop_flag = 1;
+
+	if (xTaskGetCurrentTaskHandle() == gp_index->task_handle) {
+		while(gp_index->scaning == 1) {
+			vTaskDelay(10);
+		}
+		vTaskDelete(index->task_handle);
+	} else {
+		while((gp_index->scaning == 1) || (index->task_runing == 1)) {
+			vTaskDelay(10);
+		}
+	}
+	return 0;
+}
+
+#endif /* CONFIG_BT_MESH_SYNC */
 

@@ -193,6 +193,7 @@ static void btc_ble_mesh_lighting_client_free_req_data(btc_msg_t *msg)
             default:
                 break;
             }
+			bt_mesh_free(arg->params);
         }
 		break;
     case BFL_BLE_MESH_LIGHT_CLIENT_TIMEOUT_EVT:

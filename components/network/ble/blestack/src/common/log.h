@@ -40,7 +40,7 @@ extern "C" {
 
 #define BT_DBG(fmt, ...)
 #define BT_ERR(fmt, ...)   printf(fmt"\r\n", ##__VA_ARGS__)
-#if defined(CONFIG_BT_STACK_PTS)
+#if defined(CONFIG_BT_STACK_PTS) || defined(CONFIG_BT_MESH_PTS)
 #define BT_PTS(fmt, ...)   printf(fmt"\r\n", ##__VA_ARGS__)
 #endif
 #define BT_WARN(fmt, ...)  printf(fmt"\r\n", ##__VA_ARGS__)

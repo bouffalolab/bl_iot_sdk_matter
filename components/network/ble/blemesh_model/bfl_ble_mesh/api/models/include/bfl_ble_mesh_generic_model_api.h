@@ -21,10 +21,20 @@
 #define _BFL_BLE_MESH_GENERIC_MODEL_API_H_
 
 #include "bfl_ble_mesh_defs.h"
+#include "include/access.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+const struct bt_mesh_model_cb bt_mesh_gen_onoff_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_level_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_def_trans_time_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_pwr_onoff_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_pwr_level_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_battery_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_location_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_property_cli_cb;
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_ONOFF_CLI
  *
@@ -39,8 +49,10 @@ extern "C" {
  *  @return New Generic OnOff Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_ONOFF_CLI(cli_pub, cli_data)         \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI, \
-                    NULL, cli_pub, cli_data)
+		BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_ONOFF_CLI, NULL, cli_pub,   \
+						 cli_data, &bt_mesh_gen_onoff_cli_cb)
+
+
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_LEVEL_CLI
  *
@@ -54,10 +66,9 @@ extern "C" {
  *
  *  @return New Generic Level Client Model instance.
  */
-
 #define BFL_BLE_MESH_MODEL_GEN_LEVEL_CLI(cli_pub, cli_data)         \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_LEVEL_CLI, \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_LEVEL_CLI, NULL, cli_pub,   \
+						 cli_data, &bt_mesh_gen_level_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_DEF_TRANS_TIME_CLI
  *
@@ -89,8 +100,8 @@ extern "C" {
  *  @return New Generic Power OnOff Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_POWER_ONOFF_CLI(cli_pub, cli_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_POWER_ONOFF_CLI,   \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_POWER_ONOFF_CLI, NULL, cli_pub,   \
+						 cli_data, &bt_mesh_gen_pwr_onoff_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_POWER_LEVEL_CLI
  *
@@ -105,8 +116,8 @@ extern "C" {
  *  @return New Generic Power Level Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_POWER_LEVEL_CLI(cli_pub, cli_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_POWER_LEVEL_CLI,   \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_POWER_LEVEL_CLI,   \
+                    NULL, cli_pub, cli_data, &bt_mesh_gen_pwr_level_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_BATTERY_CLI
  *
@@ -121,8 +132,8 @@ extern "C" {
  *  @return New Generic Battery Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_BATTERY_CLI(cli_pub, cli_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_BATTERY_CLI,   \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_BATTERY_CLI,   \
+                    NULL, cli_pub, cli_data, &bt_mesh_gen_battery_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_LOCATION_CLI
  *
@@ -137,8 +148,8 @@ extern "C" {
  *  @return New Generic Location Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_LOCATION_CLI(cli_pub, cli_data)          \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_LOCATION_CLI,  \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_LOCATION_CLI,  \
+                    NULL, cli_pub, cli_data, &bt_mesh_gen_location_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_PROPERTY_CLI
  *
@@ -153,8 +164,8 @@ extern "C" {
  *  @return New Generic Location Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_PROPERTY_CLI(cli_pub, cli_data)          \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_PROP_CLI,      \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_PROP_CLI,      \
+                    NULL, cli_pub, cli_data, &bt_mesh_gen_property_cli_cb)
 
 /**
  *  @brief Bluetooth Mesh Generic Client Model Get and Set parameters structure.
@@ -531,6 +542,20 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
 /**
  * @brief Generic Server Models related context.
  */
+const struct bt_mesh_model_cb bt_mesh_gen_onoff_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_level_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_def_trans_time_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_power_onoff_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_power_onoff_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_power_level_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_power_level_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_battery_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_location_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_location_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_user_prop_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_admin_prop_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_manu_prop_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_gen_client_prop_srv_cb;
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_ONOFF_SRV
  *
@@ -545,8 +570,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic OnOff Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_ONOFF_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_ONOFF_SRV,     \
-                    NULL, srv_pub, srv_data)
+	BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL, srv_pub,   \
+			 srv_data, &bt_mesh_gen_onoff_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_LEVEL_SRV
  *
@@ -561,8 +586,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Level Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_LEVEL_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_LEVEL_SRV,     \
-                    NULL, srv_pub, srv_data)
+		BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_LEVEL_SRV, NULL, srv_pub,   \
+					 srv_data, &bt_mesh_gen_level_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_DEF_TRANS_TIME_SRV
  *
@@ -577,8 +602,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Default Transition Time Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_DEF_TRANS_TIME_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_DEF_TRANS_TIME_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_DEF_TRANS_TIME_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_def_trans_time_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_POWER_ONOFF_SRV
  *
@@ -598,8 +623,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Power OnOff Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_POWER_ONOFF_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_power_onoff_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_POWER_ONOFF_SETUP_SRV
  *
@@ -615,8 +640,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Power OnOff Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_POWER_ONOFF_SETUP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_power_onoff_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_POWER_LEVEL_SRV
  *
@@ -634,8 +659,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Power Level Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_POWER_LEVEL_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_POWER_LEVEL_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_POWER_LEVEL_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_power_level_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_POWER_LEVEL_SETUP_SRV
  *
@@ -651,8 +676,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Power Level Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_POWER_LEVEL_SETUP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_POWER_LEVEL_SETUP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_POWER_LEVEL_SETUP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_power_level_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_BATTERY_SRV
  *
@@ -668,8 +693,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Battery Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_BATTERY_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_BATTERY_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_BATTERY_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_battery_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_LOCATION_SRV
  *
@@ -688,8 +713,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Location Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_LOCATION_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_LOCATION_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_LOCATION_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_location_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_LOCATION_SETUP_SRV
  *
@@ -705,8 +730,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Location Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_LOCATION_SETUP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_LOCATION_SETUP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_LOCATION_SETUP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_location_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_USER_PROP_SRV
  *
@@ -721,8 +746,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic User Property Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_USER_PROP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_USER_PROP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_USER_PROP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_user_prop_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_ADMIN_PROP_SRV
  *
@@ -738,8 +763,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Admin Property Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_ADMIN_PROP_SRV(srv_pub, srv_data)            \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_ADMIN_PROP_SRV,    \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_ADMIN_PROP_SRV,    \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_admin_prop_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_MANUFACTURER_PROP_SRV
  *
@@ -755,8 +780,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Manufacturer Property Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_MANUFACTURER_PROP_SRV(srv_pub, srv_data)            \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_MANUFACTURER_PROP_SRV,    \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_MANUFACTURER_PROP_SRV,    \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_manu_prop_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_GEN_CLIENT_PROP_SRV
  *
@@ -771,8 +796,8 @@ bfl_err_t bfl_ble_mesh_generic_client_set_state(bfl_ble_mesh_client_common_param
  *  @return New Generic Client Property Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_GEN_CLIENT_PROP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_GEN_CLIENT_PROP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_GEN_CLIENT_PROP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_gen_client_prop_srv_cb)
 
 /** Parameters of Generic OnOff state */
 typedef struct {

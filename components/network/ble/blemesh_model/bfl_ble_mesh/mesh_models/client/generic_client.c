@@ -20,6 +20,7 @@
 
 #include "model_opcode.h"
 #include "generic_client.h"
+#include "include/access.h"
 
 /** The following are the macro definitions of generic client
  *  model messages length, and a message is composed of three
@@ -1163,12 +1164,12 @@ int bt_mesh_generic_client_set_state(bt_mesh_client_common_param_t *common, void
     return gen_set_state(common, set, length, need_ack);
 }
 
-static int generic_client_init(struct bt_mesh_model *model, bool primary)
+static int generic_client_init(struct bt_mesh_model *model)
 {
     generic_internal_data_t *internal = NULL;
     bt_mesh_generic_client_t *client = NULL;
 
-    BT_DBG("primary %u", primary);
+    //BT_DBG("primary %u", primary);
 
     if (!model) {
         BT_ERR("%s, Invalid parameter", __func__);
@@ -1203,55 +1204,55 @@ static int generic_client_init(struct bt_mesh_model *model, bool primary)
     return 0;
 }
 
-int bt_mesh_gen_onoff_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_onoff_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_onoff_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_level_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_level_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_level_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_def_trans_time_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_def_trans_time_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_def_trans_time_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_pwr_onoff_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_pwr_onoff_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_power_onoff_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_pwr_level_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_pwr_level_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_power_level_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_battery_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_battery_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_battery_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_location_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_location_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_location_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-int bt_mesh_gen_property_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_property_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_property_cli_op;
-    return generic_client_init(model, primary);
+    return generic_client_init(model);
 }
 
-static int generic_client_deinit(struct bt_mesh_model *model, bool primary)
+static int generic_client_deinit(struct bt_mesh_model *model)
 {
     bt_mesh_generic_client_t *client = NULL;
 
@@ -1280,42 +1281,74 @@ static int generic_client_deinit(struct bt_mesh_model *model, bool primary)
     return 0;
 }
 
-int bt_mesh_gen_onoff_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_onoff_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_level_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_level_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_def_trans_time_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_def_trans_time_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_pwr_onoff_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_pwr_onoff_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_pwr_level_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_pwr_level_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_battery_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_battery_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_location_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_location_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
 
-int bt_mesh_gen_property_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_gen_property_cli_deinit(struct bt_mesh_model *model)
 {
-    return generic_client_deinit(model, primary);
+    return generic_client_deinit(model);
 }
+
+const struct bt_mesh_model_cb bt_mesh_gen_onoff_cli_cb = {
+	.init = bt_mesh_gen_onoff_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_level_cli_cb = {
+	.init = bt_mesh_gen_level_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_def_trans_time_cli_cb = {
+	.init = bt_mesh_gen_def_trans_time_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_pwr_onoff_cli_cb = {
+	.init = bt_mesh_gen_pwr_onoff_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_pwr_level_cli_cb = {
+	.init = bt_mesh_gen_pwr_level_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_battery_cli_cb = {
+	.init = bt_mesh_gen_battery_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_location_cli_cb = {
+	.init = bt_mesh_gen_location_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_gen_property_cli_cb = {
+	.init = bt_mesh_gen_property_cli_init,
+};

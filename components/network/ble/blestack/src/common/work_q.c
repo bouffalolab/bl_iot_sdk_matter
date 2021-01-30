@@ -22,11 +22,6 @@ static BT_STACK_NOINIT(work_q_stack, CONFIG_BT_WORK_QUEUE_STACK_SIZE);
 #endif
 struct k_work_q g_work_queue_main;
 
-#if defined(BFLB_BLE)
-static timer_rec_d timer_records[CONFIG_MAX_TIMER_REC];
-static void timer_rec_init();
-static int alloc_timer_record(struct k_delayed_work *delay_work);
-#endif
 
 static void k_work_submit_to_queue(struct k_work_q *work_q,
                                    struct k_work *work)
@@ -55,7 +50,6 @@ static void work_queue_main(void *p1)
 
 int k_work_q_start(void)
 {
-    timer_rec_init();
     k_fifo_init(&g_work_queue_main.fifo, 20);
     return k_thread_create(&work_q_thread, "work_q_thread",
                            CONFIG_BT_WORK_QUEUE_STACK_SIZE,
@@ -66,7 +60,7 @@ int k_work_init(struct k_work *work, k_work_handler_t handler)
 {
     ASSERT(work, "work is NULL");
 
-    atomic_clear_bit(work->flags, K_WORK_STATE_PENDING);
+	atomic_clear(work->flags);
     work->handler = handler;
     return 0;
 }
@@ -78,21 +72,27 @@ void k_work_submit(struct k_work *work)
 
 static void work_timeout(void *timer)
 {
-    timer_rec_d *rec = get_timer_record(timer);
-    BT_ASSERT(rec != NULL);
-    struct k_delayed_work *w = rec->delay_work;
-    
+	/* Parameter timer type is */
+	struct k_delayed_work* w = (struct k_delayed_work*)k_timer_get_id(timer);
+	BT_ASSERT(w->work_q != NULL);
+	
     /* submit work to workqueue */
-    k_timer_stop(&w->timer);
-    k_work_submit_to_queue(w->work_q, &w->work);
-    /* detach from workqueue, for cancel to return appropriate status */
-    w->work_q = NULL;
-    rec->timer.hdl = NULL;
+	if(!atomic_test_bit(w->work.flags, K_WORK_STATE_PERIODIC)){
+	    k_work_submit_to_queue(w->work_q, &w->work);
+	    /* detach from workqueue, for cancel to return appropriate status */
+	    w->work_q = NULL;
+	}
+	else{
+		/* For periodic timer, restart it.*/
+		k_timer_reset(&w->timer);
+		k_work_submit_to_queue(w->work_q, &w->work);
+	}
 }
 
 void k_delayed_work_init(struct k_delayed_work *work, k_work_handler_t handler)
 {
     ASSERT(work, "delay work is NULL");
+    /* Added by bouffalolab */
     k_work_init(&work->work, handler);
     k_timer_init(&work->timer, work_timeout, work);
     work->work_q = NULL;
@@ -102,7 +102,6 @@ static int k_delayed_work_submit_to_queue(struct k_work_q *work_q,
         struct k_delayed_work *work,
         uint32_t delay)
 {
-    int key = irq_lock();
     int err;
 
     /* Work cannot be active in multiple queues */
@@ -120,42 +119,39 @@ static int k_delayed_work_submit_to_queue(struct k_work_q *work_q,
         }
     }
 
-    /* Attach workqueue so the timeout callback can submit it */
-    work->work_q = work_q;
     if (!delay) {
         /* Submit work if no ticks is 0 */
         k_work_submit_to_queue(work_q, &work->work);
         work->work_q = NULL;
     } else {
-        /* Add timeout */
-        k_timer_start(&work->timer, delay);
-        err = add_timer_record(work);
-        BT_ASSERT(err == 0);
-    }
+		/* Add timeout */
+		/* Attach workqueue so the timeout callback can submit it */
+		k_timer_start(&work->timer, delay);
+		work->work_q = work_q;
+	}
 
-    err = 0;
+	err = 0;
 
 done:
-    irq_unlock(key);
     return err;
 }
 
 int k_delayed_work_submit(struct k_delayed_work *work, uint32_t delay)
 {
-    return k_delayed_work_submit_to_queue(&g_work_queue_main, work, delay);
+	atomic_clear_bit(work->work.flags, K_WORK_STATE_PERIODIC);
+	return k_delayed_work_submit_to_queue(&g_work_queue_main, work, delay);
 }
 
-
+/* Added by bouffalolab */
 int k_delayed_work_submit_periodic(struct k_delayed_work *work, s32_t period)
 {
-	// TODO
-	return 0;
+	atomic_set_bit(work->work.flags, K_WORK_STATE_PERIODIC);
+	return k_delayed_work_submit_to_queue(&g_work_queue_main, work, period);
 }
 
 int k_delayed_work_cancel(struct k_delayed_work *work)
 {
     int err = 0;
-    int key = irq_lock();
 
     if (atomic_test_bit(work->work.flags, K_WORK_STATE_PENDING)) {
         err = -EINPROGRESS;
@@ -168,13 +164,11 @@ int k_delayed_work_cancel(struct k_delayed_work *work)
     }
 
     k_timer_stop(&work->timer);
-    remv_timer_record(work);
     work->work_q = NULL;
     work->timer.timeout = 0;
     work->timer.start_ms = 0;
 
 exit:
-    irq_unlock(key);
     return err;
 }
 
@@ -204,70 +198,23 @@ void k_delayed_work_del_timer(struct k_delayed_work *work)
     work->timer.timer.hdl = NULL;
 }
 
+/* Added by bouffalolab */
 int k_delayed_work_free(struct k_delayed_work *work)
 {
-	remv_timer_record(work);
+    int err = 0;
+
+    if (atomic_test_bit(work->work.flags, K_WORK_STATE_PENDING)) {
+        err = -EINPROGRESS;
+        goto exit;
+    }
+
 	k_delayed_work_del_timer(work);
-	return 0;
-}
+    work->work_q = NULL;
+    work->timer.timeout = 0;
+    work->timer.start_ms = 0;
 
-
-static void timer_rec_init()
-{
-    for(int i = 0; i < ARRAY_SIZE(timer_records); i++)
-    {
-        timer_records[i].timer.hdl = NULL;
-        timer_records[i].delay_work = NULL;
-    }
-}
-
-static int alloc_timer_record(struct k_delayed_work *delay_work)
-{
-     for(int i = 0; i < ARRAY_SIZE(timer_records); i++)
-    {
-        if(timer_records[i].timer.hdl == NULL)
-        {
-            timer_records[i].timer.hdl = delay_work->timer.timer.hdl;
-            timer_records[i].delay_work = delay_work;
-            return 0;
-        }
-    }
-    return -1;
-}
-
-int add_timer_record(struct k_delayed_work *delay_work)
-{
-    for(int i = 0; i < ARRAY_SIZE(timer_records); i++)
-    {
-        if(timer_records[i].timer.hdl == delay_work->timer.timer.hdl)
-            return 0;    
-    }
-
-    return alloc_timer_record(delay_work);
-}
-
-int remv_timer_record(struct k_delayed_work *delay_work)
-{
-    for(int i = 0; i < ARRAY_SIZE(timer_records); i++)
-    {
-        if(timer_records[i].timer.hdl == delay_work->timer.timer.hdl)
-        {
-            timer_records[i].timer.hdl = NULL;
-            break;
-        }
-    }
-    
-    return 0; 
-}
-
-timer_rec_d *get_timer_record(void *hdl)
-{
-    for(int i = 0; i < ARRAY_SIZE(timer_records); i++){
-        if(hdl == timer_records[i].timer.hdl)
-            return &timer_records[i];
-    }
-    
-    return NULL;
+exit:
+    return err;
 }
 
 #else

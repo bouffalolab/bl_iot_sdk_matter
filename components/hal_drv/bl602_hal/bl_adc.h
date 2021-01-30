@@ -47,6 +47,7 @@ typedef struct adc_ctx {
 int test_adc_init(void);
 int test_adc_get(int16_t *tmp);
 int test_adc_test(void);
+int bl_tsen_adc_get(int16_t *temp, uint8_t log_flag);
 
 //int bl_adc_clock_init(int sampling_ms);
 int bl_adc_init(int mode, int gpio_num);

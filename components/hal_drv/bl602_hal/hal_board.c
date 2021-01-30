@@ -37,6 +37,7 @@
 #include <libfdt.h>
 
 #include <blog.h>
+#include <utils_log.h>
 #define USER_UNUSED(a) ((void)(a))
 
 #define BL_FDT32_TO_U8(addr, byte_offset)   ((uint8_t)fdt32_to_cpu(*(uint32_t *)((uint8_t *)addr + byte_offset)))
@@ -47,6 +48,7 @@ static uint32_t factory_addr = 0;
 
 #ifndef FEATURE_WIFI_DISABLE
 #include <bl60x_fw_api.h>
+#include <bl_phy_api.h>
 
 #ifdef CFG_BLE_ENABLE
 #include "ble_lib_api.h"
@@ -368,7 +370,8 @@ static void update_poweroffset_config_with_order(const void *fdt, int offset1, c
             {
                 if (0 == bl_efuse_read_pwroft(poweroffset_tmp)) {
                     set = 1;
-                    blog_debug("get pwr offset from B(b) ready\r\n");
+                    blog_info("get pwr offset from B(b) ready\r\n");
+                    log_buf_int8(poweroffset_tmp, sizeof(poweroffset_tmp));
                     if ('B' == order[i]) {
                         /*non-incremental mode*/
                         for (j = 0; j < sizeof(poweroffset); j++) {
@@ -424,13 +427,12 @@ break_scan:
     if (0 == set) {
         blog_info("Using Default pwr offset\r\n");//all zeros actually
     }
+    log_buf_int8(poweroffset, sizeof(poweroffset));
 #ifdef CFG_BLE_ENABLE
-    extern void ble_rf_set_pwr_offset(int8_t offset);
-    ble_rf_set_pwr_offset(poweroffset[6]-10); // use 2442MHz offset
+    extern void ble_rf_set_pwr_offset_table(int8_t *poweroffset_table);
+	ble_rf_set_pwr_offset_table(poweroffset);
 #endif
-    //blog_buf_int8(poweroffset, 14);
-    //TODO FIXME POWER OFFSET
-    //bl60x_fw_power_offset_set(poweroffset);
+    phy_powroffset_set(poweroffset);
 }
 
 

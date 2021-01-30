@@ -271,9 +271,14 @@ void k_timer_init(k_timer_t *timer, k_timer_handler_t handle, void *args)
     BT_ASSERT(timer != NULL);
     timer->handler = handle;
     timer->args = args;
-
-    timer->timer.hdl = xTimerCreate("Timer", pdMS_TO_TICKS(1000), 0, 0, (TimerCallbackFunction_t)(timer->handler)); 
+	/* Set args as timer id */
+    timer->timer.hdl = xTimerCreate("Timer", pdMS_TO_TICKS(1000), 0, args, (TimerCallbackFunction_t)(timer->handler)); 
     BT_ASSERT(timer->timer.hdl != NULL);
+}
+
+void* k_timer_get_id(void* hdl)
+{
+	return pvTimerGetTimerID((TimerHandle_t)hdl);
 }
 
 void k_timer_start(k_timer_t *timer, uint32_t timeout)
@@ -285,11 +290,20 @@ void k_timer_start(k_timer_t *timer, uint32_t timeout)
     timer->timeout = timeout;
     timer->start_ms = k_now_ms();
 
-    ret = xTimerStop(timer->timer.hdl, 0);
-    BT_ASSERT(ret == pdPASS);
     ret = xTimerChangePeriod(timer->timer.hdl, pdMS_TO_TICKS(timeout), 0);
     BT_ASSERT(ret == pdPASS);
     ret = xTimerStart(timer->timer.hdl, 0);
+    BT_ASSERT(ret == pdPASS);
+}
+
+void k_timer_reset(k_timer_t *timer)
+{
+    BaseType_t ret;
+
+    (void) ret;
+    BT_ASSERT(timer != NULL);
+  
+    ret = xTimerReset(timer->timer.hdl, 0);
     BT_ASSERT(ret == pdPASS);
 }
 

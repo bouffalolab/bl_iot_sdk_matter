@@ -1359,12 +1359,12 @@ int bt_mesh_light_client_set_state(bt_mesh_client_common_param_t *common, void *
     return light_set_state(common, set, length, need_ack);
 }
 
-static int light_client_init(struct bt_mesh_model *model, bool primary)
+static int light_client_init(struct bt_mesh_model *model)
 {
     light_internal_data_t *internal = NULL;
     bt_mesh_light_client_t *client = NULL;
 
-    BT_DBG("primary %u", primary);
+    //BT_DBG("primary %u", primary);
 
     if (!model) {
         BT_ERR("%s, Invalid parameter", __func__);
@@ -1399,37 +1399,37 @@ static int light_client_init(struct bt_mesh_model *model, bool primary)
     return 0;
 }
 
-int bt_mesh_light_lightness_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_lightness_cli_init(struct bt_mesh_model *model)
 {
 	model->op = light_lightness_cli_op;
-    return light_client_init(model, primary);
+    return light_client_init(model);
 }
 
-int bt_mesh_light_ctl_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_ctl_cli_init(struct bt_mesh_model *model)
 {
 	model->op = light_ctl_cli_op;
-    return light_client_init(model, primary);
+    return light_client_init(model);
 }
 
-int bt_mesh_light_hsl_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_hsl_cli_init(struct bt_mesh_model *model)
 {
 	model->op = light_hsl_cli_op;
-    return light_client_init(model, primary);
+    return light_client_init(model);
 }
 
-int bt_mesh_light_xyl_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_xyl_cli_init(struct bt_mesh_model *model)
 {
 	model->op = light_xyl_cli_op;
-    return light_client_init(model, primary);
+    return light_client_init(model);
 }
 
-int bt_mesh_light_lc_cli_init(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_lc_cli_init(struct bt_mesh_model *model)
 {
 	model->op = light_lc_cli_op;
-    return light_client_init(model, primary);
+    return light_client_init(model);
 }
 
-static int light_client_deinit(struct bt_mesh_model *model, bool primary)
+static int light_client_deinit(struct bt_mesh_model *model)
 {
     bt_mesh_light_client_t *client = NULL;
 
@@ -1458,27 +1458,47 @@ static int light_client_deinit(struct bt_mesh_model *model, bool primary)
     return 0;
 }
 
-int bt_mesh_light_lightness_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_lightness_cli_deinit(struct bt_mesh_model *model)
 {
-    return light_client_deinit(model, primary);
+    return light_client_deinit(model);
 }
 
-int bt_mesh_light_ctl_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_ctl_cli_deinit(struct bt_mesh_model *model)
 {
-    return light_client_deinit(model, primary);
+    return light_client_deinit(model);
 }
 
-int bt_mesh_light_hsl_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_hsl_cli_deinit(struct bt_mesh_model *model)
 {
-    return light_client_deinit(model, primary);
+    return light_client_deinit(model);
 }
 
-int bt_mesh_light_xyl_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_xyl_cli_deinit(struct bt_mesh_model *model)
 {
-    return light_client_deinit(model, primary);
+    return light_client_deinit(model);
 }
 
-int bt_mesh_light_lc_cli_deinit(struct bt_mesh_model *model, bool primary)
+int bt_mesh_light_lc_cli_deinit(struct bt_mesh_model *model)
 {
-    return light_client_deinit(model, primary);
+    return light_client_deinit(model);
 }
+
+const struct bt_mesh_model_cb bt_mesh_light_lightness_cli_cb = {
+	.init = bt_mesh_light_lightness_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_light_ctl_cli_cb = {
+	.init = bt_mesh_light_ctl_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_light_hsl_cli_cb = {
+	.init = bt_mesh_light_hsl_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_light_xyl_cli_cb = {
+	.init = bt_mesh_light_xyl_cli_init,
+};
+
+const struct bt_mesh_model_cb bt_mesh_light_lc_cli_cb = {
+	.init = bt_mesh_light_lc_cli_init,
+};

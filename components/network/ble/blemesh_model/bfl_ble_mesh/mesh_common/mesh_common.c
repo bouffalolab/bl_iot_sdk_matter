@@ -19,6 +19,7 @@
 #include "include/main.h"
 #include "client_common.h"
 #include "mesh_common.h"
+#include "bfl_ble_mesh_defs.h"
 
 struct net_buf_simple *bt_mesh_alloc_buf(u16_t size)
 {
@@ -54,7 +55,7 @@ u8_t bt_mesh_get_device_role(struct bt_mesh_model *model, bool srv_send)
 
     if (srv_send) {
         BT_DBG("%s, Message is sent by a server model", __func__);
-        return NODE;
+        return ROLE_NODE;
     }
 
     if (!model || !model->user_data) {

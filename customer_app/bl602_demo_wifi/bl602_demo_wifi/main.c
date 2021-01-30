@@ -71,6 +71,7 @@
 #include <loopset.h>
 #include <sntp.h>
 #include <bl_sys_time.h>
+#include <bl_sys.h>
 #include <bl_sys_ota.h>
 #include <bl_romfs.h>
 #include <fdt.h>
@@ -922,7 +923,7 @@ void vAssertCalled(void)
 
 static void _dump_boot_info(void)
 {
-    char chip_feature[40];
+    char print_info[40];
     const char *banner;
 
     puts("Booting BL602 Chip...\r\n");
@@ -936,28 +937,37 @@ static void _dump_boot_info(void)
     puts("\r\n");
     puts("------------------------------------------------------------\r\n");
     puts("RISC-V Core Feature:");
-    bl_chip_info(chip_feature);
-    puts(chip_feature);
+    bl_chip_info(print_info);
+    puts(print_info);
     puts("\r\n");
 
-    puts("Build Version: ");
+    puts("Build Version:      ");
     puts(BL_SDK_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("PHY   Version: ");
+    puts("Std Driver Version: ");
+    puts(BL_SDK_STDDRV_VER); // @suppress("Symbol is not resolved")
+    puts("\r\n");
+
+    puts("PHY   Version:      ");// @suppress("Symbol is not resolved")
     puts(BL_SDK_PHY_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("RF    Version: ");
+    puts("RF    Version:      ");
     puts(BL_SDK_RF_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("Build Date: ");
+    puts("Build Date:         ");
     puts(__DATE__);
     puts("\r\n");
 
-    puts("Build Time: ");
+    puts("Build Time:         ");
     puts(__TIME__);
+    puts("\r\n");
+
+    puts("Boot Reason:        ");
+    bl_sys_rstinfo_getsting(print_info);
+    puts(print_info);
     puts("\r\n");
     puts("------------------------------------------------------------\r\n");
 
@@ -992,6 +1002,8 @@ void bfl_main()
     /*Init UART In the first place*/
     bl_uart_init(0, 16, 7, 255, 255, 2 * 1000 * 1000);
     puts("Starting bl602 now....\r\n");
+
+    bl_sys_init();
 
     _dump_boot_info();
 

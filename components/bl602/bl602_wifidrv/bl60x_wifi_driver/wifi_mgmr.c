@@ -45,12 +45,14 @@
 #include "include/wifi_mgmr_ext.h"
 #include "os_hal.h"
 #include "hal_sys.h"
+#include <bl_adc.h>
 
 #include <blog.h>
 #define USER_UNUSED(a) ((void)(a))
 
 #define DEBUG_HEADER "[WF][SM] "
 #define mgmr_TASK_PRIORITY     (28)
+#define TSEN_RELOAD_MS         (10000)
 
 wifi_mgmr_t wifiMgmr;
 const static struct state
@@ -504,6 +506,11 @@ static bool stateGlobalGuard_AP(void *ev, struct event *event )
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_ap_msg_t *ap;
 
+    if (wifiMgmr.inf_ap_enabled) {
+        os_printf(DEBUG_HEADER "%s: AP iface has started!\r\n", __func__);
+        return false;
+    }
+
     msg = event->data;
     if (WIFI_MGMR_EVENT_APP_AP_START != msg->ev) {
         return false;
@@ -839,6 +846,15 @@ static connectedIPNoData_t stateConnectedIPNo_data = {
     .name = "wifiConnected_ipObtaining",
 };
 
+typedef struct tsen_reload_data {
+    char name[32];//all the state data must start with name field
+    os_timer_t timer;//used for timeout detect on obtain IP address
+} tsen_reload_data_t;
+static tsen_reload_data_t state_tsen_reload_data = {
+    .name = "wifi tsen reload",
+};
+
+
 static bool stateConnectedIPNoGuard(void *ch, struct event *event )
 {
     wifi_mgmr_msg_t *msg;
@@ -926,6 +942,33 @@ static void ip_obtaining_timeout(timer_cb_arg_t data)
     wifi_mgmr_api_fw_disconnect();
 }
 
+static void __reload_tsen(timer_cb_arg_t data)
+{
+    uint32_t *stateData = os_timer_data(data);
+
+    (void)stateData;
+
+    wifi_mgmr_api_fw_tsen_reload();
+}
+
+static void __run_reload_tsen(void)
+{
+    int16_t temp = 0;
+    extern void phy_tcal_callback(int16_t temperature);
+
+    if (&stateConnecting == wifiMgmr.m.currentState || &stateDisconnect == wifiMgmr.m.currentState || &stateConnectedIPYes == wifiMgmr.m.currentState || 
+            &stateSniffer == wifiMgmr.m.currentState || &stateConnectedIPNo == wifiMgmr.m.currentState) {
+        bl_tsen_adc_get(&temp, 0);
+        phy_tcal_callback(temp);
+
+        return ;
+    }
+
+    return;
+
+}
+
+
 static void __sta_setup_ip(void)
 {
     uint32_t ip, mask, gw, dns1, dns2;
@@ -953,7 +996,7 @@ static void __sta_setup_ip(void)
         ip4_addr_set_u32(&addr_ipaddr, ip);
         ip4_addr_set_u32(&addr_netmask, mask);
         ip4_addr_set_u32(&addr_gw, gw);
-        netifapi_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
+        wifi_netif_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
         netifapi_netif_set_addr(&(wifiMgmr.wlan_sta.netif), &addr_ipaddr, &addr_netmask, &addr_gw);
     } else {
         /*use DHCP*/
@@ -979,6 +1022,23 @@ static void stateConnectedIPNoEnter(void *stateData, struct event *event )
     __sta_setup_ip();
     aos_post_event(EV_WIFI, CODE_WIFI_ON_CONNECTED, 0);
 }
+
+static void periodic_tsen_reload(void *stateData, struct event *event )
+{
+    tsen_reload_data_t *state_tsen_data;
+
+    state_tsen_data = stateData;
+    os_printf(DEBUG_HEADER "reload tsen \r\n");
+    os_timer_init(&(state_tsen_data->timer),
+        "wifi reload tsen",
+        __reload_tsen,
+        state_tsen_data,
+        TSEN_RELOAD_MS,
+        OS_TIMER_TYPE_REPEATED
+    );
+    os_timer_start(&(state_tsen_data->timer));
+}
+
 
 static void stateConnectedIPNoExit(void *stateData, struct event *event )
 {
@@ -1061,13 +1121,27 @@ static bool stateConnectedIPYesGuard_rcconfig( void *ch, struct event *event )
     return false;
 }
 
-static void stateConnectedIPYes_action( void *oldStateData, struct event *event,
+static void stateConnectedIPYes_IPUpdate_action( void *oldStateData, struct event *event,
       void *newStateData )
 {
     os_printf(DEBUG_HEADER "State Action ###%s### --->>> ###%s###\r\n",
             (char*)oldStateData,
             (char*)newStateData
     );
+}
+
+static void stateConnectedIPYes_action( void *oldStateData, struct event *event,
+      void *newStateData )
+{
+    ip4_addr_t addr_ipaddr;
+
+    ip4_addr_set_any(&addr_ipaddr);
+    os_printf(DEBUG_HEADER "State Action ###%s### --->>> ###%s###\r\n",
+            (char*)oldStateData,
+            (char*)newStateData
+    );
+    wifi_netif_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
+    netifapi_netif_set_addr(&(wifiMgmr.wlan_sta.netif), &addr_ipaddr, &addr_ipaddr, &addr_ipaddr);
 }
 
 static void stateConnectedIPYes_enter( void *stateData, struct event *event )
@@ -1083,19 +1157,14 @@ static void stateConnectedIPYes_enter( void *stateData, struct event *event )
 
 static void stateConnectedIPYes_exit( void *stateData, struct event *event )
 {
-   ip4_addr_t addr_ipaddr;
+    os_printf(DEBUG_HEADER "Exiting %s state\r\n", (char *)stateData);
 
-   ip4_addr_set_any(&addr_ipaddr);
-   os_printf(DEBUG_HEADER "Exiting %s state\r\n", (char *)stateData);
-   // Stop DHCP Client anyway
-   netifapi_dhcp_stop(&(wifiMgmr.wlan_sta.netif));
-   netifapi_netif_set_addr(&(wifiMgmr.wlan_sta.netif), &addr_ipaddr, &addr_ipaddr, &addr_ipaddr);
 
-   //FIXME TODO ugly hack
-   if (auto_repeat) {
-       auto_repeat = 0;
-       bl_main_denoise(0);
-   }
+    //FIXME TODO ugly hack
+    if (auto_repeat) {
+        auto_repeat = 0;
+        bl_main_denoise(0);
+    }
 }
 
 const static struct state stateConnectedIPYes = {
@@ -1103,7 +1172,7 @@ const static struct state stateConnectedIPYes = {
    .entryState = NULL,
    .transitions = (struct transition[])
    {
-      {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_IP_UPDATE, &stateConnectedIPYesGuard_ip_update, &stateConnectedIPYes_action, &stateConnectedIPNo},
+      {EVENT_TYPE_GLB, (void*)WIFI_MGMR_EVENT_GLB_IP_UPDATE, &stateConnectedIPYesGuard_ip_update, &stateConnectedIPYes_IPUpdate_action, &stateConnectedIPNo},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_DISCONNECT, &stateConnectedIPYesGuard_disconnect, &stateConnectedIPYes_action, &stateDisconnect},
       {EVENT_TYPE_APP, (void*)WIFI_MGMR_EVENT_APP_RC_CONFIG, &stateConnectedIPYesGuard_rcconfig, &stateConnectedIPYes_action, &stateDisconnect},
       {EVENT_TYPE_FW, (void*)WIFI_MGMR_EVENT_FW_IND_DISCONNECT, &stateConnectedIPYesGuard, &stateConnectedIPYes_action, &stateDisconnect},
@@ -1323,10 +1392,19 @@ void wifi_mgmr_start(void)
 
     /*TODO: use another way based on event sys?*/
     hal_sys_capcode_update(255, 255);
+    
+    /*periodic reload tsen */
+    periodic_tsen_reload(&state_tsen_reload_data, NULL);
 
     /*Run the event handler loop*/
     while (1) {
         if (0 == os_mq_recv(&(wifiMgmr.mq), msg, WIFI_MGMR_MQ_MSG_SIZE)) {
+            if (msg->ev == WIFI_MGMR_EVENT_APP_RELOAD_TSEN) {
+                __run_reload_tsen();
+
+                continue;
+            }
+
             ev.type = msg->ev < WIFI_MGMR_EVENT_MAXAPP_MINIFW ? EVENT_TYPE_APP : 
                 (msg->ev < WIFI_MGMR_EVENT_MAXFW_MINI_GLOBAL ? EVENT_TYPE_FW : EVENT_TYPE_GLB);
             stateM_handleEvent(&(wifiMgmr.m), &ev);

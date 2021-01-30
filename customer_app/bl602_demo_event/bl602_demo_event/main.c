@@ -413,6 +413,32 @@ static void _connect_wifi()
     wifi_mgmr_sta_connect(wifi_interface, ssid, password, pmk, mac, band, freq);
 }
 
+#if defined(CONFIG_BT_MESH_SYNC)
+typedef struct _wifi_item {
+    char ssid[32];
+    uint32_t ssid_len;
+    uint8_t bssid[6];
+    uint8_t channel;
+    uint8_t auth;
+    int8_t rssi;
+} _wifi_item_t;
+
+struct _wifi_conn {
+    char ssid[32];
+    char ssid_tail[1];
+    char pask[64];
+};
+
+struct _wifi_state {
+    char ip[16];
+    char gw[16];
+    char mask[16];
+    char ssid[32];
+    char ssid_tail[1];
+    uint8_t bssid[6];
+    uint8_t state;
+};
+#endif /* CONFIG_BT_MESH_SYNC */
 static void wifi_sta_connect(char *ssid, char *password)
 {
     wifi_interface_t wifi_interface;
@@ -420,7 +446,65 @@ static void wifi_sta_connect(char *ssid, char *password)
     wifi_interface = wifi_mgmr_sta_enable();
     wifi_mgmr_sta_connect(wifi_interface, ssid, password, NULL, NULL, 0, 0);
 }
+#if defined(CONFIG_BT_MESH_SYNC)
+static void scan_item_cb(wifi_mgmr_ap_item_t *env, uint32_t *param1, wifi_mgmr_ap_item_t *item)
+{
+    _wifi_item_t wifi_item;
+    void (*complete)(void *) = (void (*)(void *))param1;
 
+    wifi_item.auth = item->auth;
+    wifi_item.rssi = item->rssi;
+    wifi_item.channel = item->channel;
+    wifi_item.ssid_len = item->ssid_len;
+    memcpy(wifi_item.ssid, item->ssid, sizeof(wifi_item.ssid));
+    memcpy(wifi_item.bssid, item->bssid, sizeof(wifi_item.bssid));
+
+    if (complete) {
+        complete(&wifi_item);
+    }
+}
+
+static void scan_complete_cb(void *p_arg, void *param)
+{
+    wifi_mgmr_scan_ap_all(NULL, p_arg, scan_item_cb);
+}
+
+static void wifiprov_scan(void *p_arg)
+{
+    wifi_mgmr_scan(p_arg, scan_complete_cb);
+}
+
+static void wifiprov_wifi_state_get(void *p_arg)
+{
+    int tmp_state;
+    wifi_mgmr_sta_connect_ind_stat_info_t info;
+    ip4_addr_t ip, gw, mask;
+    struct _wifi_state state;
+    void (*state_get_cb)(void *) = (void (*)(void *))p_arg;
+
+    memset(&state, 0, sizeof(state));
+    memset(&info, 0, sizeof(info));
+    wifi_mgmr_state_get(&tmp_state);
+    wifi_mgmr_sta_ip_get(&ip.addr, &gw.addr, &mask.addr);
+    wifi_mgmr_sta_connect_ind_stat_get(&info);
+
+    state.state = tmp_state;
+    strcpy(state.ip, ip4addr_ntoa(&ip));
+    strcpy(state.mask, ip4addr_ntoa(&mask));
+    strcpy(state.gw, ip4addr_ntoa(&gw));
+    memcpy(state.ssid, info.ssid, sizeof(state.ssid));
+    memcpy(state.bssid, info.bssid, sizeof(state.bssid));
+    state.ssid_tail[0] = 0;
+
+    printf("IP  :%s \r\n", state.ip);
+    printf("GW  :%s \r\n", state.gw);
+    printf("MASK:%s \r\n", state.mask);
+
+    if (state_get_cb) {
+        state_get_cb(&state);
+    }
+}
+#endif /* CONFIG_BT_MESH_SYNC */
 static void event_cb_wifi_event(input_event_t *event, void *private_data)
 {
     static char *ssid;
@@ -521,15 +605,41 @@ static void event_cb_wifi_event(input_event_t *event, void *private_data)
         case CODE_WIFI_ON_PROV_CONNECT:
         {
             printf("[APP] [EVT] [PROV] [CONNECT] %lld\r\n", aos_now_ms());
-            printf("connecting to %s:%s...\r\n", ssid, password);
-            wifi_sta_connect(ssid, password);
+			#if defined(CONFIG_BT_MESH_SYNC)
+			if(event->value){
+				struct _wifi_conn *conn_info = (struct _wifi_conn *)event->value;
+				wifi_sta_connect(conn_info->ssid, conn_info->pask);
+				break;
+			}
+			#endif
+			printf("connecting to %s:%s...\r\n", ssid, password);
+			wifi_sta_connect(ssid, password);
         }
         break;
         case CODE_WIFI_ON_PROV_DISCONNECT:
         {
             printf("[APP] [EVT] [PROV] [DISCONNECT] %lld\r\n", aos_now_ms());
+			#if defined(CONFIG_BT_MESH_SYNC)
+            wifi_mgmr_sta_disconnect();
+            vTaskDelay(1000);
+            wifi_mgmr_sta_disable(NULL);
+			#endif
         }
         break;
+		#if defined(CONFIG_BT_MESH_SYNC)
+		case CODE_WIFI_ON_PROV_SCAN_START:
+		{
+			printf("[APP] [EVT] [PROV] [SCAN] %lld\r\n", aos_now_ms());
+			wifiprov_scan((void *)event->value);
+		}
+		break;
+		case CODE_WIFI_ON_PROV_STATE_GET:
+		{
+			printf("[APP] [EVT] [PROV] [STATE] %lld\r\n", aos_now_ms());
+			wifiprov_wifi_state_get((void *)event->value);
+		}
+		break;
+		#endif /*CONFIG_BT_MESH_SYNC*/
         default:
         {
             printf("[APP] [EVT] Unknown code %u, %lld\r\n", event->code, aos_now_ms());
@@ -765,10 +875,12 @@ static void cmd_stack_wifi(char *buf, int len, int argc, char **argv)
 
 }
 
+#ifndef CONFIG_BT_TL
 static void cmd_stack_ble(char *buf, int len, int argc, char **argv)
 {
     ble_stack_start();
 }
+#endif
 
 #if defined(CFG_BLE_PDS)
 static void cmd_start_pds(char *buf, int len, int argc, char **argv)
@@ -1003,102 +1115,6 @@ static void cmd_align(char *buf, int len, int argc, char **argv)
     log_info("align test end.\r\n");
 }
 
-#define TSEN_RELOAD_MS          (1000)
-TimerHandle_t tsen_timer_hdr = NULL;
-
-int tsen_adc_get(int16_t *temp, uint8_t log_flag)
-{
-    static uint16_t tsen_offset = 0xFFFF;
-    float val = 0.0;
-
-    if (0xFFFF == tsen_offset) {
-        tsen_offset = 0;
-        ADC_CFG_Type adcCfg = {
-            .v18Sel=ADC_V18_SEL_1P82V,                /*!< ADC 1.8V select */
-            .v11Sel=ADC_V11_SEL_1P1V,                 /*!< ADC 1.1V select */
-            .clkDiv=ADC_CLK_DIV_32,                   /*!< Clock divider */
-            .gain1=ADC_PGA_GAIN_1,                 /*!< PGA gain 1 */
-            .gain2=ADC_PGA_GAIN_1,                 /*!< PGA gain 2 */
-            .chopMode=ADC_CHOP_MOD_AZ_PGA_ON,           /*!< ADC chop mode select */
-            .biasSel=ADC_BIAS_SEL_MAIN_BANDGAP,       /*!< ADC current form main bandgap or aon bandgap */
-            .vcm=ADC_PGA_VCM_1V,                      /*!< ADC VCM value */
-            .vref=ADC_VREF_2V,                      /*!< ADC voltage reference */
-            .inputMode=ADC_INPUT_SINGLE_END,          /*!< ADC input signal type */
-            .resWidth=ADC_DATA_WIDTH_16_WITH_256_AVERAGE,              /*!< ADC resolution and oversample rate */
-            .offsetCalibEn=0,                         /*!< Offset calibration enable */
-            .offsetCalibVal=0,                        /*!< Offset calibration value */
-        };
-
-
-        ADC_FIFO_Cfg_Type adcFifoCfg = {
-            .fifoThreshold = ADC_FIFO_THRESHOLD_1,
-            .dmaEn = DISABLE,
-        };
-
-        GLB_Set_ADC_CLK(ENABLE,GLB_ADC_CLK_96M, 7);
-
-        ADC_Disable();
-        ADC_Enable();
-
-        ADC_Reset();
-
-        ADC_Init(&adcCfg);
-        ADC_Channel_Config(ADC_CHAN_TSEN_P, ADC_CHAN_GND, 0);
-        ADC_Tsen_Init(ADC_TSEN_MOD_INTERNAL_DIODE);
-
-        ADC_FIFO_Cfg(&adcFifoCfg);
-
-        if (ADC_Trim_TSEN(&tsen_offset) == ERROR) {
-            log_error("read efuse data failed\r\n");
-        } else {
-            log_info("offset = %d\r\n", tsen_offset);
-        }
-    }
-    val = TSEN_Get_Temp(tsen_offset);
-    if (log_flag) {
-        printf("temperature = %f Celsius\r\n", val);
-    }
-
-    if (temp) {
-        *temp = (int16_t)(val);
-    }
-
-    return 0;
-}
-
-static void reload_tsen_cb(TimerHandle_t xTimer)
-{
-    int16_t temp = 0;
-
-    extern void phy_tcal_callback(int16_t temperature);
-    if (!tsen_timer_hdr) {
-        log_assert("you must init timer at start.\r\n");
-        return;
-    }
-    tsen_adc_get(&temp, 0);
-    phy_tcal_callback(temp);
-}
-
-int tsen_adc_init(void)
-{
-    if (!tsen_timer_hdr) {
-        tsen_timer_hdr = xTimerCreate(
-            "tsen", pdMS_TO_TICKS(TSEN_RELOAD_MS), 1, 0, reload_tsen_cb);
-        xTimerStart(tsen_timer_hdr, 0);
-    }
-    if (!tsen_timer_hdr) {
-        log_assert("assert hal_timer_init error.\r\n");
-        return -1;
-    }
-
-    return 0;
-}
-
-void cmd_tsen(char *buf, int len, int argc, char **argv)
-{
-    tsen_adc_get(NULL, 1);
-}
-
 void cmd_mfg(char *buf, int len, int argc, char **argv)
 {
     bl_sys_mfg_config();
@@ -1119,10 +1135,12 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "exception_inst_illegal", "exception illegal instruction", cmd_exception_illegal_ins},
         /*Stack Command*/
         { "stack_wifi", "Wi-Fi Stack", cmd_stack_wifi},
+        #ifndef CONFIG_BT_TL
         { "stack_ble", "BLE Stack", cmd_stack_ble},
-#if defined(CFG_BLE_PDS)
+        #endif
+        #if defined(CFG_BLE_PDS)
         { "pds_start", "enable or disable pds", cmd_start_pds},
-#endif
+        #endif
         /*TCP/IP network test*/
         {"http", "http client download test based on socket", http_test_cmd},
         {"httpc", "http client download test based on RAW TCP", cmd_httpc_test},
@@ -1131,7 +1149,6 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         {"logdis", "logdis", cmd_logdis},
         {"load0w", "load word from 0", cmd_load0w},
         {"aligntc", "align case test", cmd_align},
-        {"tsen", "tsen test", cmd_tsen},
         {"mfg", "mfg", cmd_mfg},
 };
 
@@ -1214,13 +1231,17 @@ static void event_cb_key_event(input_event_t *event, void *private_data)
     }
 }
 
+#if defined(CONFIG_BT_TL)
+extern void uart_init(uint8_t uartid);
+#endif
+
 static void aos_loop_proc(void *pvParameters)
 {
     int fd_console;
     uint32_t fdt = 0, offset = 0;
     static StackType_t proc_stack_looprt[512];
     static StaticTask_t proc_task_looprt;
-
+    
     /*Init bloop stuff*/
     looprt_start(proc_stack_looprt, 512, &proc_task_looprt);
     loopset_led_hook_on_looprt();
@@ -1256,7 +1277,13 @@ static void aos_loop_proc(void *pvParameters)
     aos_register_event_filter(EV_WIFI, event_cb_wifi_event, NULL);
     aos_register_event_filter(EV_KEY, event_cb_key_event, NULL);
 
-    tsen_adc_init();
+    //tsen_adc_init();
+
+    #if defined(CONFIG_BT_TL)
+    //uart's pinmux has been configured in vfs_uart_init(load uart1's pin info from devicetree)
+    uart_init(1);
+    ble_controller_init(configMAX_PRIORITIES - 1);
+    #endif
 
     aos_loop_run();
 
@@ -1326,7 +1353,7 @@ void vAssertCalled(void)
 
 static void _dump_boot_info(void)
 {
-    char chip_feature[40];
+    char print_info[40];
     const char *banner;
 
     puts("Booting BL602 Chip...\r\n");
@@ -1340,31 +1367,37 @@ static void _dump_boot_info(void)
     puts("\r\n");
     puts("------------------------------------------------------------\r\n");
     puts("RISC-V Core Feature:");
-    bl_chip_info(chip_feature);
-    puts(chip_feature);
+    bl_chip_info(print_info);
+    puts(print_info);
     puts("\r\n");
 
-    puts("Build Version: ");
+    puts("Build Version:      ");
     puts(BL_SDK_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("Build Version: ");
-    puts(BL_SDK_VER); // @suppress("Symbol is not resolved")
+    puts("Std Driver Version: ");
+    puts(BL_SDK_STDDRV_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("PHY   Version: ");
+    puts("PHY   Version:      ");// @suppress("Symbol is not resolved")
     puts(BL_SDK_PHY_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("RF    Version: ");
+    puts("RF    Version:      ");
     puts(BL_SDK_RF_VER); // @suppress("Symbol is not resolved")
     puts("\r\n");
 
-    puts("Build Date: ");
+    puts("Build Date:         ");
     puts(__DATE__);
     puts("\r\n");
-    puts("Build Time: ");
+
+    puts("Build Time:         ");
     puts(__TIME__);
+    puts("\r\n");
+
+    puts("Boot Reason:        ");
+    bl_sys_rstinfo_getsting(print_info);
+    puts(print_info);
     puts("\r\n");
     puts("------------------------------------------------------------\r\n");
 
@@ -1388,6 +1421,7 @@ static void system_thread_init()
 {
     /*nothing here*/
 }
+
 void bfl_main()
 {
     static StackType_t aos_loop_proc_stack[1024];

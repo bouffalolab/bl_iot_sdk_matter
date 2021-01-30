@@ -12,7 +12,7 @@
 
 #include <aos/kernel.h>
 
-#define ms2tick(ms) (((ms)+portTICK_PERIOD_MS-1)/portTICK_PERIOD_MS)
+#define ms2tick    pdMS_TO_TICKS
 #define bzero(stack, stack_size) memset(stack, 0, stack_size)
 
 void aos_reboot(void)

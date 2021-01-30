@@ -62,16 +62,13 @@ static struct k_thread adv_thread_data;
 static K_THREAD_STACK_DEFINE(adv_thread_stack, ADV_STACK_SIZE);
 #endif
 
-static const u8_t adv_type[] = {
-	[BT_MESH_ADV_PROV]   = BT_DATA_MESH_PROV,
-	[BT_MESH_ADV_DATA]   = BT_DATA_MESH_MESSAGE,
-	[BT_MESH_ADV_BEACON] = BT_DATA_MESH_BEACON,
-	[BT_MESH_ADV_URI]    = BT_DATA_URI,
-};
 
+#if !defined(BFLB_DYNAMIC_ALLOC_MEM)
 NET_BUF_POOL_DEFINE(adv_buf_pool, CONFIG_BT_MESH_ADV_BUF_COUNT,
 		    BT_MESH_ADV_DATA_SIZE, BT_MESH_ADV_USER_DATA_SIZE, NULL);
-
+#else
+struct net_buf_pool adv_buf_pool;
+#endif
 static struct bt_mesh_adv adv_pool[CONFIG_BT_MESH_ADV_BUF_COUNT];
 
 static struct bt_mesh_adv *adv_alloc(int id)
@@ -98,11 +95,17 @@ static inline void adv_send_end(int err, const struct bt_mesh_send_cb *cb,
 
 static inline void adv_send(struct net_buf *buf)
 {
+	static const u8_t adv_type[] = {
+		[BT_MESH_ADV_PROV]   = BT_DATA_MESH_PROV,
+		[BT_MESH_ADV_DATA]   = BT_DATA_MESH_MESSAGE,
+		[BT_MESH_ADV_BEACON] = BT_DATA_MESH_BEACON,
+		[BT_MESH_ADV_URI]    = BT_DATA_URI,
+	};
 	const s32_t adv_int_min = ((bt_dev.hci_version >= BT_HCI_VERSION_5_0) ?
 				   ADV_INT_FAST_MS : ADV_INT_DEFAULT_MS);
 	const struct bt_mesh_send_cb *cb = BT_MESH_ADV(buf)->cb;
 	void *cb_data = BT_MESH_ADV(buf)->cb_data;
-	struct bt_le_adv_param param;
+	struct bt_le_adv_param param = {};
 	u16_t duration, adv_int;
 	struct bt_data ad;
 	int err;
@@ -146,7 +149,6 @@ static inline void adv_send(struct net_buf *buf)
 	k_sleep(K_MSEC(duration));
 
 	err = bt_le_adv_stop();
-
 	adv_send_end(err, cb, cb_data);
 	if (err) {
 		BT_ERR("Stopping advertising failed: err %d", err);
@@ -169,7 +171,7 @@ static void adv_stack_dump(const struct k_thread *thread, void *user_data)
 static void adv_thread(void *p1)
 {
 	BT_DBG("started");
-    UNUSED(p1);
+    UNUSED(p1); /* Modified by bouffalo */
     
 	while (1) {
 		struct net_buf *buf;
@@ -239,6 +241,7 @@ struct net_buf *bt_mesh_adv_create_from_pool(struct net_buf_pool *pool,
 		BT_WARN("Refusing to allocate buffer while suspended");
 		return NULL;
 	}
+
 	buf = net_buf_alloc(pool, timeout);
 	if (!buf) {
 		return NULL;
@@ -329,6 +332,10 @@ static void bt_mesh_scan_cb(const bt_addr_le_t *addr, s8_t rssi,
 void bt_mesh_adv_init(void)
 {
 #if defined(BFLB_BLE)
+#if defined(BFLB_DYNAMIC_ALLOC_MEM)
+    net_buf_init(&adv_buf_pool, CONFIG_BT_MESH_ADV_BUF_COUNT, BT_MESH_ADV_DATA_SIZE, NULL);
+#endif
+
     k_lifo_init(&adv_buf_pool.free, CONFIG_BT_MESH_ADV_BUF_COUNT);
     k_fifo_init(&adv_queue, 20);
     k_thread_create(&adv_thread_data, "BT Mesh adv", CONFIG_MESH_ADV_STACK_SIZE,

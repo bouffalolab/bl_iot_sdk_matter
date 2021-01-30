@@ -107,4 +107,13 @@ enum task_mm_cfg {
     TASK_MM_CFG_KEEP_ALIVE_TIME_LAST_RECEIVED,
     TASK_MM_CFG_KEEP_ALIVE_PACKET_COUNTER,
 };
+
+enum task_sm_cfg {
+    TASK_SM_CFG_AUTH_ASSOC_RETRY_LIMIT,
+};
+
+enum task_scan_cfg {
+    TASK_SCAN_CFG_DURATION_SCAN_PASSIVE,
+    TASK_SCAN_CFG_DURATION_SCAN_ACTIVE,
+};
 #endif /*__BL60x_FW_API_H__*/

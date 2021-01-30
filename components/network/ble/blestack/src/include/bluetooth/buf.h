@@ -95,6 +95,22 @@ static inline void bt_buf_set_type(struct net_buf *buf, enum bt_buf_type type)
 	*(u8_t *)net_buf_user_data(buf) = type;
 }
 
+#if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)
+static inline void bt_buf_set_rx_adv(struct net_buf *buf, bool is_adv)
+{
+	u8_t *usr_data = (u8_t *)net_buf_user_data(buf);
+	usr_data++;
+	*usr_data = is_adv;
+}
+
+static inline u8_t bt_buf_check_rx_adv(struct net_buf *buf)
+{
+    u8_t *usr_data = (u8_t *)net_buf_user_data(buf);
+	usr_data++;
+	return (*usr_data);
+}
+#endif
+
 /** Get the buffer type
  *
  *  @param buf   Bluetooth buffer

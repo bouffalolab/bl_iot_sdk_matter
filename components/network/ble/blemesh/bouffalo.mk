@@ -5,7 +5,9 @@ include $(COMPONENT_PATH)/../ble_common.mk
 ## These include paths would be exported to project level
 COMPONENT_ADD_INCLUDEDIRS    += src \
                                 src/include  \
-                                src/mesh_cli_cmds
+                                src/mesh_cli_cmds  \
+								src/mem_slab \
+
 ifeq ($(CONFIG_BT_MESH_MODEL), 0)
 COMPONENT_ADD_INCLUDEDIRS    += src/mesh_models/include  \
                                 src/mesh_models/server/include
@@ -31,6 +33,7 @@ COMPONENT_SRCS   := src/access.c \
 					src/transport.c \
 					src/mesh_cli_cmds/mesh_cli_cmds.c \
 					src/local_operation.c \
+					src/mem_slab/slab.c
 
 ifeq ($(CONFIG_BT_MESH_FRIEND),1)
 COMPONENT_SRCS   += src/friend.c
@@ -38,6 +41,18 @@ endif
 
 ifeq ($(CONFIG_BT_MESH_LOW_POWER),1)
 COMPONENT_SRCS   += src/lpn.c
+endif
+
+ifeq ($(CONFIG_BT_MESH_PB_ADV),1)
+COMPONENT_SRCS   += src/pb_adv.c
+endif
+
+ifeq ($(CONFIG_BT_MESH_PB_GATT),1)
+COMPONENT_SRCS   += src/pb_gatt.c
+endif
+
+ifeq ($(CONFIG_BT_MESH_CDB),1)
+COMPONENT_SRCS   += src/cdb.c
 endif
 
 ifeq ($(CONFIG_BT_MESH_MODEL), 0)
@@ -49,7 +64,9 @@ endif
 
 COMPONENT_OBJS   := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 COMPONENT_SRCDIRS:= src \
-                    src/mesh_cli_cmds
+                    src/mesh_cli_cmds \
+					src/mem_slab \
+
 ifeq ($(CONFIG_BT_MESH_MODEL), 0)
 COMPONENT_SRCDIRS+= src/mesh_models/server
 endif

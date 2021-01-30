@@ -65,17 +65,13 @@ static int8_t mfg_flash_program(void)
 
     mfg_print("mfg_flash_write\r\n");
 
-    __disable_irq();
      ret=XIP_SFlash_Erase_Need_Lock(pFlashCfg,rf_para_addr,rf_para_addr+15);
-     __enable_irq();
      if(ret!=SUCCESS){
          mfg_print("Flash erase error\r\n");
          return -1;
      }
 
-     __disable_irq();
      ret=XIP_SFlash_Write_Need_Lock(pFlashCfg,rf_para_addr,(uint8_t *)&rf_para,sizeof(rf_para));
-     __enable_irq();
      if(ret!=SUCCESS){
          mfg_print("Flash write error\r\n");
          return -1;
@@ -90,9 +86,7 @@ static int8_t mfg_flash_read(void)
 
     mfg_print("mfg_flash_read\r\n");
 
-     __disable_irq();
      ret=XIP_SFlash_Read_Need_Lock(pFlashCfg,rf_para_addr,(uint8_t *)&rf_para,sizeof(rf_para));
-     __enable_irq();
      if(ret!=SUCCESS){
          mfg_print("Flash write error\r\n");
          return -1;

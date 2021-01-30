@@ -71,23 +71,19 @@ BL602 SDK Starter Guide
 bin文件下载
 -----------
 
--  打开\ ``bl_iot_sdk/tools/flash_tool``\ 文件中的\ ``simple_flasher.exe``\ 程序
+-  打开\ ``bl_iot_sdk/tools/flash_tool``\ 文件中的\ ``BLDevCube.exe``\ 程序
 
 -  ``chip type``\ 选择\ ``BL602/604``\ ，打开后界面参数参考下图配置：
 
    .. figure:: imgs/image9.png
       :alt:
 
-   点击\ ``download``\ ，出现如下图所示表明下载成功：
+   点击\ ``Create & Download``\ ，出现如下图所示表明下载成功：
 
    .. figure:: imgs/image10.png
       :alt:
 
--  打开串口终端，点击 ``settings`` 配置为如下图所示，其中 ``DTR`` 需要勾选上， ``RTS`` 不勾选。
+-  打开串口终端，点击 ``Settings`` 配置为如下图所示，其中 ``DTR`` 需要勾选上， ``RTS`` 不勾选。
 
    .. figure:: imgs/image12.png
       :alt:
-
-
-
-

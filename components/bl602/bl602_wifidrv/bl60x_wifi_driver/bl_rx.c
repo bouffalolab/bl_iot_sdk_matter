@@ -695,6 +695,7 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
                                          struct ipc_e2a_msg *msg)
 {
     struct sm_connect_ind *ind = (struct sm_connect_ind *)msg->param;
+    struct bl_sta *sta;
     struct wifi_event_sm_connect_ind ind_new;
     struct bl_vif *bl_vif = NULL;
     int index = 0;
@@ -737,6 +738,8 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
     if (0 == ind->status_code) {
         bl_hw->sta_idx = ind->ap_idx;
         bl_hw->is_up = 1;
+        sta = &(bl_hw->sta_table[bl_hw->sta_idx]);
+        sta->qos = ind->qos;
     } else {
         bl_hw->is_up = 0;
     }

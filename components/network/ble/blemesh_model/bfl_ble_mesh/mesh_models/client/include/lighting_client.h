@@ -427,7 +427,7 @@ struct bt_mesh_light_lc_property_set {
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_lightness_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_lightness_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize light ctl client model user_data.
@@ -437,7 +437,7 @@ int bt_mesh_light_lightness_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_ctl_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_ctl_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize light hsl client model user_data.
@@ -447,7 +447,7 @@ int bt_mesh_light_ctl_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_hsl_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_hsl_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize light xyl client model user_data.
@@ -457,7 +457,7 @@ int bt_mesh_light_hsl_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_xyl_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_xyl_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize light lc client model user_data.
@@ -467,7 +467,7 @@ int bt_mesh_light_xyl_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_lc_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_lc_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize light lightness client model user_data.
@@ -477,7 +477,7 @@ int bt_mesh_light_lc_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_lightness_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_lightness_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize light ctl client model user_data.
@@ -487,7 +487,7 @@ int bt_mesh_light_lightness_cli_deinit(struct bt_mesh_model *model, bool primary
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_ctl_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_ctl_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize light hsl client model user_data.
@@ -497,7 +497,7 @@ int bt_mesh_light_ctl_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_hsl_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_hsl_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize light xyl client model user_data.
@@ -507,7 +507,7 @@ int bt_mesh_light_hsl_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_xyl_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_xyl_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize light lc client model user_data.
@@ -517,7 +517,7 @@ int bt_mesh_light_xyl_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_light_lc_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_light_lc_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to get light states.

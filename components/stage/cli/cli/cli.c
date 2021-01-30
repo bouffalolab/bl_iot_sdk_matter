@@ -1322,7 +1322,7 @@ init_general_err:
 
 static void console_cb_read(int fd, void *param)
 {
-    char buffer[16];
+    char buffer[64];  /* adapt to usb cdc since usb fifo is 64 bytes */
     int ret;
 
     ret = aos_read(fd, buffer, sizeof(buffer));

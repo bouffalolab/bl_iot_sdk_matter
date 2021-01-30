@@ -573,6 +573,19 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 /*-----------------------------------------------------------*/
 
+StackType_t *xTaskGetStackBase(TaskHandle_t xTask)
+{
+  TCB_t *pxTCB;
+
+	/* If null is passed in here then the name of the calling task is being
+	queried. */
+	pxTCB = prvGetTCBFromHandle( xTask );
+	if (pxTCB == NULL)
+	  return NULL;
+  else
+	  return pxTCB->pxStack;
+}
+
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
 
 	TaskHandle_t xTaskCreateStatic(	TaskFunction_t pxTaskCode,

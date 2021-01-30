@@ -212,12 +212,6 @@ typedef enum __packed{
 
 #endif 
 
-
-#if defined(CFG_SLEEP)
-struct bt_dev* bt_get_dev_info(void);
-bool bt_stack_check_adv_state(void);
-#endif
-
 extern struct bt_dev bt_dev;
 #if defined(CONFIG_BT_SMP) || defined(CONFIG_BT_BREDR)
 extern const struct bt_conn_auth_cb *bt_auth;
@@ -247,6 +241,11 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
 			     const struct bt_data *ad, size_t ad_len,
 			     const struct bt_data *sd, size_t sd_len,
 			     const bt_addr_le_t *peer);
+#if defined(CONFIG_BLE_MULTI_ADV)
+int bt_le_adv_start_instant(const struct bt_le_adv_param *param,
+        const uint8_t *ad_data, size_t ad_len,
+        const uint8_t *sd_data, size_t sd_len);
+#endif
 
 #if defined (BFLB_BLE)
 
@@ -258,6 +257,9 @@ int set_adv_channel_map(u8_t channel);
 int bt_get_local_public_address(bt_addr_le_t *adv_addr);
 int bt_get_local_ramdon_address(bt_addr_le_t *adv_addr);
 int bt_le_set_data_len(struct bt_conn *conn, u16_t tx_octets, u16_t tx_time);
+int hci_le_set_phy(struct bt_conn *conn);
+int hci_le_set_default_phy(struct bt_conn *conn,u8_t default_phy);
+
 
 #if defined(CONFIG_SET_TX_PWR)
 int bt_set_tx_pwr(int8_t power);

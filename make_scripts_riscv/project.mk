@@ -187,28 +187,37 @@ all:
 ifeq ("$(OS)","Windows_NT")
 else
 ifeq ("$(CONFIG_CHIP_NAME)", "BL602")
-	#@cd $(BL60X_SDK_PATH)/image_conf; python3 flash_build.py $(PROJECT_NAME) $(CONFIG_CHIP_NAME)
-	@cd $(BL60X_SDK_PATH)/image_conf; ./flash_build $(PROJECT_NAME) $(CONFIG_CHIP_NAME)
 endif
 endif
 	@echo "Building Finish. To flash build output."
 
+bins: all
+	@cd $(BL60X_SDK_PATH)/image_conf; python3 flash_build.py $(PROJECT_NAME) $(CONFIG_CHIP_NAME)
+info: all
+	@cd $(BL60X_SDK_PATH)/image_conf; env SDK_APP_BIN=$(APP_BIN) SDK_APP_MAP=$(APP_MAP) python3 codesize.py
 
-# If we have `version.txt` then prefer that for extracting BL60x_SP_SDK version
-ifeq ("$(wildcard ${BL60X_SDK_PATH}/version.txt)","")
+# If we have `version.mk` then prefer that for extracting BL60x_SP_SDK version
+ifeq ("$(wildcard ${BL60X_SDK_PATH}/version.mk)","")
 BL_SDK_VER := $(shell cd ${BL60X_SDK_PATH} && git describe --always --tags --dirty)
+EXTRA_CPPFLAGS ?=
+EXTRA_CPPFLAGS += -D BL_SDK_VER=\"$(BL_SDK_VER)\"
 ifeq ("$(CONFIG_CHIP_NAME)", "BL602")
 BL_SDK_PHY_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_wifi/plf/refip/src/driver/phy/bl602_phy_rf/ && git describe --always --tags --dirty)
 BL_SDK_RF_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_wifi/plf/refip/src/driver/phy/bl602_phy_rf/rf && git describe --always --tags --dirty)
-endif
-$(info use git describe to generate version.txt)
+BL_SDK_STDDRV_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_std/bl602_std && git describe --always --tags --dirty)
+EXTRA_CPPFLAGS += -D BL_SDK_PHY_VER=\"$(BL_SDK_PHY_VER)\"
+EXTRA_CPPFLAGS += -D BL_SDK_RF_VER=\"$(BL_SDK_RF_VER)\"
+EXTRA_CPPFLAGS += -D BL_SDK_STDDRV_VER=\"$(BL_SDK_STDDRV_VER)\"
 else
-BL_SDK_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n1`
-ifeq ("$(CONFIG_CHIP_NAME)", "BL602")
-BL_SDK_PHY_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n2|tail -n1`
-BL_SDK_RF_VER := `cat ${BL60X_SDK_PATH}/version.txt |head -n3|tail -n1`
+BL_SDK_STDDRV_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl702/bl702_std/BSP_Driver && git describe --always --tags --dirty)
+BL_SDK_STDCOM_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl702/bl702_std/BSP_Common && git describe --always --tags --dirty)
+EXTRA_CPPFLAGS += -D BL_SDK_STDDRV_VER=\"$(BL_SDK_STDDRV_VER)\"
+EXTRA_CPPFLAGS += -D BL_SDK_STDCOM_VER=\"$(BL_SDK_STDCOM_VER)\"
 endif
-$(info use exsting version.txt file)
+$(info use git describe to generate Version Define)
+else
+include $(BL60X_SDK_PATH)/version.mk
+$(info use exsting version.mk file)
 endif
 BL_CHIP_NAME := ${CONFIG_CHIP_NAME}
 
@@ -254,10 +263,7 @@ ifeq ($(CONFIG_ENABLE_PSM_RAM),1)
 CPPFLAGS += -DCONF_USER_ENABLE_PSRAM
 endif
 EXTRA_CPPFLAGS ?=
-CPPFLAGS := -D BL_SDK_VER=\"$(BL_SDK_VER)\"
-CPPFLAGS += -D BL_SDK_PHY_VER=\"$(BL_SDK_PHY_VER)\"
-CPPFLAGS += -D BL_SDK_RF_VER=\"$(BL_SDK_RF_VER)\"
-CPPFLAGS += -D BL_CHIP_NAME=\"$(BL_CHIP_NAME)\" -MMD -MP $(CPPFLAGS) $(EXTRA_CPPFLAGS)
+CPPFLAGS += -D BL_CHIP_NAME=\"$(BL_CHIP_NAME)\" -MMD -MP $(EXTRA_CPPFLAGS)
 CPPFLAGS += -DARCH_RISCV
 
 # Warnings-related flags relevant both for C and C++
@@ -307,6 +313,10 @@ ifeq ($(CONFIG_ENABLE_FP),1)
 COMMON_FLAGS += -fno-omit-frame-pointer -DCONF_ENABLE_FRAME_PTR
 endif
 
+ifeq ($(CONFIG_ENABLE_STACK_OVERFLOW_CHECK),1)
+COMMON_FLAGS += -finstrument-functions -DCONF_ENABLE_STACK_OVERFLOW_CHECK
+endif
+
 ifdef CONFIG_OPTIMIZATION_LEVEL_RELEASE
 OPTIMIZATION_FLAGS = -Os
 else
@@ -341,8 +351,11 @@ CFLAGS := $(strip \
 	-save-temps=obj
 
 CXXFLAGS := $(strip \
-	$(CPPFLAGS) \
-	$(OPTIMIZATION_FLAGS) \
+	-std=c++11 \
+	$(OPTIMIZATION_FLAGS) $(DEBUG_FLAGS) \
+	$(COMMON_FLAGS) \
+	$(COMMON_WARNING_FLAGS) \
+	$(CXXFLAGS) \
 	$(E21_CPU_CFLAGS) \
 	-nostdlib \
 	-g3 \
@@ -357,7 +370,9 @@ CXXFLAGS := $(strip \
 	-Wswitch-default \
 	-Wunused \
 	-Wundef \
-	-fno-rtti -fno-exceptions)
+	-fno-rtti -fno-exceptions \
+	-save-temps=obj \
+	)
 
 export CFLAGS CPPFLAGS CXXFLAGS ASMFLAGS
 
@@ -515,10 +530,10 @@ app-clean: $(addprefix component-,$(addsuffix -clean,$(notdir $(COMPONENT_PATHS)
 	rm -f $(APP_ELF) $(APP_BIN) $(APP_MAP)
 
 flash: all
-	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 bl602/conf/iot.toml
+	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bflb_simple_flasher.py bl602 bl602/conf/iot.toml
 
 flash_only:
-	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bl60x_simple_flasher.py bl602 bl602/conf/iot.toml
+	cd $(BL60X_SDK_PATH)/tools/flash_tool && env SDK_APP_BIN=$(APP_BIN) SDK_BOARD=$(PROJECT_BOARD) SDK_NAME=$(PROJECT_NAME) SDK_MEDIA_BIN=$(APP_MEDIA_BIN) SDK_ROMFS_DIR=$(APP_ROMFS_DIR) SDK_DTS=$(PROJECT_DTS) SDK_XTAL=$(PROJECT_BOARD_XTAL) BL_FLASH_TOOL_INPUT_PATH_cfg2_bin_input=$(APP_BIN) python3 core/bflb_simple_flasher.py bl602 bl602/conf/iot.toml
 
 clean: app-clean
 

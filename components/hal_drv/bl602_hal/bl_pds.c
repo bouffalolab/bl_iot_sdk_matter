@@ -385,8 +385,8 @@ void ATTR_TCM_SECTION bl_pds_init(void)
     // Set clock gating to unused peripherals
     //GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_GLB);
     //GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_RF);
-    GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_GPIP);
-    GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_DBG);
+    GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_GPIP_PHY_AGC);
+    GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_SEC_DBG);
     //GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_SEC);
     //GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_TZ1);
     //GLB_AHB_Slave1_Clock_Gate(1, BL_AHB_SLAVE1_TZ2);

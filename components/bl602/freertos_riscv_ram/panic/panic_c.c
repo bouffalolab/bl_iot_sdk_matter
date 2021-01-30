@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#ifdef CONF_ENABLE_STACK_OVERFLOW_CHECK
+#include <FreeRTOS.h>
+#include <task.h>
+#endif
+
 #include "panic.h"
 
 int backtrace_now(int (*print_func)(const char *fmt, ...), uintptr_t *regs) __attribute__ ((weak, alias ("backtrace_riscv")));
@@ -163,5 +168,42 @@ int backtrace_now_app(int (*print_func)(const char *fmt, ...)) {
 int backtrace_riscv(int (*print_func)(const char *fmt, ...), uintptr_t *regs)
 {
     return -1;
+}
+#endif
+
+#ifdef CONF_ENABLE_STACK_OVERFLOW_CHECK
+extern StackType_t *xTaskGetStackBase(TaskHandle_t xTask);
+extern uint32_t hal_boot2_get_flash_addr(void);
+void __attribute__((no_instrument_function)) __cyg_profile_func_enter(void *this_fn, void *call_site) {
+  register uintptr_t *sp;
+  uintptr_t *stack_base;
+  
+  // this function may called before .data section initialized, skip it
+  if (this_fn == hal_boot2_get_flash_addr) {
+    return;
+  }
+
+  // inside these functions MUST NOT call other functions
+  if (this_fn == xTaskGetSchedulerState|| this_fn == xTaskGetStackBase
+      || this_fn == xPortIsInsideInterrupt) {
+    return;
+  }
+
+  // if schedule not start or in the interrupt
+  if (xTaskGetSchedulerState() != taskSCHEDULER_RUNNING || xPortIsInsideInterrupt() == 1) {
+    return;
+  } 
+
+  __asm__("add %0, x0, sp" : "=r"(sp));
+  stack_base = (uintptr_t *)xTaskGetStackBase(NULL);
+  if (stack_base != NULL && sp <= stack_base){
+    portDISABLE_INTERRUPTS();
+    while(1);
+  }
+  return;
+}
+
+void __attribute__((no_instrument_function)) __cyg_profile_func_exit(void *this_fn, void *call_site) {
+  return;
 }
 #endif

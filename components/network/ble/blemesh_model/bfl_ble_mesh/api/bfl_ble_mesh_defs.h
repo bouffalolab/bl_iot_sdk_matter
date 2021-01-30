@@ -677,6 +677,7 @@ typedef enum {
     ROLE_NODE = 0,
     ROLE_PROVISIONER,
     ROLE_FAST_PROV,
+    ROLE_NVAL,
 } bfl_ble_mesh_dev_role_t;
 
 /*!< Flag which will be set when device is going to be added. */

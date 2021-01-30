@@ -26,6 +26,12 @@
 extern "C" {
 #endif
 
+const struct bt_mesh_model_cb bt_mesh_light_lightness_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_light_ctl_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_light_hsl_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_light_xyl_cli_cb;
+const struct bt_mesh_model_cb bt_mesh_light_lc_cli_cb;
+
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_CLI
  *
  *  @brief  Define a new Light Lightness Client Model.
@@ -39,8 +45,8 @@ extern "C" {
  *  @return New Light Lightness Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_CLI(cli_pub, cli_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_CLI,   \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_CLI,   \
+                    NULL, cli_pub, cli_data, &bt_mesh_light_lightness_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_CTL_CLI
  *
@@ -55,8 +61,8 @@ extern "C" {
  *  @return New Light CTL Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_CTL_CLI(cli_pub, cli_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_CLI,     \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_CLI,     \
+                    NULL, cli_pub, cli_data, &bt_mesh_light_ctl_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_HSL_CLI
  *
@@ -71,8 +77,8 @@ extern "C" {
  *  @return New Light HSL Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_HSL_CLI(cli_pub, cli_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_CLI,     \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_CLI,     \
+                    NULL, cli_pub, cli_data, &bt_mesh_light_hsl_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_XYL_CLI
  *
@@ -87,8 +93,8 @@ extern "C" {
  *  @return New Light xyL Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_XYL_CLI(cli_pub, cli_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_XYL_CLI,     \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_XYL_CLI,     \
+                    NULL, cli_pub, cli_data, &bt_mesh_light_xyl_cli_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_LC_CLI
  *
@@ -103,8 +109,8 @@ extern "C" {
  *  @return New Light LC Client Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_LC_CLI(cli_pub, cli_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_LC_CLI,     \
-                    NULL, cli_pub, cli_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_LC_CLI,     \
+                    NULL, cli_pub, cli_data, &bt_mesh_light_lc_cli_cb)
 
 /**
  *  @brief Bluetooth Mesh Light Lightness Client Model Get and Set parameters structure.
@@ -587,6 +593,19 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
 /**
  * @brief Lighting Server Models related context.
  */
+const struct bt_mesh_model_cb bt_mesh_light_lightness_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_lightness_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_ctl_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_ctl_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_ctl_temp_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_hsl_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_hsl_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_hsl_hue_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_hsl_sat_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_xyl_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_xyl_setup_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_lc_srv_cb;
+const struct bt_mesh_model_cb bt_mesh_light_lc_setup_srv_cb;
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_SRV
  *
@@ -604,8 +623,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light Lightness Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_lightness_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_SETUP_SRV
  *
@@ -621,8 +640,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light Lightness Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_LIGHTNESS_SETUP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_lightness_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_CTL_SRV
  *
@@ -646,8 +665,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light CTL Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_CTL_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_ctl_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_CTL_SETUP_SRV
  *
@@ -663,8 +682,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light CTL Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_CTL_SETUP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_SETUP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_SETUP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_ctl_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_CTL_TEMP_SRV
  *
@@ -680,8 +699,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light CTL Temperature Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_CTL_TEMP_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_TEMP_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_CTL_TEMP_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_ctl_temp_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_HSL_SRV
  *
@@ -709,8 +728,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light HSL Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_HSL_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_hsl_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_HSL_SETUP_SRV
  *
@@ -726,8 +745,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light HSL Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_HSL_SETUP_SRV(srv_pub, srv_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_SETUP_SRV,   \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_SETUP_SRV,   \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_hsl_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_HSL_HUE_SRV
  *
@@ -743,8 +762,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light HSL Hue Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_HSL_HUE_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_HUE_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_HUE_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_hsl_hue_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_HSL_SAT_SRV
  *
@@ -760,8 +779,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light HSL Saturation Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_HSL_SAT_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_SAT_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_HSL_SAT_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_hsl_sat_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_XYL_SRV
  *
@@ -778,8 +797,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light xyL Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_XYL_SRV(srv_pub, srv_data)             \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_XYL_SRV,     \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_XYL_SRV,     \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_xyl_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_XYL_SETUP_SRV
  *
@@ -795,8 +814,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light xyL Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_XYL_SETUP_SRV(srv_pub, srv_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_XYL_SETUP_SRV,   \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_XYL_SETUP_SRV,   \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_xyl_setup_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_LC_SRV
  *
@@ -817,8 +836,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light LC Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_LC_SRV(srv_pub, srv_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_LC_SRV,   \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_LC_SRV,   \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_lc_srv_cb)
 
 /** @def    BFL_BLE_MESH_MODEL_LIGHT_LC_SETUP_SRV
  *
@@ -836,8 +855,8 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
  *  @return New Light LC Setup Server Model instance.
  */
 #define BFL_BLE_MESH_MODEL_LIGHT_LC_SETUP_SRV(srv_pub, srv_data)           \
-        BFL_BLE_MESH_SIG_MODEL(BFL_BLE_MESH_MODEL_ID_LIGHT_LC_SETUP_SRV,   \
-                    NULL, srv_pub, srv_data)
+        BT_MESH_MODEL_CB(BFL_BLE_MESH_MODEL_ID_LIGHT_LC_SETUP_SRV,   \
+                    NULL, srv_pub, srv_data, &bt_mesh_light_lc_setup_srv_cb)
 
 /** Parameters of Light Lightness state */
 typedef struct {

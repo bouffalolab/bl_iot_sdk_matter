@@ -395,7 +395,7 @@ struct bt_mesh_gen_client_properties_get {
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_onoff_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_onoff_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic level client model user_data.
@@ -405,7 +405,7 @@ int bt_mesh_gen_onoff_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_level_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_level_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic default transition time
@@ -416,7 +416,7 @@ int bt_mesh_gen_level_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_def_trans_time_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_def_trans_time_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic power onoff client model user_data.
@@ -426,7 +426,7 @@ int bt_mesh_gen_def_trans_time_cli_init(struct bt_mesh_model *model, bool primar
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_pwr_onoff_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_pwr_onoff_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic power level client model user_data.
@@ -436,7 +436,7 @@ int bt_mesh_gen_pwr_onoff_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_pwr_level_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_pwr_level_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic battery client model user_data.
@@ -446,7 +446,7 @@ int bt_mesh_gen_pwr_level_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_battery_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_battery_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic location client model user_data.
@@ -456,7 +456,7 @@ int bt_mesh_gen_battery_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_location_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_location_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to initialize generic property client model user_data.
@@ -466,7 +466,7 @@ int bt_mesh_gen_location_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_property_cli_init(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_property_cli_init(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic onoff client model user_data.
@@ -476,7 +476,7 @@ int bt_mesh_gen_property_cli_init(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_onoff_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_onoff_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic level client model user_data.
@@ -486,7 +486,7 @@ int bt_mesh_gen_onoff_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_level_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_level_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic default transition time
@@ -497,7 +497,7 @@ int bt_mesh_gen_level_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_def_trans_time_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_def_trans_time_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic power onoff client model user_data.
@@ -507,7 +507,7 @@ int bt_mesh_gen_def_trans_time_cli_deinit(struct bt_mesh_model *model, bool prim
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_pwr_onoff_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_pwr_onoff_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic power level client model user_data.
@@ -517,7 +517,7 @@ int bt_mesh_gen_pwr_onoff_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_pwr_level_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_pwr_level_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic battery client model user_data.
@@ -527,7 +527,7 @@ int bt_mesh_gen_pwr_level_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_battery_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_battery_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic location client model user_data.
@@ -537,7 +537,7 @@ int bt_mesh_gen_battery_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_location_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_location_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to de-initialize generic property client model user_data.
@@ -547,7 +547,7 @@ int bt_mesh_gen_location_cli_deinit(struct bt_mesh_model *model, bool primary);
  *
  * @return Zero-success, other-fail
  */
-int bt_mesh_gen_property_cli_deinit(struct bt_mesh_model *model, bool primary);
+int bt_mesh_gen_property_cli_deinit(struct bt_mesh_model *model);
 
 /**
  * @brief This function is called to get generic states.

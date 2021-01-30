@@ -55,14 +55,14 @@ BL602 SDK Starter Guide
 bin文件下载
 -----------
 
--  进入\ ``/bl_iot_sdk/tools/flash_tool``\ 目录下，双击名为 ``BLFlashEnv`` 的可执行文件 。
+-  进入\ ``/bl_iot_sdk/tools/flash_tool``\ 目录下，双击名为 ``BLDevCube`` 的可执行文件。
 
 -  ``chip type``\ 选择BL602/604，打开后界面参数参考下图配置：
 
    .. figure:: imgs/image7.png
       :alt:
 
-   点击\ ``download``\ ，出现如下图所示表明下载成功：
+   点击\ ``Create & Download``\ ，出现如下图所示表明下载成功：
 
    .. figure:: imgs/image8.png
       :alt:

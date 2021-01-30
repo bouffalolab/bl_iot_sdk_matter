@@ -808,6 +808,9 @@ struct bt_gatt_notify_params {
 	/** Notification Value callback user data */
 	void *user_data;
 };
+#if defined(CONFIG_BLE_AT_CMD)
+int bt_gatt_notify_at_cb(struct bt_conn *conn,struct bt_gatt_notify_params *params, u16_t attr_handle);
+#endif
 
 /** @brief Notify attribute value change.
  *
@@ -985,6 +988,10 @@ struct bt_gatt_exchange_params {
  */
 int bt_gatt_exchange_mtu(struct bt_conn *conn,
 			 struct bt_gatt_exchange_params *params);
+
+#if defined(CONFIG_BLE_AT_CMD)
+int bt_at_gatt_exchange_mtu(struct bt_conn *conn, struct bt_gatt_exchange_params *params,u16_t mtu_size);			 
+#endif
 
 struct bt_gatt_discover_params;
 
@@ -1365,10 +1372,6 @@ void bt_gatt_cancel(struct bt_conn *conn, void *params);
  *  @param void.
  */
 void bt_gatt_ccc_load(void);
-#endif
-
-#ifdef BFLB_BLE_PATCH_AVOID_SEC_GATT_DISC
-void bt_gatt_cancle_sc_work(void);
 #endif
 
 #ifdef __cplusplus

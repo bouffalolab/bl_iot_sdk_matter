@@ -30,14 +30,22 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
+#ifndef CONFIG_BT_TL
 #include "bluetooth.h"
 #include "ble_cli_cmds.h"
+#include "hci_driver.h"
+#include "log.h"
+#if defined(CONFIG_BLE_TP_SERVER)
+#include "ble_tp_svc.h"
+#endif
+#endif//ifndef CONFIG_BT_TL
+
 #if defined(CONFIG_BT_MESH)
 #include "mesh_cli_cmds.h"
 #if defined(CONFIG_BT_MESH_MODEL)
 #if (defined(CONFIG_BT_MESH_MODEL_GEN_SRV) || defined(CONFIG_BT_MESH_MODEL_GEN_CLI))
 #include "bfl_ble_mesh_generic_model_api.h"
-#include "bl_gpio.h"
+#include "hal_gpio.h"
 #endif
 #if (defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV) || defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI))
 #include "bfl_ble_mesh_lighting_model_api.h"
@@ -52,67 +60,22 @@
 #endif /* CONFIG_BT_MESH_MODEL */
 
 #endif
-#include "hci_driver.h"
 #include "ble_lib_api.h"
-#if defined(CONFIG_BT_WIFIPROV_SERVER)
-#include "wifi_prov.h"
-#endif
-#include "log.h"
 #include "wifi_prov_api.h"
-#if defined(CONFIG_BLE_TP_SERVER)
-#include "ble_tp_svc.h"
-#endif
 
-#if defined(CONFIG_BT_WIFIPROV_SERVER)
-static void wifiprov_connect_ap_ind(void)
-{
-    printf("Recevied indication to connect to AP\r\n");    
-    wifi_prov_api_event_trigger_connect();
-}
-
-static void wifiprov_disc_from_ap_ind(void)
-{
-    printf("Recevied indication to disconnect to AP\r\n");
-    wifi_prov_api_event_trigger_disconnect();
-}
-
-static void wifiprov_ssid_ind(void *buf,size_t size)
-{
-    printf("Recevied ssid : %s \r\n", bt_hex(buf, size));
-    wifi_prov_api_event_trigger_ssid(buf, size);
-}
-
-static void wifiprov_bssid_ind(void *buf,size_t size)
-{
-    
-    printf("Recevied bssid: %s \r\n", bt_hex(buf, size));
-}
-
-static void wifiprov_password_ind(void *buf,size_t size)
-{
-    printf("Recevied password: %s \r\n", bt_hex(buf, size));
-    wifi_prov_api_event_trigger_password(buf, size);
-}
-
-struct conn_callback WifiProv_conn_callback = {
-	.local_connect_remote_ap = wifiprov_connect_ap_ind,
-	.local_disconnect_remote_ap = wifiprov_disc_from_ap_ind,
-	.get_remote_ap_ssid = wifiprov_ssid_ind,
-	.get_remote_ap_bssid = wifiprov_bssid_ind,
-	.get_remote_password = wifiprov_password_ind,
-};
-#endif
 
 #if defined(CONFIG_BT_MESH)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-//#define LED_PIN         (21)
 #define LED_PIN         (5)
 #define LED_PIN_PULLUP  (0)
 #define LED_PIN_PULDONW (0)
 
 void model_gen_cb(uint8_t value)
 {
-    bl_gpio_output_set(LED_PIN, value); 
+    if(value)
+        hal_gpio_led_on();
+    else
+        hal_gpio_led_off();
 }
 
 #if defined(CONFIG_BT_MESH_MODEL)
@@ -324,6 +287,7 @@ static void example_ble_mesh_lighting_server_cb(bfl_ble_mesh_lighting_server_cb_
 #endif /* CONFIG_BT_MESH_MODEL */
 #endif /*CONFIG_BT_MESH*/
 
+#ifndef CONFIG_BT_TL
 void bt_enable_cb(int err)
 {
     if (!err) {     
@@ -336,20 +300,14 @@ void bt_enable_cb(int err)
         blemesh_cli_register();
 #if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_SRV)
-        bl_gpio_enable_output(LED_PIN, LED_PIN_PULLUP, LED_PIN_PULDONW);	
 		bfl_ble_mesh_register_generic_server_callback(example_ble_mesh_generic_server_cb);
 #endif
 #if defined(CONFIG_BT_MESH_MODEL_LIGHT_SRV)
 		bfl_ble_mesh_register_lighting_server_callback(example_ble_mesh_lighting_server_cb);
 #endif
 #else
-		bl_gpio_enable_output(LED_PIN, LED_PIN_PULLUP, LED_PIN_PULDONW);
 		mesh_gen_srv_callback_register(model_gen_cb);
 #endif /* CONFIG_BT_MESH_MODEL */
-#endif
-
-#if defined(CONFIG_BT_WIFIPROV_SERVER)
-        WifiProv_init(&WifiProv_conn_callback);
 #endif
 
 #if defined(CONFIG_BLE_TP_SERVER)
@@ -366,3 +324,4 @@ void ble_stack_start(void)
     hci_driver_init();
     bt_enable(bt_enable_cb);
 }
+#endif //#ifndef CONFIG_BT_TL
