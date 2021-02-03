@@ -55,7 +55,7 @@
 #else
 #if (defined(CONFIG_BT_MESH_MODEL_GEN_SRV) || defined(CONFIG_BT_MESH_MODEL_GEN_CLI))
 #include "gen_srv.h"
-#include "bl_gpio.h"
+#include "hal_gpio.h"
 #endif
 #endif /* CONFIG_BT_MESH_MODEL */
 

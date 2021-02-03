@@ -5,7 +5,7 @@
 #include "hci_host.h"
 #include "work_q.h"
 
-#define LOCAL_MANU_CODE 0x07AF
+#define LOCAL_MANU_CODE 0x2c00
 #define LOCAL_FILE_VER  00000001
 
 #define OAD_OPCODE_SIZE 1

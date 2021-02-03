@@ -157,14 +157,15 @@ static u8_t oad_write_flash(const u8_t *data, u16_t len)
     return 0;
 }
 
+
+
 static u8_t oad_image_data_handler(struct bt_conn *conn,const u8_t *data, u16_t len)
 {
     u16_t left_size = 0;
     u16_t wlen = 0;
 #if defined(CONFIG_BT_SETTINGS)
-    static u16_t write_count = 0;
+    static u32_t write_count = 0;
 #endif
-
     if(!wData.wdata_buf){
         wData.wdata_buf = (u8_t*)k_malloc(WBUF_SIZE(conn));
         if(!wData.wdata_buf){
@@ -194,6 +195,8 @@ static u8_t oad_image_data_handler(struct bt_conn *conn,const u8_t *data, u16_t 
                 ef_info.upgrd_crc32 = oad_env.upgrd_crc32;
                 
                 bt_settings_set_bin(NV_IMG_info, &ef_info, sizeof(struct oad_ef_info));
+                printf("ef_info: file ver(%d) manu code(0x%x) file offset(0x%x) last_adder (0x%x)\r\n",ef_info.file_info.file_ver,ef_info.file_info.manu_code,
+                                                                                           ef_info.file_offset,ef_info.last_wflash_addr);
 #endif
                 wData.index = 0;
                 memcpy((wData.wdata_buf+wData.index),(wData.wdata_buf+OTA_WRITE_FLASH_SIZE),wlen);
@@ -211,11 +214,11 @@ static u8_t oad_image_data_handler(struct bt_conn *conn,const u8_t *data, u16_t 
     }else if(oad_env.upgrd_offset == oad_env.upgrd_file_size){
         if(wData.index)
             oad_write_flash(wData.wdata_buf, wData.index);
-        
+
         if(wData.wdata_buf){
             k_free(wData.wdata_buf);
+            wData.wdata_buf = NULL;
         }
-
 
         return OAD_UPGRD_CMPLT;
     }else{
@@ -269,20 +272,15 @@ static u8_t oad_image_block_resp_handler(struct bt_conn *conn, const u8_t *data,
 
 static void oad_image_identity_handler(struct bt_conn *conn, const u8_t *data, u16_t len)
 {
-    struct oad_image_identity_t *identity;
+    struct oad_image_identity_t *identity = (struct oad_image_identity_t *)(data);
     
-    /*Length and cmd id is 2bytes*/
-    if(data[0] < sizeof(*identity) + 1){
-        printf("oad_image_identity_handler data0(%d) len((%d))\r\n",data[0],sizeof(*identity) + 1);
-        return;
-    }
-    
-    identity = (struct oad_image_identity_t *)(data+2);
     printf("File size=[0x%x] [0x%x] [0x%x] [0x%x]\r\n",identity->file_size,identity->file_info.file_ver,
                                                 identity->file_info.manu_code,identity->crc32);
 #if defined(CONFIG_BT_SETTINGS)
-    u16_t  llen = 0;
+    size_t  llen = 0;
     struct oad_ef_info ef_info;
+
+    memset(&ef_info,0,sizeof(struct oad_ef_info));
     bt_settings_get_bin(NV_IMG_info, &ef_info,sizeof(struct oad_ef_info),&llen);
     printf("ef_info: file ver(%d) manu code(0x%x) file offset(0x%x) last_adder (0x%x)\r\n",ef_info.file_info.file_ver,ef_info.file_info.manu_code,
                                                                                            ef_info.file_offset,ef_info.last_wflash_addr);
@@ -308,7 +306,7 @@ static void oad_image_identity_handler(struct bt_conn *conn, const u8_t *data, u
         oad_env.upgrd_file_ver = identity->file_info.file_ver;
         oad_env.upgrd_file_size = identity->file_size;
         oad_env.upgrd_crc32 = identity->crc32;
-        
+        printf("Send the image block request\r\n");
         oad_notify_block_req(conn);
     }else{
         
@@ -318,13 +316,21 @@ static void oad_image_identity_handler(struct bt_conn *conn, const u8_t *data, u
   
 static void oad_recv_callback(struct bt_conn *conn, const u8_t *data, u16_t len)
 {  
-    printf("oad_recv_callback\r\n");
-    if (len > 3){
-        if (*data == OAD_CMD_IMAG_IDENTITY){
+    if (len){
+        if (*data == OAD_CMD_IMAG_IDENTITY && ((len - 1) == sizeof(struct oad_image_identity_t))){
             oad_image_identity_handler(conn, data+1, len-1);
         }if (*data == OAD_CMD_IMAG_BLOCK_RESP){
-            oad_image_block_resp_handler(conn, data+3, len-3); 
+            oad_image_block_resp_handler(conn, data+1, len-1); 
         }
+    }
+}
+
+static void oad_disc_callback(struct bt_conn *conn,u8_t reason)
+{
+    if(wData.wdata_buf){
+        k_free(wData.wdata_buf);
+        wData.wdata_buf = NULL;
+        wData.index = 0;
     }
 }
 
@@ -337,7 +343,8 @@ void oad_service_enable(app_check_oad_cb cb)
     oad_env.file_info.manu_code = LOCAL_MANU_CODE;
     oad_env.new_img_addr = 0;
     bt_oad_service_enable();
-    bt_oad_register_callback(oad_recv_callback);
+    bt_oad_register_recv_cb(oad_recv_callback);
+    bt_oad_register_disc_cb(oad_disc_callback); 
 
     k_delayed_work_init(&oad_env.upgrd_work, oad_upgrade);
 }

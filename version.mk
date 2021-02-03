@@ -1,5 +1,5 @@
 EXTRA_CPPFLAGS  ?=
-EXTRA_CPPFLAGS  += -D BL_SDK_VER=\"release_bl_iot_sdk_1.6.17-19-g61a14856\"
+EXTRA_CPPFLAGS  += -D BL_SDK_VER=\"release_bl_iot_sdk_1.6.17-27-gaff700b1\"
 EXTRA_CPPFLAGS  += -D BL_SDK_PHY_VER=\"release-7-g1f616c9\"
 EXTRA_CPPFLAGS  += -D BL_SDK_RF_VER=\"f1eedad\"
 EXTRA_CPPFLAGS  += -D BL_SDK_STDDRV_VER=\"e2bba6f\"
