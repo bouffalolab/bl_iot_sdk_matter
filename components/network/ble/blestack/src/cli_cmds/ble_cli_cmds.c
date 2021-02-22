@@ -27,6 +27,9 @@ struct bt_data ad_discov[2] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL)),
     BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, 13),
 };
+#if defined(CONFIG_BLE_MULTI_ADV)
+static int ble_adv_id;
+#endif
 
 #define vOutputString(...)  printf(__VA_ARGS__)
 
@@ -289,7 +292,13 @@ static void connected(struct bt_conn *conn, u8_t err)
 	char addr[BT_ADDR_LE_STR_LEN];
 
     bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
+    
+    #if defined(CONFIG_BLE_MULTI_ADV)
+    if(ble_adv_id && !bt_le_multi_adv_stop(ble_adv_id)){
+        ble_adv_id = 0;
+    }
+    #endif /* CONFIG_BLE_MULTI_ADV */
+    
 	if (err) {
 		vOutputString("Failed to connect to %s (%u) \r\n", addr,
 			     err);
@@ -361,9 +370,6 @@ static void ble_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
         return;
     }
 
-    #if defined(CONFIG_BLE_MULTI_ADV)
-    bt_le_multi_adv_thread_init();
-    #endif
     #if defined(CONFIG_BT_CONN)
     default_conn = NULL;
     bt_conn_cb_register(&conn_callbacks);
@@ -573,7 +579,7 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
     struct bt_le_adv_param param;
     const struct bt_data *ad;
     size_t ad_len;
-    int err = 0;
+    int err = -1;
     uint8_t adv_type, mode;
 	
     if(argc != 3 && argc != 5){
@@ -638,9 +644,21 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
     }
 	
     if(adv_type == 1 || adv_type == 0){
-        err = bt_le_adv_start(&param, ad, ad_len, &ad_discov[0], 1);	
+        #if defined(CONFIG_BLE_MULTI_ADV)
+        if(ble_adv_id == 0){
+            err = bt_le_multi_adv_start(&param, ad, ad_len, &ad_discov[0], 1, &ble_adv_id);
+        }        
+        #else
+        err = bt_le_adv_start(&param, ad, ad_len, &ad_discov[0], 1);
+        #endif/*CONFIG_BLE_MULTI_ADV*/
     }else{
+        #if defined(CONFIG_BLE_MULTI_ADV)
+        if(ble_adv_id == 0){
+            err = bt_le_multi_adv_start(&param, ad, ad_len, NULL, 0, &ble_adv_id);
+        }
+        #else
         err = bt_le_adv_start(&param, ad, ad_len, NULL, 0);
+        #endif
     }
  
     if(err){
@@ -653,7 +671,16 @@ static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
 static void ble_stop_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+#if defined(CONFIG_BLE_MULTI_ADV)
+    bool err = -1;
+    if(ble_adv_id && !bt_le_multi_adv_stop(ble_adv_id)){
+        ble_adv_id = 0;
+        err = 0;
+    }
+    if(err){
+#else
     if(bt_le_adv_stop()){
+#endif
         vOutputString("Failed to stop advertising\r\n");	
     }else{ 
         vOutputString("Advertising stopped\r\n");

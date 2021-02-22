@@ -224,6 +224,13 @@ struct wlan_netif {
     };
 };
 
+#define MAX_FIXED_CHANNELS_LIMIT (14)
+typedef struct wifi_mgmr_scan_fixed_channels {
+    uint16_t channel_num;
+    uint16_t channels[];
+} wifi_mgmr_scan_fixed_channels_t;
+
+
 typedef struct wifi_mgmr_connect_ind_stat_info {
     uint16_t status_code;
     uint16_t chan_freq;

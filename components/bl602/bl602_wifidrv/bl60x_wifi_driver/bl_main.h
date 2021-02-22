@@ -62,7 +62,7 @@ int bl_main_apm_sta_delete(uint8_t sta_idx);
 int bl_main_apm_remove_all_sta();
 int bl_main_conf_max_sta(uint8_t max_sta_supported);
 int bl_main_cfg_task_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t type, void *arg1, void *arg2);
-int bl_main_scan(void);
+int bl_main_scan(uint16_t *fixed_channels, uint16_t channel_num);
 int bl_main_raw_send(uint8_t *pkt , int len);
 int bl_main_set_country_code(char *country_code);
 int bl_main_get_channel_nums();

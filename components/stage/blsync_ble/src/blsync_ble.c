@@ -44,7 +44,7 @@ static void blsync_exchange_func(struct bt_conn *conn, u8_t err,
 
 static void blsync_disconnected(struct bt_conn *conn, u8_t reason)
 { 
-	printf("disconnected (reason %u)%s\r\n",reason);
+	printf("disconnected (reason %u)\r\n",reason);
 	blsync_conn = NULL;
 }
 
@@ -178,6 +178,21 @@ static int __recv_event(void *p_drv, struct pro_event *p_event)
             memset(gp_index->conn_info.pask, 0, sizeof(gp_index->conn_info.pask));
             memcpy(gp_index->conn_info.pask, p_event->p_buf, p_event->length);
             break;
+#if defined(CONFIG_ZIGBEE_PROV)
+        case DATA_ZB_LINKKEY:
+            memset(gp_index->zb_info.linkkey, 0, sizeof(gp_index->zb_info.linkkey));
+            memcpy(gp_index->zb_info.linkkey, p_event->p_buf, p_event->length);
+            gp_index->zb_func->zb_setlinkkey(gp_index->zb_info.linkkey);
+            break;
+        case DATA_ZB_PANID:
+
+        break;
+
+        case DATA_ZB_INSTALLCODE:
+
+        break;
+
+#endif
         default:
             return PRO_ERROR;
         }
@@ -279,9 +294,22 @@ static int __recv_event(void *p_drv, struct pro_event *p_event)
                                        BLSYNC_BLE_VERSION,
                                        sizeof(BLSYNC_BLE_VERSION));
               break;
-          default:
-              return PRO_ERROR;
-          }
+#if defined(CONFIG_ZIGBEE_PROV)
+          case CMD_ZB_SCAN:
+
+              break;
+          case CMD_ZB_GET_INSTALLCODE:
+
+              break;
+          case CMD_ZB_RESET:
+              if(gp_index->zb_func->zb_reset) {
+                 gp_index->zb_func->zb_reset();
+              }
+              break;
+#endif
+        default:
+            return PRO_ERROR;
+        }
     }
 
     return PRO_OK;
@@ -425,6 +453,68 @@ int bl_ble_sync_stop(bl_ble_sync_t *index)
     }
     return 0;
 }
+
+#if defined(CONFIG_ZIGBEE_PROV)
+int bl_blezb_sync_start(bl_ble_sync_t *index,
+                                struct blesync_zb_func *func,
+                                 pfn_complete_cb_t cb,
+                                void *cb_arg)
+{
+    if (index == NULL || func == NULL) {
+        blog_info("ble sync init failed\r\n");
+        return -1;
+    }
+
+    memset(index, 0, sizeof(bl_ble_sync_t));
+    gp_index = index;
+    index->zb_func = func;
+    index->complete_cb = cb;
+    index->p_arg = cb_arg;
+    gp_index->scaning = 0;
+    index->task_runing = 0;
+    index->stop_flag = 0;
+    if ( !isRegister )
+    {
+        isRegister = 1;
+        bt_conn_cb_register(&blsync_conn_callbacks);
+    }
+    bt_gatt_service_register((struct bt_gatt_service *)&wifiprov_server);
+
+    index->task_handle = xTaskCreateStatic(__bl_ble_sync_task,
+                                    (char*)"pro",
+                                    BLE_PROV_TASK_STACK_SIZE,
+                                    index,
+                                    10,
+                                    index->stack,
+                                    &index->task);
+    return 0;
+
+}
+int bl_blezb_sync_stop(bl_ble_sync_t *index)
+{
+    if (index == NULL) {
+		return -1;
+	}
+
+	index->stop_flag = 1;
+
+	if (xTaskGetCurrentTaskHandle() == gp_index->task_handle) {
+		while(gp_index->scaning == 1) {
+			vTaskDelay(10);
+		}
+		vTaskDelete(index->task_handle);
+	} else {
+		while((gp_index->scaning == 1) || (index->task_runing == 1)) {
+			vTaskDelay(10);
+		}
+	}
+	return 0;
+
+
+
+}
+#endif
+
 
 #if defined(CONFIG_BT_MESH_SYNC)
 static void vnd_sync_get(struct bt_mesh_model *model,

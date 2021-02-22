@@ -33,6 +33,9 @@
 #if defined (BFLB_BLE)
 #include "bl_port.h"
 #endif
+#if defined(CONFIG_BLE_MULTI_ADV)
+#include "multi_adv.h"
+#endif /*CONFIG_BLE_MULTI_ADV*/
 
 
 /* Convert from ms to 0.625ms units */
@@ -55,6 +58,14 @@
 #else
 #define ADV_STACK_SIZE 768
 #endif
+#if defined(CONFIG_BLE_MULTI_ADV)
+#if defined(CONFIG_BT_MESH_PB_GATT) || defined(CONFIG_BT_MESH_PROXY)
+/* Reserve one adv for mesh connected adv send */
+#define MAX_MULTI_ADV_CNT (MAX_MULTI_ADV_INSTANT - 2)
+#else
+#define MAX_MULTI_ADV_CNT (MAX_MULTI_ADV_INSTANT - 1)
+#endif/*CONFIG_BT_MESH_PB_GATT*/
+#endif/*CONFIG_BLE_MULTI_ADV*/
 
 static K_FIFO_DEFINE(adv_queue);
 static struct k_thread adv_thread_data;
@@ -93,69 +104,108 @@ static inline void adv_send_end(int err, const struct bt_mesh_send_cb *cb,
 	}
 }
 
+#if defined(CONFIG_BLE_MULTI_ADV)
+struct k_sem adv_send_sem;
+#define BT_MESH_ADV_FROM_WORK(k) (struct bt_mesh_adv *)((uint32_t)k - \
+                                  (uint32_t)(&((struct bt_mesh_adv *)0)->d_work.work))
+
+static void adv_send_timeout_ck(struct k_work *work)
+{
+    BT_DBG("%s [%p]", __func__, work);
+    /* Get buff for work */
+    struct bt_mesh_adv * adv = BT_MESH_ADV_FROM_WORK(work);
+    
+    int err = bt_le_multi_adv_stop(adv->adv_id);
+    adv_send_end(err, adv->cb, adv->cb_data);
+    net_buf_unref(adv->buf);
+    /* Release Semaphore */
+    k_sem_give(&adv_send_sem);
+}
+#endif /* CONFIG_BLE_MULTI_ADV*/
+
 static inline void adv_send(struct net_buf *buf)
 {
-	static const u8_t adv_type[] = {
-		[BT_MESH_ADV_PROV]   = BT_DATA_MESH_PROV,
-		[BT_MESH_ADV_DATA]   = BT_DATA_MESH_MESSAGE,
-		[BT_MESH_ADV_BEACON] = BT_DATA_MESH_BEACON,
-		[BT_MESH_ADV_URI]    = BT_DATA_URI,
-	};
-	const s32_t adv_int_min = ((bt_dev.hci_version >= BT_HCI_VERSION_5_0) ?
-				   ADV_INT_FAST_MS : ADV_INT_DEFAULT_MS);
-	const struct bt_mesh_send_cb *cb = BT_MESH_ADV(buf)->cb;
-	void *cb_data = BT_MESH_ADV(buf)->cb_data;
-	struct bt_le_adv_param param = {};
-	u16_t duration, adv_int;
-	struct bt_data ad;
-	int err;
+    static const u8_t adv_type[] = {
+        [BT_MESH_ADV_PROV]   = BT_DATA_MESH_PROV,
+        [BT_MESH_ADV_DATA]   = BT_DATA_MESH_MESSAGE,
+        [BT_MESH_ADV_BEACON] = BT_DATA_MESH_BEACON,
+        [BT_MESH_ADV_URI]    = BT_DATA_URI,
+    };
+    const s32_t adv_int_min = ((bt_dev.hci_version >= BT_HCI_VERSION_5_0) ?
+                   ADV_INT_FAST_MS : ADV_INT_DEFAULT_MS);
+    const struct bt_mesh_send_cb *cb = BT_MESH_ADV(buf)->cb;
+    void *cb_data = BT_MESH_ADV(buf)->cb_data;
+    struct bt_le_adv_param param = {};
+    u16_t duration, adv_int;
+    struct bt_data ad;
+    int err;
 
-	adv_int = MAX(adv_int_min,
-		      BT_MESH_TRANSMIT_INT(BT_MESH_ADV(buf)->xmit));
-	duration = (MESH_SCAN_WINDOW_MS +
-		    ((BT_MESH_TRANSMIT_COUNT(BT_MESH_ADV(buf)->xmit) + 1) *
-		     (adv_int + 10)));
+    adv_int = MAX(adv_int_min,
+              BT_MESH_TRANSMIT_INT(BT_MESH_ADV(buf)->xmit));
+    duration = (MESH_SCAN_WINDOW_MS +
+            ((BT_MESH_TRANSMIT_COUNT(BT_MESH_ADV(buf)->xmit) + 1) *
+             (adv_int + 10)));
 
-	BT_DBG("type %u len %u: %s", BT_MESH_ADV(buf)->type,
-	       buf->len, bt_hex(buf->data, buf->len));
-	BT_DBG("count %u interval %ums duration %ums",
-	       BT_MESH_TRANSMIT_COUNT(BT_MESH_ADV(buf)->xmit) + 1, adv_int,
-	       duration);
+    BT_DBG("type %u len %u: %s", BT_MESH_ADV(buf)->type,
+           buf->len, bt_hex(buf->data, buf->len));
+    BT_DBG("count %u interval %ums duration %ums",
+           BT_MESH_TRANSMIT_COUNT(BT_MESH_ADV(buf)->xmit) + 1, adv_int,
+           duration);
 
-	ad.type = adv_type[BT_MESH_ADV(buf)->type];
-	ad.data_len = buf->len;
-	ad.data = buf->data;
+    ad.type = adv_type[BT_MESH_ADV(buf)->type];
+    ad.data_len = buf->len;
+    ad.data = buf->data;
 
-	if (IS_ENABLED(CONFIG_BT_MESH_DEBUG_USE_ID_ADDR)) {
-		param.options = BT_LE_ADV_OPT_USE_IDENTITY;
-	} else {
-		param.options = 0U;
-	}
+    if (IS_ENABLED(CONFIG_BT_MESH_DEBUG_USE_ID_ADDR)) {
+        param.options = BT_LE_ADV_OPT_USE_IDENTITY;
+    } else {
+        param.options = 0U;
+    }
 
-	param.id = BT_ID_DEFAULT;
-	param.interval_min = ADV_SCAN_UNIT(adv_int);
-	param.interval_max = param.interval_min;
+    param.id = BT_ID_DEFAULT;
+    param.interval_min = ADV_SCAN_UNIT(adv_int);
+    param.interval_max = param.interval_min;
 
-	err = bt_le_adv_start(&param, &ad, 1, NULL, 0);
-	net_buf_unref(buf);
-	adv_send_start(duration, err, cb, cb_data);
-	if (err) {
-		BT_ERR("Advertising failed: err %d", err);
-		return;
-	}
+#if defined(CONFIG_BLE_MULTI_ADV)
+    BT_DBG("%s take ", __func__);
+    k_sem_take(&adv_send_sem, K_FOREVER);
+    struct bt_mesh_adv * adv = BT_MESH_ADV(buf);
+    adv->buf = buf;
+    err = bt_le_multi_adv_start(&param, &ad, 1, NULL, 0, &adv->adv_id);
+    if(err){
+        // TODO adv_send_sem
+        k_sem_give(&adv_send_sem);
+        BT_ERR("Advertising failed: err %d", err);
+        return;
+    }
+    adv_send_start(duration, err, cb, cb_data);
 
-	BT_DBG("Advertising started. Sleeping %u ms", duration);
+    k_delayed_work_init(&adv->d_work, adv_send_timeout_ck);
+    k_delayed_work_submit(&adv->d_work, duration);
 
-	k_sleep(K_MSEC(duration));
+    BT_DBG("%s duration[%d] send[%p]", __func__, duration, &adv->d_work);
+#else
+    err = bt_le_adv_start(&param, &ad, 1, NULL, 0);
+    net_buf_unref(buf);
+    adv_send_start(duration, err, cb, cb_data);
+    if (err) {
+        BT_ERR("Advertising failed: err %d", err);
+        return;
+    }
+    
+    BT_DBG("Advertising started. Sleeping %u ms", duration);
 
-	err = bt_le_adv_stop();
-	adv_send_end(err, cb, cb_data);
-	if (err) {
-		BT_ERR("Stopping advertising failed: err %d", err);
-		return;
-	}
+    k_sleep(K_MSEC(duration));
 
-	BT_DBG("Advertising stopped");
+    err = bt_le_adv_stop();
+    adv_send_end(err, cb, cb_data);
+    if (err) {
+        BT_ERR("Stopping advertising failed: err %d", err);
+        return;
+    }
+
+    BT_DBG("Advertising stopped");
+#endif /* CONFIG_BLE_MULTI_ADV */
 }
 
 #if !defined(BFLB_BLE)
@@ -172,7 +222,12 @@ static void adv_thread(void *p1)
 {
 	BT_DBG("started");
     UNUSED(p1); /* Modified by bouffalo */
-    
+
+#if defined(CONFIG_BLE_MULTI_ADV)
+    /* Reserve one adv for ble, others for mesh */
+    k_sem_init(&adv_send_sem, MAX_MULTI_ADV_CNT, MAX_MULTI_ADV_CNT);
+#endif /* CONFIG_BLE_MULTI_ADV */
+
 	while (1) {
 		struct net_buf *buf;
 
@@ -222,6 +277,10 @@ void bt_mesh_adv_update(void)
 	//and set busy bit as 0 to make adv thread directly ignore this beacon packet.
     buf = bt_mesh_adv_create(BT_MESH_ADV_BEACON, 0,
 					 K_NO_WAIT);
+    if (!buf) {
+        BT_DBG("Out of update adv buffers\n");
+        return;
+    }
     BT_MESH_ADV(buf)->busy = 0;
     net_buf_put(&adv_queue, net_buf_ref(buf));
     #else

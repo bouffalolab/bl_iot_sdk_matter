@@ -32,6 +32,9 @@
 #if defined(BFLB_BLE)
 #include "../../blestack/src/include/bluetooth/crypto.h"
 #endif
+#if defined(CONFIG_BLE_MULTI_ADV) && defined(CONFIG_BT_MESH_PB_GATT)
+#include "multi_adv.h"
+#endif/* CONFIG_BLE_MULTI_ADV && CONFIG_BT_MESH_PB_GATT */
 
 #define PDU_TYPE(data)     (data[0] & BIT_MASK(6))
 #define PDU_SAR(data)      (data[0] >> 6)
@@ -74,8 +77,11 @@ static const struct bt_le_adv_param fast_adv_param = {
 	.interval_min = BT_GAP_ADV_FAST_INT_MIN_2,
 	.interval_max = BT_GAP_ADV_FAST_INT_MAX_2,
 };
-
+#if !defined(CONFIG_BLE_MULTI_ADV)
 static bool proxy_adv_enabled;
+#else
+static int proxy_adv_id;
+#endif
 
 #if defined(CONFIG_BT_MESH_GATT_PROXY)
 static void proxy_send_beacons(struct k_work *work);
@@ -566,7 +572,11 @@ static void proxy_connected(struct bt_conn *conn, u8_t err)
 	conn_count++;
 
 	/* Since we use ADV_OPT_ONE_TIME */
+    #if !defined(CONFIG_BLE_MULTI_ADV)
 	proxy_adv_enabled = false;
+    #else
+    bt_mesh_proxy_adv_stop();
+    #endif
 
 	/* Try to re-enable advertising in case it's possible */
 	if (conn_count < CONFIG_BT_MAX_CONN) {
@@ -1197,15 +1207,26 @@ static int node_id_adv(struct bt_mesh_subnet *sub)
 	}
 
 	memcpy(proxy_svc_data + 3, tmp + 8, 8);
-
-	err = bt_le_adv_start(&fast_adv_param, node_id_ad,
-			      ARRAY_SIZE(node_id_ad), NULL, 0);
+#if defined(CONFIG_BLE_MULTI_ADV)
+	if(!bt_le_multi_adv_id_is_vaild(proxy_adv_id)){
+		err = bt_le_multi_adv_start(&fast_adv_param, node_id_ad,
+					ARRAY_SIZE(node_id_ad), NULL, 0, &proxy_adv_id);
+		BT_DBG("start proxy_adv_id[%d]\n", proxy_adv_id);
+	}
+	else{
+		err = 1;
+	}
+#else
+    err = bt_le_adv_start(&fast_adv_param, node_id_ad,
+                  ARRAY_SIZE(node_id_ad), NULL, 0);
+#endif /*CONFIG_BLE_MULTI_ADV*/
 	if (err) {
 		BT_WARN("Failed to advertise using Node ID (err %d)", err);
 		return err;
 	}
-
+#if !defined(CONFIG_BLE_MULTI_ADV)
 	proxy_adv_enabled = true;
+#endif
 
 	return 0;
 }
@@ -1223,14 +1244,26 @@ static int net_id_adv(struct bt_mesh_subnet *sub)
 
 	memcpy(proxy_svc_data + 3, sub->keys[sub->kr_flag].net_id, 8);
 
+#if defined(CONFIG_BLE_MULTI_ADV)
+	if(!bt_le_multi_adv_id_is_vaild(proxy_adv_id)){
+		err = bt_le_multi_adv_start(&slow_adv_param, net_id_ad,
+					ARRAY_SIZE(net_id_ad), NULL, 0, &proxy_adv_id);
+		BT_DBG("start net id proxy_adv_id[%d]\n", proxy_adv_id);
+	}
+	else{
+		err = 1;
+	}
+#else
 	err = bt_le_adv_start(&slow_adv_param, net_id_ad,
 			      ARRAY_SIZE(net_id_ad), NULL, 0);
+#endif/*CONFIG_BLE_MULTI_ADV*/
 	if (err) {
 		BT_WARN("Failed to advertise using Network ID (err %d)", err);
 		return err;
 	}
-
+#if !defined(CONFIG_BLE_MULTI_ADV)
 	proxy_adv_enabled = true;
+#endif
 
 	return 0;
 }
@@ -1406,11 +1439,16 @@ s32_t bt_mesh_proxy_adv_start(void)
 		}
 
 		prov_sd_len = gatt_prov_adv_create(prov_sd);
-
-		if (bt_le_adv_start(param, prov_ad, ARRAY_SIZE(prov_ad),
+#if defined(CONFIG_BLE_MULTI_ADV)
+        if (!bt_le_multi_adv_id_is_vaild(proxy_adv_id) 
+            && bt_le_multi_adv_start(param, prov_ad, ARRAY_SIZE(prov_ad), 
+            prov_sd, prov_sd_len, &proxy_adv_id) == 0) {
+        BT_DBG("start uprov proxy_adv_id[%d]\n", proxy_adv_id);
+#else
+        if (bt_le_adv_start(param, prov_ad, ARRAY_SIZE(prov_ad),
 				    prov_sd, prov_sd_len) == 0) {
 			proxy_adv_enabled = true;
-
+#endif /*CONFIG_BLE_MULTI_ADV*/
 			/* Advertise 60 seconds using fast interval */
 			if (prov_fast_adv) {
 				prov_fast_adv = false;
@@ -1431,19 +1469,32 @@ s32_t bt_mesh_proxy_adv_start(void)
 
 void bt_mesh_proxy_adv_stop(void)
 {
-	int err;
+	int err = -1;
 
+#if defined(CONFIG_BLE_MULTI_ADV)
+    if (!bt_le_multi_adv_id_is_vaild(proxy_adv_id)){
+        BT_DBG("proxy_adv_id [%d] isn't valid", proxy_adv_id);
+        return;
+    }
+
+    err = bt_le_multi_adv_stop(proxy_adv_id);
+#else
 	BT_DBG("adv_enabled %u", proxy_adv_enabled);
 
-	if (!proxy_adv_enabled) {
+    if (!proxy_adv_enabled) {
 		return;
 	}
 
 	err = bt_le_adv_stop();
+#endif
 	if (err) {
 		BT_ERR("Failed to stop advertising (err %d)", err);
 	} else {
-		proxy_adv_enabled = false;
+#if defined(CONFIG_BLE_MULTI_ADV)
+        proxy_adv_id = 0;
+#else
+	    proxy_adv_enabled = false;
+#endif
 	}
 }
 

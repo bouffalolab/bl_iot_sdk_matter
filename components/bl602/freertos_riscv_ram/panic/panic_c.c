@@ -207,3 +207,9 @@ void __attribute__((no_instrument_function)) __cyg_profile_func_exit(void *this_
   return;
 }
 #endif
+#include "FreeRTOS.h"
+extern BaseType_t TrapNetCounter;
+BaseType_t xPortIsInsideInterrupt( void )
+{
+    return TrapNetCounter ? 1 : 0;
+}

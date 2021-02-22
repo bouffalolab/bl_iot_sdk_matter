@@ -221,6 +221,10 @@ ifeq ($(PTS_GAP_SLAVER_CONFIG_INDICATE_CHARC),1)
 CFLAGS += -DPTS_GAP_SLAVER_CONFIG_INDICATE_CHARC
 endif
 
+ifeq ($(CONFIG_ZIGBEE_PROV),1)
+CFLAGS += -DCONFIG_ZIGBEE_PROV
+endif
+
 ##########################################
 ############## BLE MESH ##################
 ##########################################

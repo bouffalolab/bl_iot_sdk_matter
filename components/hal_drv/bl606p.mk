@@ -38,4 +38,3 @@ endif
 ifeq ($(CONFIG_USE_XTAL32K),1)
 CFLAGS += -DCFG_USE_XTAL32K
 endif
-CFLAGS += -DCPU_M1

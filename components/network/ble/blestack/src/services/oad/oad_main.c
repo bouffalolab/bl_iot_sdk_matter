@@ -36,6 +36,49 @@ static bool check_data_valid(struct oad_file_info *file_info)
     return true;
 }
 
+static void oad_notify_image_info(struct bt_conn *conn)
+{
+    u8_t *buf = (u8_t*)k_malloc(sizeof(u8_t)*256);
+    u8_t index = 0;
+    char *build_date = __DATE__;
+    char *build_time = __TIME__;
+    char *build_ver =  BL_SDK_VER;
+
+    if(buf){
+        memset(buf,0,256);
+    }else{
+        printf("Buffer allocation failed\r\n");
+        return;
+    }
+    buf[index++] = OAD_CMD_IMAG_INFO;
+    if(strlen(build_date)+index <= 256){
+        buf[index] =  strlen(build_date);
+        memcpy(&buf[++index],build_date,strlen(build_date));
+        index += strlen(build_date);
+    }else{
+        printf("No enough space\r\n");
+    }
+    if(strlen(build_time)+index <= 256){
+        buf[index] =  strlen(build_time);
+        memcpy(&buf[++index],build_time,strlen(build_time));
+        index += strlen(build_time);
+    }else{
+        printf("No enough space\r\n");
+    }
+
+    if(strlen(build_ver)+index <= 256){
+        buf[index] =  strlen(build_ver);
+        memcpy(&buf[++index],build_ver,strlen(build_ver));
+        index += strlen(build_ver);
+    }else{
+        printf("No enough space\r\n");
+    }
+    printf("Info:%s,%s,%s\r\n",build_date,build_time,build_ver);
+    printf("Send:%s\r\n",bt_hex(buf,index));
+    bt_oad_notify(conn,  buf, index);
+    k_free(buf);
+}
+
 static void oad_notify_block_req(struct bt_conn *conn)
 {
     struct net_buf_simple *buf = NET_BUF_SIMPLE(sizeof(struct oad_block_req_t) + OAD_OPCODE_SIZE);
@@ -95,16 +138,16 @@ static void oad_notity_image_identity(struct bt_conn *conn)
 
 void oad_upgrade(struct k_work *work)
 {
-    printf("oad_upgrade\r\n");
     int ret = 0;
     HALPartition_Entry_Config ptEntry;
 
+    printf("oad_upgrade\r\n");
     oad_env.file_info.file_ver = oad_env.upgrd_file_ver;
     #if defined(CONFIG_BT_SETTINGS)
 
     struct oad_ef_info ef_info;
     memset(&ef_info,0,sizeof(struct oad_ef_info));
-    bt_settings_set_bin(NV_IMG_info, &ef_info, sizeof(struct oad_ef_info));
+    bt_settings_set_bin(NV_IMG_info, (uint8_t*)&ef_info, sizeof(struct oad_ef_info));
 
     #endif
     
@@ -120,7 +163,7 @@ void oad_upgrade(struct k_work *work)
 
 }
 
-static u8_t oad_write_flash(const u8_t *data, u16_t len)
+static u8_t oad_write_flash(u8_t *data, u16_t len)
 {
     uint32_t size = 0;
     uint32_t wflash_address = 0;
@@ -128,7 +171,7 @@ static u8_t oad_write_flash(const u8_t *data, u16_t len)
     if (!oad_env.new_img_addr){
         if (hal_boot2_partition_addr_inactive("FW",(uint32_t *)&oad_env.new_img_addr,&size)){
             printf("New img address is null\r\n");
-            return -1;
+            return OAD_ABORT;
         }
         
         printf("Upgrade file size is %d\r\n", oad_env.upgrd_file_size);
@@ -170,7 +213,7 @@ static u8_t oad_image_data_handler(struct bt_conn *conn,const u8_t *data, u16_t 
         wData.wdata_buf = (u8_t*)k_malloc(WBUF_SIZE(conn));
         if(!wData.wdata_buf){
            printf("Buf is NULL\r\n");
-           return;
+           return OAD_ABORT;
         };
         memset(wData.wdata_buf,0,WBUF_SIZE(conn));
         wData.index = 0; 
@@ -194,7 +237,7 @@ static u8_t oad_image_data_handler(struct bt_conn *conn,const u8_t *data, u16_t 
                 ef_info.last_wflash_addr = oad_env.w_img_end_addr;
                 ef_info.upgrd_crc32 = oad_env.upgrd_crc32;
                 
-                bt_settings_set_bin(NV_IMG_info, &ef_info, sizeof(struct oad_ef_info));
+                bt_settings_set_bin(NV_IMG_info, (uint8_t*)&ef_info, sizeof(struct oad_ef_info));
                 printf("ef_info: file ver(%d) manu code(0x%x) file offset(0x%x) last_adder (0x%x)\r\n",ef_info.file_info.file_ver,ef_info.file_info.manu_code,
                                                                                            ef_info.file_offset,ef_info.last_wflash_addr);
 #endif
@@ -224,6 +267,11 @@ static u8_t oad_image_data_handler(struct bt_conn *conn,const u8_t *data, u16_t 
     }else{
         return OAD_REQ_MORE_DATA;
     }  
+}
+
+static void oad_image_info_handler(struct bt_conn *conn, const u8_t *data, u16_t len)
+{
+    oad_notify_image_info(conn);
 }
 
 static u8_t oad_image_block_resp_handler(struct bt_conn *conn, const u8_t *data, u16_t len)
@@ -281,7 +329,7 @@ static void oad_image_identity_handler(struct bt_conn *conn, const u8_t *data, u
     struct oad_ef_info ef_info;
 
     memset(&ef_info,0,sizeof(struct oad_ef_info));
-    bt_settings_get_bin(NV_IMG_info, &ef_info,sizeof(struct oad_ef_info),&llen);
+    bt_settings_get_bin(NV_IMG_info, (uint8_t*)&ef_info,sizeof(struct oad_ef_info),&llen);
     printf("ef_info: file ver(%d) manu code(0x%x) file offset(0x%x) last_adder (0x%x)\r\n",ef_info.file_info.file_ver,ef_info.file_info.manu_code,
                                                                                            ef_info.file_offset,ef_info.last_wflash_addr);
 #endif
@@ -321,6 +369,8 @@ static void oad_recv_callback(struct bt_conn *conn, const u8_t *data, u16_t len)
             oad_image_identity_handler(conn, data+1, len-1);
         }if (*data == OAD_CMD_IMAG_BLOCK_RESP){
             oad_image_block_resp_handler(conn, data+1, len-1); 
+        }if(*data == OAD_CMD_IMAG_INFO){
+            oad_image_info_handler(conn, data+1, len-1);
         }
     }
 }

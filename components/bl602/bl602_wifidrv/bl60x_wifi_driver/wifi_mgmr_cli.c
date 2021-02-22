@@ -328,7 +328,23 @@ static void wifi_capcode_cmd(char *buf, int len, int argc, char **argv)
 
 static void wifi_scan_cmd(char *buf, int len, int argc, char **argv)
 {
-    wifi_mgmr_scan(NULL, NULL);
+    uint16_t channel_num;
+    uint16_t channels[MAX_FIXED_CHANNELS_LIMIT];
+    int i;
+    if (1 == argc) {
+        wifi_mgmr_scan(NULL, NULL);
+    }
+    if (argc > 1) {
+        channel_num = argc - 1;
+        if (channel_num > MAX_FIXED_CHANNELS_LIMIT) {
+            printf("---->scan fixed channels' number limit\r\n");
+            return ;
+        }
+        for(i = 0; i < (argc - 1); i ++) {
+            channels[i] = atoi(argv[i + 1]);
+        }
+        wifi_mgmr_scan_fixed_channels(NULL, NULL, channels, channel_num);
+    }
 }
 
 static void wifi_scan_filter_cmd(char *buf, int len, int argc, char **argv)

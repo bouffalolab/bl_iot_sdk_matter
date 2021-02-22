@@ -32,9 +32,9 @@
 
 #include "bl_chip.h"
 
-static uint32_t _risc_isa_info(void)
+static unsigned long _risc_isa_info(void)
 {
-    volatile uint32_t misa = 0;
+    volatile unsigned long misa = 0;
 
     __asm volatile( "csrr %0, misa" : "=r"( misa ) );
 
@@ -44,13 +44,14 @@ static uint32_t _risc_isa_info(void)
 
 int bl_chip_info(char *info)
 {
-    uint32_t misa;
+    unsigned long misa;
     int i;
+    i = sizeof(misa) * 8 - 2; // MXL field pos
 
     misa = _risc_isa_info();
 
     /*Get base ISA*/
-    i = (misa >> 30);
+    i = (misa >> i);
     switch (i) {
         case 1:
         {
@@ -162,6 +163,8 @@ int bl_chip_banner(const char **banner)
 
 int bl_chip_memory_ram(int *num, unsigned int addr[], unsigned int size[], char desc[][6])
 {
+    return -1;
+#if 0
     if (*num < 3) {
         /*only one block memory*/
         return -1;
@@ -181,4 +184,5 @@ extern uint8_t _ld_ram_size2, _ld_ram_addr2;
     size[2] = (unsigned int)&_ld_ram_size2;
     strcpy(desc[2], "wifi");
     return 0;
+#endif
 }

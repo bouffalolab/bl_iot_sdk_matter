@@ -329,8 +329,11 @@ static bool stateGlobalGuard_fw_powersaving(void *ch, struct event *event)
 static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
 {
     wifi_mgmr_msg_t *msg;
+    uint16_t channel_num = 0;
+    wifi_mgmr_scan_fixed_channels_t *ch_req;
 
     msg = event->data;
+
     /*only check wifi scan command*/
     if (WIFI_MGMR_EVENT_FW_SCAN != msg->ev) {
         return false;
@@ -341,9 +344,23 @@ static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
             &stateConnectedIPNo == wifiMgmr.m.currentState ||
             &stateDisconnect == wifiMgmr.m.currentState) {
             os_printf("------>>>>>> Scan CMD Pending\r\n");
+            //FIXME TODO we should keep scan channel list for PENDING scan
             _pending_task_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT);
             return false;
     }
+
+    ch_req = (wifi_mgmr_scan_fixed_channels_t*)msg->data;
+    channel_num = ch_req->channel_num;
+#if 0
+    if (channel_num) {
+        printf("%s len:%d \r\n",__func__, channel_num);
+        for(uint8_t i = 0; i < channel_num ; i ++) {
+            printf("%d  ", ch_req->channels[i]);
+        }
+        printf("\r\n");
+    }
+#endif
+
 
     /*Forbidden other cases*/
     if (&stateIdle != wifiMgmr.m.currentState &&
@@ -354,9 +371,14 @@ static bool stateGlobalGuard_fw_scan(void *ch, struct event *event)
             return false;
     }
 
-    /*normal scan command*/
-    os_printf("------>>>>>> Scan CMD\r\n");
-    bl_main_scan();
+    if (channel_num) {
+        os_printf("------>>>>>> Scan CMD fixed channels_num:%u\r\n", channel_num);
+        bl_main_scan(ch_req->channels, channel_num);
+    } else {
+        /*normal scan command*/
+        os_printf("------>>>>>> Scan CMD\r\n");
+        bl_main_scan(NULL, 0 );
+    }
 
     return false;
 }
@@ -1150,7 +1172,7 @@ static void stateConnectedIPYes_enter( void *stateData, struct event *event )
     aos_post_event(EV_WIFI, CODE_WIFI_ON_GOT_IP, 0);
     if (_pending_task_is_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT)) {
         os_printf(DEBUG_HEADER "Pending Scan Sent\r\n");
-        bl_main_scan();
+        bl_main_scan(NULL, 0);
         _pending_task_clr(WIFI_MGMR_PENDING_TASK_SCAN_BIT);
     }
 }
@@ -1304,7 +1326,7 @@ void helper_record_dump();
 
     if (_pending_task_is_set(WIFI_MGMR_PENDING_TASK_SCAN_BIT)) {
         os_printf(DEBUG_HEADER "Pending Scan Sent\r\n");
-        bl_main_scan();
+        bl_main_scan(NULL, 0);
         _pending_task_clr(WIFI_MGMR_PENDING_TASK_SCAN_BIT);
     }
 }

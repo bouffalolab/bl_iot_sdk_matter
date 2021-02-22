@@ -14,16 +14,42 @@
 
 #include "cli.h"
 
-
+static void bredr_write_eir(char *p_write_buffer, int write_buffer_len, int argc, char **argv);
 static void bredr_discoverable(char *p_write_buffer, int write_buffer_len, int argc, char **argv);
 static void bredr_connectable(char *p_write_buffer, int write_buffer_len, int argc, char **argv);
 
 
 const struct cli_command bredr_cmd_set[] STATIC_CLI_CMD_ATTRIBUTE = {
-    {"bredr_discoverable", "", bredr_discoverable},
+    {"bredr_eir", "", bredr_write_eir},
     {"bredr_connectable", "", bredr_connectable},
+    {"bredr_discoverable", "", bredr_discoverable},
 
 };
+
+static void bredr_write_eir(char *p_write_buffer, int write_buffer_len, int argc, char **argv)
+{
+    int err;
+    char *name = "Bouffalolab-bl606p-classic-bt";
+    uint8_t rec = 1;
+    uint8_t data[32] = {0};
+
+    data[0] = 30;
+    data[1] = 0x09;
+    memcpy(data+2, name, strlen(name));
+
+    for(int i = 0; i < strlen(name); i++)
+    {
+        printf("0x%02x ", data[2+i]);
+    }
+    printf("\n");
+
+    err = bt_br_write_eir(rec, data);
+    if (err) {
+        printf("BR/EDR write EIR failed, (err %d)\n", err);
+    } else {
+        printf("BR/EDR write EIR done.\n");
+    }
+}
 
 static void bredr_discoverable(char *p_write_buffer, int write_buffer_len, int argc, char **argv)
 {

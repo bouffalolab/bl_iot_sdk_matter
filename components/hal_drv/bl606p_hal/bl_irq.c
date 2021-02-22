@@ -27,6 +27,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifdef CPU_M1
 #include <stdint.h>
 #include "bl606p.h"
 #include "clic.h"
@@ -361,3 +362,33 @@ void bl_irq_init(void)
         *(uint8_t*)ptr = 0;
     }
 }
+
+#elif defined CPU_D0
+
+#include <bl606p.h>
+#include "bl_irq.h"
+
+void bl_irq_register(int irqnum, void *handler)
+{
+    Interrupt_Handler_Register(irqnum, handler);
+}
+
+void bl_irq_unregister(int irqnum, void *handler)
+{
+}
+
+void bl_irq_enable(unsigned int source)
+{
+    CPU_Interrupt_Enable(source);
+    System_NVIC_SetPriority(source,4,1);
+}
+
+void bl_irq_disable(unsigned int source)
+{
+}
+
+void bl_irq_init(void)
+{
+}
+
+#endif

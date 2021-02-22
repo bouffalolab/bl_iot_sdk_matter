@@ -1542,6 +1542,7 @@ BT_L2CAP_BR_CHANNEL_DEFINE(br_fixed_chan, BT_L2CAP_CID_BR_SIG, l2cap_br_accept);
 void bt_l2cap_br_init(void)
 {
 #if defined(BFLB_DYNAMIC_ALLOC_MEM)
+    k_lifo_init(&br_sig_pool.free, CONFIG_BT_MAX_CONN);
     net_buf_init(&br_sig_pool, CONFIG_BT_MAX_CONN, BT_L2CAP_BUF_SIZE(L2CAP_BR_MIN_MTU), NULL);
 #endif
 	sys_slist_init(&br_servers);

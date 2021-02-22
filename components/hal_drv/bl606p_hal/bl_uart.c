@@ -37,13 +37,14 @@
 void UART0_IRQHandler(void);
 void UART1_IRQHandler(void);
 void UART2_IRQHandler(void);
+void UART3_IRQHandler(void);
 #endif
 
 //TODO Do in std driver
-#define UART_NUMBER_SUPPORTED   3
+#define UART_NUMBER_SUPPORTED   4
 #define UART_FIFO_TX_CNT        (32)
 #define FIFO_TX_SIZE_BURST      (32)
-static const uint32_t uartAddr[3] = {UART0_BASE, UART1_BASE, UART2_BASE};
+static const uint32_t uartAddr[4] = {UART0_BASE, UART1_BASE, UART2_BASE, UART3_BASE};
 
 typedef struct bl_uart_notify {
     cb_uart_notify_t rx_cb;
@@ -90,10 +91,11 @@ static void gpio_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pi
     GLB_UART_Fun_Sel(rx_pin%8, rx_sigfun);
 }
 
-int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, uint8_t rts_pin, uint32_t baudrate) {
-  UART_CFG_Type uart_dbg_cfg = {
+int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, uint8_t rts_pin, uint32_t baudrate)
+{
+    UART_CFG_Type uart_dbg_cfg = {
       32 * 1000 * 1000, /*UART clock*/
-      2000000,          /* baudrate  */
+      baudrate,          /* baudrate  */
       UART_DATABITS_8,  /* data bits  */
       UART_STOPBITS_1,  /* stop bits */
       UART_PARITY_NONE, /* parity  */
@@ -105,61 +107,73 @@ int bl_uart_init(uint8_t id, uint8_t tx_pin, uint8_t rx_pin, uint8_t cts_pin, ui
       DISABLE,          /* Disable rx lin mode */
       0,                /* Tx break bit count for lin mode */
       UART_LSB_FIRST,   /* UART each data byte is send out LSB-first */
-  };
-  UART_FifoCfg_Type fifoCfg = {
+    };
+
+    UART_FifoCfg_Type fifoCfg = {
       16,      /* TX FIFO threshold */
       16,      /* RX FIFO threshold */
       DISABLE, /* Disable tx dma req/ack interface */
       DISABLE  /* Disable rx dma req/ack interface */
-  };
+    };
 
-  /* init debug uart gpio first */
-  //gpio_init();
+#define UART_USE_RX_PIN                 GLB_GPIO_PIN_0
+#define UART_USE_RX_PIN_SIGNAL          GLB_UART_SIG_0
+#define UART_USE_TX_PIN                 GLB_GPIO_PIN_3
+#define UART_USE_TX_PIN_SIGNAL          GLB_UART_SIG_3
+    uint8_t gpioPins[2] = {UART_USE_TX_PIN,UART_USE_RX_PIN};
+    GLB_GPIO_Func_Init(GPIO_FUN_UART,gpioPins,sizeof(gpioPins)/sizeof(gpioPins[0]));
 
-  /* Init UART clock，Todo */
-  //GLB_Set_UART_CLK(ENABLE ,HBN_UART_CLK_160M,0);
-  //uart_dbg_cfg.uartClk=160*1000*1000;
+    /* Select uart gpio function */
+    GLB_UART_Fun_Sel(UART_USE_TX_PIN_SIGNAL,GLB_UART_SIG_FUN_UART1_TXD);
+    GLB_UART_Fun_Sel(UART_USE_RX_PIN_SIGNAL,GLB_UART_SIG_FUN_UART1_RXD);
 
-  if (baudrate != 0) {
-    uart_dbg_cfg.baudRate = baudrate;
-  }
+    /* init debug uart gpio first */
+    //gpio_init();
 
-  /* Todo */
-  //if(UART0_ID==UART_DBG_ID){
-  //    GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_UART0);
-  //}else if(UART1_ID==UART_DBG_ID){
-  //    GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_UART1);
-  //}else{
-  //    /* nothing */
-  //}
+    /* Init UART clock，Todo */
+    //GLB_Set_UART_CLK(ENABLE ,HBN_UART_CLK_160M,0);
+    //uart_dbg_cfg.uartClk=160*1000*1000;
 
-  /* disable all interrupt */
-  UART_IntMask(id, UART_INT_ALL, MASK);
+    if (baudrate != 0) {
+        uart_dbg_cfg.baudRate = baudrate;
+    }
 
-  /* disable uart before config */
-  UART_Disable(id, UART_TXRX);
+    /* Todo */
+    //if(UART0_ID==UART_DBG_ID){
+    //    GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_UART0);
+    //}else if(UART1_ID==UART_DBG_ID){
+    //    GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_UART1);
+    //}else{
+    //    /* nothing */
+    //}
 
-  /* uart init with default configuration */
-  UART_Init(id, &uart_dbg_cfg);
+    /* disable all interrupt */
+    UART_IntMask(id, UART_INT_ALL, MASK);
 
-  /* UART fifo configuration */
-  UART_FifoConfig(id, &fifoCfg);
+    /* disable uart before config */
+    UART_Disable(id, UART_TXRX);
 
-  /* Enable tx free run mode */
-  UART_TxFreeRun(id, ENABLE);
+    /* uart init with default configuration */
+    UART_Init(id, &uart_dbg_cfg);
 
-  /* Set rx time-out value */
-  UART_SetRxTimeoutValue(id, 80);
+    /* UART fifo configuration */
+    UART_FifoConfig(id, &fifoCfg);
 
-  /* enable uart */
-  UART_Enable(id, UART_TXRX);
-  return 0;
+    /* Enable tx free run mode */
+    UART_TxFreeRun(id, ENABLE);
+
+    /* Set rx time-out value */
+    UART_SetRxTimeoutValue(id, 80);
+
+    /* enable uart */
+    UART_Enable(id, UART_TXRX);
+    return 0;
 }
 
 /*This function is NOT thread safe*/
 int bl_uart_data_send(uint8_t id, uint8_t data)
 {
-  
+
 //    UART_SendData(id, &data,1);
     uint32_t UARTx = uartAddr[id];
 
@@ -295,6 +309,14 @@ int bl_uart_int_enable(uint8_t id)
             bl_irq_enable(UART2_IRQn);
         }
         break;
+        case 3:
+        {
+            bl_uart_int_rx_enable(3);
+            bl_uart_int_tx_enable(3);
+            bl_irq_register(UART3_IRQn, UART3_IRQHandler);
+            bl_irq_enable(UART3_IRQn);
+        }
+        break;
         default:
         {
             return -1;
@@ -329,6 +351,14 @@ int bl_uart_int_disable(uint8_t id)
             bl_uart_int_tx_disable(2);
             bl_irq_unregister(UART2_IRQn, UART2_IRQHandler);
             bl_irq_disable(UART2_IRQn);
+        }
+        break;
+        case 3:
+        {
+            bl_uart_int_rx_disable(3);
+            bl_uart_int_tx_disable(3);
+            bl_irq_unregister(UART3_IRQn, UART3_IRQHandler);
+            bl_irq_disable(UART3_IRQn);
         }
         break;
         default:
@@ -422,7 +452,7 @@ static inline void uart_generic_notify_handler(uint8_t id)
     }
 
     /* Tx fifo ready interrupt,auto-cleared when data is pushed */
-    if(BL_IS_REG_BIT_SET(tmpVal,UART_UTX_FIFO_INT) && !BL_IS_REG_BIT_SET(maskVal,UART_CR_UTX_FIFO_MASK)){
+    if(BL_IS_REG_BIT_SET(tmpVal,UART_UTX_FRDY_INT) && !BL_IS_REG_BIT_SET(maskVal,UART_CR_UTX_FRDY_MASK)){
         /* Transmit data request interrupt */
         cb = g_uart_notify_arg[id].tx_cb;
         arg = g_uart_notify_arg[id].tx_cb_arg;
@@ -434,7 +464,7 @@ static inline void uart_generic_notify_handler(uint8_t id)
     }
 
     /* Rx fifo ready interrupt,auto-cleared when data is popped */
-    if(BL_IS_REG_BIT_SET(tmpVal,UART_URX_FIFO_INT) && !BL_IS_REG_BIT_SET(maskVal,UART_CR_URX_FIFO_MASK)){
+    if(BL_IS_REG_BIT_SET(tmpVal,UART_URX_FRDY_INT) && !BL_IS_REG_BIT_SET(maskVal,UART_CR_URX_FRDY_MASK)){
         /*Receive Data ready*/
 
         cb = g_uart_notify_arg[id].rx_cb;
@@ -490,5 +520,10 @@ void UART1_IRQHandler(void)
 void UART2_IRQHandler(void)
 {
     uart_generic_notify_handler(2);
+}
+
+void UART3_IRQHandler(void)
+{
+    uart_generic_notify_handler(3);
 }
 #endif

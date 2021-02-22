@@ -459,9 +459,17 @@ int bl_main_cfg_task_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t
     return bl_send_cfg_task_req(&wifi_hw, ops, task, element, type, arg1, arg2);
 }
 
-int bl_main_scan()
+int bl_main_scan(uint16_t *fixed_channels, uint16_t channel_num)
 {
-    bl_send_scanu_req(&wifi_hw);
+    if (0 == channel_num) {
+        bl_send_scanu_req(&wifi_hw, NULL, 0);
+    } else { 
+        if (bl_get_fixed_channels_is_valid(fixed_channels, channel_num)) {
+            bl_send_scanu_req(&wifi_hw, fixed_channels, channel_num);
+        } else {
+            os_printf("---->unvalid channel");
+        }
+    }
     return 0;
 }
 
@@ -527,7 +535,7 @@ int bl_cfg80211_scan(struct bl_hw *bl_hw)
 
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
-    error = bl_send_scanu_req(bl_hw);
+    error = bl_send_scanu_req(bl_hw, NULL, 0);
     if (error) {
         return error;
     }

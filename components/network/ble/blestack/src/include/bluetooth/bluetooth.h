@@ -262,7 +262,8 @@ enum {
 	 *  connection happens. If this option is not set the stack will
 	 *  take care of keeping advertising enabled even as connections
 	 *  occur.
-	 */
+	 */ 
+	/* if defined CONFIG_BLE_MULTI_ADV , Only support adv one time.*/
 	BT_LE_ADV_OPT_ONE_TIME = BIT(1),
 
 	/** Advertise using the identity address as the own address.
@@ -848,10 +849,13 @@ struct bt_bond_info {
   * @param func       Function to call for each bond.
   * @param user_data  Data to pass to the callback function.
   */
-void bt_foreach_bond(u8_t id, void (*func)(const struct bt_bond_info *info,
-					   void *user_data),
+void bt_foreach_bond(u8_t id, void (*func)(const struct bt_bond_info *info, void *user_data),
 		     void *user_data);
 
+/**
+  * write extern inquiry response.
+  */
+int bt_br_write_eir(u8_t rec, u8_t *data);
 /**
  * @}
  */

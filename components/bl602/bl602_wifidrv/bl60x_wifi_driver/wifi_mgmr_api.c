@@ -252,9 +252,29 @@ int wifi_mgmr_api_fw_tsen_reload(void)
     return wifi_mgmr_api_common_msg(WIFI_MGMR_EVENT_APP_RELOAD_TSEN, (void*)0x1, (void*)0x2);
 }
 
-int wifi_mgmr_api_fw_scan(void)
+int wifi_mgmr_api_fw_scan(uint16_t *channels, uint16_t channel_num)
 {
-    return wifi_mgmr_api_common_msg(WIFI_MGMR_EVENT_FW_SCAN, (void*)0x1, (void*)0x2);
+    wifi_mgmr_msg_t *msg;
+    wifi_mgmr_scan_fixed_channels_t *ch_req;
+    uint8_t buffer[sizeof(wifi_mgmr_msg_t) + sizeof(wifi_mgmr_scan_fixed_channels_t) + sizeof(ch_req->channels[0]) * MAX_FIXED_CHANNELS_LIMIT];//XXX caution for stack overflow
+
+    memset(buffer, 0, sizeof(buffer));
+    msg = (wifi_mgmr_msg_t*)buffer;
+
+    ch_req = (wifi_mgmr_scan_fixed_channels_t*)msg->data;
+    ch_req->channel_num = channel_num;
+    if (channel_num) {
+        memcpy(ch_req->channels, channels, sizeof(ch_req->channels[0]) * channel_num);
+    }
+
+    return wifi_mgmr_api_common(
+        msg,
+        WIFI_MGMR_EVENT_FW_SCAN,
+        (void*)0x1,
+        (void*)0x2,
+        sizeof (wifi_mgmr_msg_t) + sizeof(wifi_mgmr_scan_fixed_channels_t) + sizeof(ch_req->channels[0]) * channel_num
+    );
+
 }
 
 int wifi_mgmr_api_fw_powersaving(int mode)

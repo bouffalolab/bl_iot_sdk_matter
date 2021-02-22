@@ -74,7 +74,9 @@ static void work_timeout(void *timer)
 {
 	/* Parameter timer type is */
 	struct k_delayed_work* w = (struct k_delayed_work*)k_timer_get_id(timer);
-	BT_ASSERT(w->work_q != NULL);
+	if(w->work_q == NULL){
+        return;
+    }
 	
     /* submit work to workqueue */
 	if(!atomic_test_bit(w->work.flags, K_WORK_STATE_PERIODIC)){

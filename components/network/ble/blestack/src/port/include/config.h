@@ -351,8 +351,10 @@
 #ifndef CONFIG_BT_DEVICE_NAME
 #if defined(BL602)
 #define CONFIG_BT_DEVICE_NAME "BL602-BLE-DEV"
-#else
+#elif defined(BL702)
 #define CONFIG_BT_DEVICE_NAME "BL702-BLE-DEV"
+#else
+#define CONFIG_BT_DEVICE_NAME "BL606P-BTBLE"
 #endif
 #endif
 

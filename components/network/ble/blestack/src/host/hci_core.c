@@ -54,6 +54,9 @@
 #endif
 #include "work_q.h"
 #endif
+#if defined(CONFIG_BLE_MULTI_ADV)
+#include "multi_adv.h"
+#endif /* CONFIG_BLE_MULTI_ADV */
 
 /* Peripheral timeout to initialize Connection Parameter Update procedure */
 #define CONN_UPDATE_TIMEOUT  K_SECONDS(CONFIG_BT_CONN_PARAM_UPDATE_TIMEOUT)
@@ -5625,6 +5628,11 @@ k_thread_create(&tx_thread_data, "hci_tx_thread",
 		return bt_init();
 	}
 #endif
+
+    #if defined(CONFIG_BLE_MULTI_ADV)
+    bt_le_multi_adv_thread_init();
+    #endif
+
 	k_work_submit(&bt_dev.init);
 	return 0;
 }
@@ -7455,6 +7463,26 @@ int bt_br_set_discoverable(bool enable)
 		return write_scan_enable(BT_BREDR_SCAN_PAGE);
 	}
 }
+
+int bt_br_write_eir(u8_t rec, u8_t *data)
+{
+    struct bt_hci_cp_write_ext_inquiry_resp *ext_ir;
+    struct net_buf *buf;
+    int err;
+
+    buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_EXT_INQUIRY_RESP, sizeof(*ext_ir));
+    if (!buf) {
+        return -ENOBUFS;
+    }
+
+    ext_ir = net_buf_add(buf, sizeof(*ext_ir));
+
+    ext_ir->rec= rec;
+    memcpy(ext_ir->eir, data, strlen((char *)data));
+
+    return bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_EXT_INQUIRY_RESP, buf, NULL);
+}
+
 #endif /* CONFIG_BT_BREDR */
 
 #if defined(CONFIG_BT_ECC)

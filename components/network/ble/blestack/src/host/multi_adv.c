@@ -230,12 +230,12 @@ void multi_adv_schedule_table(int inst_num, uint16_t inst_interval[], uint16_t i
 int multi_adv_start_adv_instant(struct multi_adv_instant *adv_instant)
 {
     int ret;
-
+    
     ret = bt_le_adv_start_instant(&adv_instant->param, 
                                 adv_instant->ad, adv_instant->ad_len,
                                 adv_instant->sd, adv_instant->sd_len);
     if (ret) {
-        printf("adv start instant failed: inst_id %d, err %d", adv_instant->instant_id, ret);
+        //printf("adv start instant failed: inst_id %d, err %d", adv_instant->instant_id, ret);
     }
     return ret;
 }
@@ -318,7 +318,7 @@ void multi_adv_schedule_timeslot(struct multi_adv_scheduler *adv_scheduler)
     if (match) {
         int offset_per_instant, diff;
         offset_per_instant = TIME_PRIOD_MS/match;
-        diff = inst_off - (inst_off+offset_per_instant/2)/offset_per_instant*offset_per_instant;
+        diff = inst_off - (inst_off+offset_per_instant/2)/offset_per_instant*offset_per_instant;//TODO may be error
 
         /* means this is the time to start */
         if (diff <= 2) {
@@ -326,7 +326,8 @@ void multi_adv_schedule_timeslot(struct multi_adv_scheduler *adv_scheduler)
 
             /* start instant */
             adv_instant = multi_adv_find_instant_by_order(inst_order[match_order[insts]]);
-            multi_adv_start_adv_instant(adv_instant);
+            if(adv_instant)
+                multi_adv_start_adv_instant(adv_instant);
         }
 
         /* next instant in the same slot */
@@ -358,7 +359,7 @@ void multi_adv_schedule_timeslot(struct multi_adv_scheduler *adv_scheduler)
     }
     adv_scheduler->next_slot_offset = 0;
     adv_scheduler->next_slot_clock = min_next_slot;
-
+ 
     next_slot = (adv_scheduler->next_slot_clock - adv_scheduler->slot_clock)*TIME_PRIOD_MS+(adv_scheduler->next_slot_offset-adv_scheduler->slot_offset);
     multi_adv_schedule_timer_start(next_slot);
     return;
@@ -407,7 +408,7 @@ void multi_adv_new_schedule(void)
         adv_instant = multi_adv_find_instant_by_order(i);
         if (adv_instant) {
             /* if high duty cycle adv found */
-            if (adv_instant->param.interval_min <= HIGH_DUTY_CYCLE_INTERVAL) {
+            if (adv_instant->param.interval_min < HIGH_DUTY_CYCLE_INTERVAL) {
                 high_duty_instant = adv_instant;
                 break;
             }
@@ -431,6 +432,8 @@ void multi_adv_new_schedule(void)
     }
     if (inst_num == 1) {
         adv_instant = multi_adv_find_instant_by_order(inst_order[0]);
+        if(!adv_instant)
+            return;
         multi_adv_start_adv_instant(adv_instant);
         return;
     }
@@ -444,6 +447,9 @@ void multi_adv_new_schedule(void)
     /* set interval and offset to instant */
     for (i = 0; i < inst_num; i++) {
         adv_instant = multi_adv_find_instant_by_order(inst_order[i]);
+        if(!adv_instant){
+            continue;
+        }
         adv_instant->instant_interval = inst_interval[i];
         adv_instant->instant_offset = inst_offset[i];
 
@@ -474,7 +480,7 @@ int bt_le_multi_adv_start(const struct bt_le_adv_param *param,
     adv_instant = multi_adv_alloc_unused_instant();
     if (adv_instant == 0)
         return -1;
-    
+
     memcpy(&(adv_instant->param), param, sizeof(struct bt_le_adv_param));
 
     adv_instant->ad_len = multi_adv_set_ad_data(adv_instant->ad, ad, ad_len);
@@ -482,7 +488,7 @@ int bt_le_multi_adv_start(const struct bt_le_adv_param *param,
 
     multi_adv_new_schedule();
     
-    *instant_id = adv_instant->instant_id;
+    *instant_id = adv_instant->instant_id;  
     return 0;
 }
                     
@@ -491,10 +497,23 @@ int bt_le_multi_adv_stop(int instant_id)
     if (multi_adv_find_instant_by_id(instant_id) == 0)
         return -1;
 
+    //printf("%s id[%d]\n", __func__, instant_id);
     multi_adv_delete_instant_by_id(instant_id);
     multi_adv_new_schedule();
 
     return 0;
 }
 
+bool bt_le_multi_adv_id_is_vaild(int instant_id)
+{
+    int i;
+    struct multi_adv_instant *inst = &(g_multi_adv_list[0]);
+    
+    for (i = 0; i < MAX_MULTI_ADV_INSTANT; i++) {
+        if ((inst[i].inuse_flag) && (instant_id == (inst[i].instant_id))) {
+            return true;
+        }
+    }
+    return false;
+}
 

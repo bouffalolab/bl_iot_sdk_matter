@@ -46,6 +46,7 @@ static int8_t inited;
 static uart_dev_t *dev_uart0 = NULL;
 static uart_dev_t *dev_uart1 = NULL;
 static uart_dev_t *dev_uart2 = NULL;
+static uart_dev_t *dev_uart3 = NULL;
 
 static int uart_dev_malloc(uart_dev_t **pdev)
 {
@@ -96,7 +97,7 @@ static int dev_uart_init(uint8_t id, const char *path, uint32_t rx_buf_size, uin
     uart_dev_t **pdev = NULL;
     int ret;
 
-    if ((id >= 3) || (path == 0)) {
+    if ((id >= 4) || (path == 0)) {
         blog_error("arg err.\r\n");
         return -1;
     }
@@ -113,6 +114,10 @@ static int dev_uart_init(uint8_t id, const char *path, uint32_t rx_buf_size, uin
         case 2:
         {
             pdev = &dev_uart2;
+        } break;
+        case 3:
+        {
+            pdev = &dev_uart3;
         } break;
         default:
         {

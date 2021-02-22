@@ -229,6 +229,25 @@ int bl_msg_get_channel_nums()
     return channel_num_default;
 }
 
+int bl_get_fixed_channels_is_valid(uint16_t *channels, uint16_t channel_num)
+{
+    int i;
+    int channel;
+
+    if (0 == channel_num) {
+        return 0;
+    }
+
+    for (i = 0; i < channel_num; i++) {
+        channel = channels[i];
+        if (0 == channel || (channel > bl_msg_get_channel_nums())) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 static inline uint16_t phy_channel_to_freq(uint8_t band, int channel)
 {
     uint16_t freq = 0xFFFF;
@@ -626,24 +645,30 @@ int bl_send_remove_if(struct bl_hw *bl_hw, uint8_t inst_nbr)
     return bl_send_msg(bl_hw, remove_if_req_param, 1, MM_REMOVE_IF_CFM, NULL);
 }
 
-int bl_send_scanu_req(struct bl_hw *bl_hw)
+int bl_send_scanu_req(struct bl_hw *bl_hw, uint16_t *channels, uint16_t channel_num)
 {
     struct scanu_start_req *req;
-    int i;
+    int i, index;
     uint8_t chan_flags = 0;
+    const struct ieee80211_channel *chan;
 
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
     /* Build the SCANU_START_REQ message */
     req = bl_msg_zalloc(SCANU_START_REQ, TASK_SCANU, DRV_TASK_ID,
                           sizeof(struct scanu_start_req));
-    if (!req)
+    if (!req) {
         return -ENOMEM;
+    }
 
     /* Set parameters */
     //FIXME should we use vif_index_sta when NO sta is added or just use 0?
     req->vif_idx = bl_hw->vif_index_sta;
-    req->chan_cnt = channel_num_default;
+    if (0 == channel_num) {
+        req->chan_cnt = channel_num_default;
+    } else {
+        req->chan_cnt = channel_num;
+    }
     req->ssid_cnt = 0;
     req->bssid = mac_addr_bcst;
     req->no_cck = true;//FIXME params? talk with firmware guys
@@ -665,7 +690,8 @@ int bl_send_scanu_req(struct bl_hw *bl_hw)
     req->add_ies = 0;
 
     for (i = 0; i < req->chan_cnt; i++) {
-        const struct ieee80211_channel *chan = &(channels_default[i]);
+        index = (channel_num_default == req->chan_cnt) ? i : (channels[i]);
+        chan = &(channels_default[index]);
 
         req->chan[i].band = chan->band;
         req->chan[i].freq = chan->center_freq;

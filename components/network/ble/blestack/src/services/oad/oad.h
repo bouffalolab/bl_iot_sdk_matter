@@ -30,6 +30,7 @@ enum{
     OAD_CMD_IMAG_BLOCK_REQ,
     OAD_CMD_IMAG_BLOCK_RESP,
     OAD_CMD_IMAG_UPGRD_END,
+    OAD_CMD_IMAG_INFO,
 };
 
 struct oad_file_info{

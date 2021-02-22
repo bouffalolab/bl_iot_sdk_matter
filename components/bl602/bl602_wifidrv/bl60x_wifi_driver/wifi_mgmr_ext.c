@@ -654,8 +654,21 @@ int wifi_mgmr_scan(void *data, scan_complete_cb_t cb)
     scan_cb = cb;
     scan_data = data;
 
-    wifi_mgmr_api_fw_scan();
+    wifi_mgmr_api_fw_scan(NULL, 0);
 
+    return 0;
+}
+
+int wifi_mgmr_scan_fixed_channels(void *data, scan_complete_cb_t cb, uint16_t *channels, uint16_t channel_num)
+{
+    scan_cb = cb;
+    scan_data = data;
+
+    if (0 != channel_num && NULL == channels) {
+        return -1;
+    }
+
+    wifi_mgmr_api_fw_scan(channels, channel_num);
     return 0;
 }
 
