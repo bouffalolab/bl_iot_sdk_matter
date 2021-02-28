@@ -123,3 +123,69 @@ Easylink模式电流测试
 =======================
 重启板子，在putty中输入依次命令“stack_wifi”，“wifi_sniffer_on”后开始测试平均电流和最大电流。
 
+BLE TX模式电流测试(15dBm)
+=======================
+
+1. 在烧录工具中找到dts文件，修改TX Power为15dBm,然后烧录相应的Bin文件
+
+.. figure:: picture/image71.png
+   :align: center
+   
+   DTS路径
+   
+.. figure:: picture/image72.png
+   :align: center
+   
+   修改为15dbm
+
+2. 重启板子，在putty中依次输入命令
+
+   #stack_ble
+   
+   #ble_init
+   
+   #ble_tp_start 1
+   
+   #ble_start_adv 0 0 0x80 0x80
+   
+.. figure:: picture/image64.png
+   :align: center
+   
+3. 打开APP,设置相应的参数
+
+.. figure:: picture/image65.png
+   :align: center 
+   
+   设置选项
+   
+.. figure:: picture/image66.png
+   :align: center 
+   
+   选择相应服务
+   
+4. APP中连接相应的设备
+   
+.. figure:: picture/image67.png
+   :align: center 
+   
+   选择设备
+
+5. App界面中选择读写测试选项:
+
+.. figure:: picture/image69.png
+	:align: center 
+
+	读写测试选项
+     
+6. App中点击接收通知数据选项，查看BLE速率：
+
+.. figure:: picture/image70.png
+   :align: center 
+   
+   Ble速率
+   
+6. 测试此时设备的平均电流和最大电流
+
+BLE RX模式电流测试
+=======================
+重启板子，在putty中依次输入命令“stack_ble”，“ble_start_scan 0 0 0x80 0x80”,后测试平均电流和最大电流。

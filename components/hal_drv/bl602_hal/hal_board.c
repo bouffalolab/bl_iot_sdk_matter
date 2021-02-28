@@ -37,6 +37,7 @@
 #include <libfdt.h>
 
 #include <blog.h>
+BLOG_DECLARE(dts);
 #include <utils_log.h>
 
 #define USER_UNUSED(a) ((void)(a))
@@ -204,11 +205,11 @@ static void update_mac_config(const void *fdt, int offset1)
     countindex = fdt_stringlist_count(fdt, offset1, "mode");
     if (1 == countindex) {
         result = fdt_stringlist_get(fdt, offset1, "mode", 0, &lentmp);
-        blog_print("MAC address mode length %d\r\n", lentmp);
+        blog_info_user(dts, "MAC address mode length %d\r\n", lentmp);
         if (lentmp <= MAC_ORDER_ADDR_LEN_MAX) {
             memcpy(mac_mode, result, lentmp);
             mac_mode[3] = '\0';
-            blog_print("MAC address mode is %s\r\n", mac_mode);
+            blog_info_user(dts, "MAC address mode is %s\r\n", mac_mode);
             update_mac_config_with_order(fdt, offset1, mac_mode);
         }
     }
@@ -717,6 +718,105 @@ static int update_ap_field(const void *fdt, int wifi_offset, const char *name)
     return offset1;
 }
 
+typedef struct{
+    uint16_t Tchannels[5];
+    int16_t Tchannel_os[5];
+    int16_t Tchannel_os_low[5];
+    int16_t Troom_os;
+    uint8_t en_tcal;
+    uint8_t linear_or_follow;
+} tcal_param_struct;
+extern tcal_param_struct* tcal_param;
+enum {
+    E_RF_TCAL_UPDATE_PARAM = 0,
+};
+void rf_pri_update_tcal_param(uint8_t operation);//FIXME
+#define TCAL_PARA_CHANNELS          5
+
+static int update_rf_temp_field(const void *fdt, int wifi_offset, const char *name)
+{
+    int lentmp, i;
+    int offset1 = 0;
+    const uint8_t *addr_prop = 0;
+    uint32_t tmp[TCAL_PARA_CHANNELS];
+    tcal_param_struct tcal_param_tmp;
+
+    offset1 = fdt_subnode_offset(fdt, wifi_offset, name);
+    if (offset1 > 0) {
+        addr_prop = fdt_getprop(fdt, offset1, "Troom_os", &lentmp);
+        if (addr_prop) {
+            tcal_param_tmp.Troom_os=BL_FDT32_TO_U32(addr_prop, 0)-256;
+            blog_info_user(dts, "Troom_os = %d, lentmp = %d\r\n", (int)tcal_param_tmp.Troom_os, lentmp);
+        } else {
+            blog_info_user(dts, "Troom_os NULL.\r\n");
+            return -1;
+        }
+
+        addr_prop = fdt_getprop(fdt, offset1, "linear_or_follow", &lentmp);
+        if (addr_prop) {
+            tcal_param_tmp.linear_or_follow=BL_FDT32_TO_U32(addr_prop, 0);
+            blog_info_user(dts, "linear_or_follow = %d, lentmp = %d\r\n", (int)tcal_param_tmp.linear_or_follow, lentmp);
+        } else {
+            blog_info_user(dts, "linear_or_follow NULL.\r\n");
+            return -1;
+        }
+
+        addr_prop = fdt_getprop(fdt, offset1, "Tchannels", &lentmp);
+        if (lentmp == TCAL_PARA_CHANNELS*4) {            
+            memcpy(tmp, addr_prop, TCAL_PARA_CHANNELS*4);         
+            blog_info_user(dts, "Tchannels:");
+            for (i = 0; i < TCAL_PARA_CHANNELS; i++){
+                tcal_param_tmp.Tchannels[i]=fdt32_to_cpu(tmp[i]);
+                blog_info_user_raw(dts, "%d,", (int)tcal_param_tmp.Tchannels[i]);
+            }
+            blog_info_user_raw(dts, "\r\n");
+        } else {
+            blog_info_user(dts, "Tchannels NULL.\r\n");
+            return -1;
+        }
+
+        addr_prop = fdt_getprop(fdt, offset1, "Tchannel_os", &lentmp);
+        if (lentmp == TCAL_PARA_CHANNELS*4) {            
+            memcpy(tmp, addr_prop, TCAL_PARA_CHANNELS*4);         
+            blog_info_user(dts, "Tchannel_os:");
+            for (i = 0; i < TCAL_PARA_CHANNELS; i++){
+                tcal_param_tmp.Tchannel_os[i]=fdt32_to_cpu(tmp[i]);
+                blog_info_user_raw(dts, "%d,", (int)tcal_param_tmp.Tchannel_os[i]);
+            }
+            blog_info_user_raw(dts, "\r\b");
+        } else {
+            blog_info_user(dts, "Tchannel_os NULL.\r\n");
+            return -1;
+        }
+
+        addr_prop = fdt_getprop(fdt, offset1, "Tchannel_os_low", &lentmp);
+        if (lentmp == TCAL_PARA_CHANNELS*4) {            
+            memcpy(tmp, addr_prop, TCAL_PARA_CHANNELS*4);         
+            blog_info_user(dts, "Tchannel_os_low:");
+            for (i = 0; i < TCAL_PARA_CHANNELS; i++){
+                tcal_param_tmp.Tchannel_os_low[i]=fdt32_to_cpu(tmp[i]);
+                blog_info_user_raw(dts, "%d,", (int)tcal_param_tmp.Tchannel_os_low[i]);
+            }
+            blog_info_user_raw(dts, "\r\n");
+        } else {
+            blog_info_user(dts, "Tchannel_os_low NULL.\r\n");
+            return -1;
+        }
+        addr_prop = fdt_getprop(fdt, offset1, "en_tcal", &lentmp);
+        if (addr_prop) {
+            tcal_param_tmp.en_tcal=BL_FDT32_TO_U32(addr_prop, 0);
+            blog_info_user(dts, "en_tcal = %u, lentmp = %d\r\n", tcal_param_tmp.en_tcal, lentmp);
+        } else {
+            blog_info_user(dts, "en_tcal NULL.\r\n");
+            return -1;
+        }
+    }
+    memcpy(tcal_param, &tcal_param_tmp, sizeof(tcal_param_tmp));
+    rf_pri_update_tcal_param(E_RF_TCAL_UPDATE_PARAM);
+
+    return 0;
+}
+
 static int hal_board_load_rftv_info(uint32_t rftlv_addr)
 {
     int i;
@@ -992,6 +1092,7 @@ static int hal_board_load_fdt_info(const void *dtb)
 __exit:
     offset1 = update_ap_field(fdt, wifi_offset, "ap");
     offset1 = update_sta_field(fdt, wifi_offset, "sta");
+    offset1 = update_rf_temp_field(fdt, wifi_offset, "rf_temp");
 
     return 0;
 }

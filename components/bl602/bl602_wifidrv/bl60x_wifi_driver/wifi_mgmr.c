@@ -48,6 +48,8 @@
 #include <bl_adc.h>
 
 #include <blog.h>
+BLOG_DECLARE(tcal_power)
+BLOG_DECLARE(scan)
 #define USER_UNUSED(a) ((void)(a))
 
 #define DEBUG_HEADER "[WF][SM] "
@@ -217,7 +219,7 @@ static bool stateGlobalGuard_scan_beacon( void *ch, struct event *event )
                 if ((scan->rssi < wifiMgmr.scan_items[i].rssi) &&
                     ((int32_t)os_tick_get() - (int32_t)wifiMgmr.scan_items[i].timestamp_lastseen < SCAN_UPDATE_LIMIT_TIME_MS)) {
 
-                    blog_info("skip update %s with rssi %d\r\n", scan->ssid, scan->rssi);
+                    blog_debug_user(scan, "skip update %s with rssi %d\r\n", scan->ssid, scan->rssi);
 
                 } else {
 
@@ -973,16 +975,34 @@ static void __reload_tsen(timer_cb_arg_t data)
     wifi_mgmr_api_fw_tsen_reload();
 }
 
+typedef volatile struct{
+    uint16_t Tchannels[5];
+    int16_t Tchannel_os[5];
+    int16_t Tchannel_os_low[5];
+    int16_t Troom_os;
+    uint8_t en_tcal;
+    uint8_t linear_or_follow;
+} tcal_param_struct;
+extern tcal_param_struct* tcal_param;
 static void __run_reload_tsen(void)
 {
+    static int call_tcal_once = 0;
     int16_t temp = 0;
     extern void phy_tcal_callback(int16_t temperature);
 
     if (&stateConnecting == wifiMgmr.m.currentState || &stateDisconnect == wifiMgmr.m.currentState || &stateConnectedIPYes == wifiMgmr.m.currentState || 
             &stateSniffer == wifiMgmr.m.currentState || &stateConnectedIPNo == wifiMgmr.m.currentState) {
-        bl_tsen_adc_get(&temp, 0);
-        phy_tcal_callback(temp);
 
+        if (tcal_param->en_tcal) {
+            bl_tsen_adc_get(&temp, 0);
+            blog_debug_user(tcal_power, "temp is %u\r\n", temp);
+            phy_tcal_callback(temp);
+        } else {
+            if (0 == call_tcal_once) {
+                phy_tcal_callback(35);
+                call_tcal_once = 1;
+            }
+        }
         return ;
     }
 

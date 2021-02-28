@@ -79,25 +79,25 @@ static void _dump_partition(void)
     USER_UNUSED(i);
     USER_UNUSED(part);
 
-    blog_print("======= PtTable_Config @%p=======\r\n", part);
-    blog_print("magicCode 0x%08X;", (unsigned int)(part->ptTable.magicCode));
-    blog_print(" version 0x%04X;", part->ptTable.version);
-    blog_print(" entryCnt %u;", part->ptTable.entryCnt);
-    blog_print(" age %lu;", part->ptTable.age);
-    blog_print(" crc32 0x%08X\r\n", (unsigned int)part->ptTable.crc32);
+    blog_info("======= PtTable_Config @%p=======\r\n", part);
+    blog_info("magicCode 0x%08X;", (unsigned int)(part->ptTable.magicCode));
+    blog_info_raw(" version 0x%04X;", part->ptTable.version);
+    blog_info_raw(" entryCnt %u;", part->ptTable.entryCnt);
+    blog_info_raw(" age %lu;", part->ptTable.age);
+    blog_info_raw(" crc32 0x%08X\r\n", (unsigned int)part->ptTable.crc32);
 
-    blog_print("idx  type device activeIndex     name   Address[0]  Address[1]  Length[0]   Length[1]   age\r\n");
+    blog_info("idx  type device activeIndex     name   Address[0]  Address[1]  Length[0]   Length[1]   age\r\n");
     for (i = 0; i < part->ptTable.entryCnt; i++) {
-        blog_print("[%02d] ", i);
-        blog_print(" %02u", part->ptEntries[i].type);
-        blog_print("     %u", part->ptEntries[i].device);
-        blog_print("         %u", part->ptEntries[i].activeIndex);
-        blog_print("      %8s", part->ptEntries[i].name);
-        blog_print("  %p", (void*)(part->ptEntries[i].Address[0]));
-        blog_print("  %p", (void*)(part->ptEntries[i].Address[1]));
-        blog_print("  %p", (void*)(part->ptEntries[i].maxLen[0]));
-        blog_print("  %p", (void*)(part->ptEntries[i].maxLen[1]));
-        blog_print("  %lu\r\n", (part->ptEntries[i].age));
+        blog_info("[%02d] ", i);
+        blog_info_raw(" %02u", part->ptEntries[i].type);
+        blog_info_raw("     %u", part->ptEntries[i].device);
+        blog_info_raw("         %u", part->ptEntries[i].activeIndex);
+        blog_info_raw("      %8s", part->ptEntries[i].name);
+        blog_info_raw("  %p", (void*)(part->ptEntries[i].Address[0]));
+        blog_info_raw("  %p", (void*)(part->ptEntries[i].Address[1]));
+        blog_info_raw("  %p", (void*)(part->ptEntries[i].maxLen[0]));
+        blog_info_raw("  %p", (void*)(part->ptEntries[i].maxLen[1]));
+        blog_info_raw("  %lu\r\n", (part->ptEntries[i].age));
     }
 }
 

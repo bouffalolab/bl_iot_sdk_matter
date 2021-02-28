@@ -391,14 +391,24 @@ void wifi_mgmr_sta_connect_ind_stat_get(wifi_mgmr_sta_connect_ind_stat_info_t *w
 
 void wifi_mgmr_sta_ssid_set(char *ssid)
 {
-    if (strlen(ssid) > 0)
-        memcpy(wifiMgmr.wifi_mgmr_stat_info.ssid, ssid, strlen(ssid));
+  int len = strlen(ssid);
+
+  if (len > 0) {
+    len = len > (sizeof(wifiMgmr.wifi_mgmr_stat_info.ssid) - 1) ? sizeof(wifiMgmr.wifi_mgmr_stat_info.ssid) - 1 : len;
+    memcpy(wifiMgmr.wifi_mgmr_stat_info.ssid, ssid, len);
+    wifiMgmr.wifi_mgmr_stat_info.ssid[len] = 0;
+  }
 }
 
 void wifi_mgmr_sta_psk_set(char *psk)
 {
-    if (strlen(psk) > 0)
-        memcpy(wifiMgmr.wifi_mgmr_stat_info.psk, psk, strlen(psk));
+  int len = strlen(psk);
+
+  if (len > 0) {
+    len = len > (sizeof(wifiMgmr.wifi_mgmr_stat_info.psk) - 1) ? sizeof(wifiMgmr.wifi_mgmr_stat_info.psk) - 1 : len;
+    memcpy(wifiMgmr.wifi_mgmr_stat_info.psk, psk, len);
+    wifiMgmr.wifi_mgmr_stat_info.psk[len] = 0;
+  }
 }
 
 static void wifi_eth_ap_enable(struct netif *netif, uint8_t mac[6])
