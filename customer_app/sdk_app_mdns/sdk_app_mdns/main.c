@@ -42,6 +42,7 @@
 #include <lwip/netdb.h>
 #include <lwip/tcp.h>
 #include <lwip/err.h>
+#include <lwip/netifapi.h>
 #include <http_client.h>
 #include <netutils/netutils.h>
 
@@ -460,13 +461,23 @@ typedef struct mdns {
 
 static mdns_t mdns = {NULL, -1};
 
+static err_t mdns_responder_start_netifapi_errt_fn(struct netif *netif)
+{
+    return mdns_responder_start(netif);
+}
+
+static err_t mdns_responder_stop_netifapi_errt_fn(struct netif *netif)
+{
+    return mdns_responder_stop(netif);
+}
+
 void mdns_task(void *pvParameters)
 {
     int slot;
     uint32_t pre_ip, cur_ip;
     struct netif *netif;
     
-    netif = netif_find("st");
+    netif = wifi_mgmr_sta_netif_get();
     if (netif == NULL) {
         printf("find failed\r\n");
         goto _failed;
@@ -475,7 +486,7 @@ void mdns_task(void *pvParameters)
     cur_ip = netif->ip_addr.addr;  
     pre_ip = cur_ip;
 
-    slot = mdns_responder_start(netif);
+    slot = netifapi_netif_common(netif, NULL, mdns_responder_start_netifapi_errt_fn);
     if (slot < 0) {
         printf("start mdns failed\r\n");
         goto _failed;
@@ -486,7 +497,7 @@ void mdns_task(void *pvParameters)
     while (1) {
         cur_ip = netif->ip_addr.addr;
         if (pre_ip != cur_ip) {
-            mdns_resp_announce(netif);
+            netifapi_netif_common(netif, mdns_resp_announce, NULL);
             pre_ip = cur_ip;
         }
         vTaskDelay(1000);
@@ -518,7 +529,7 @@ static void cmd_mdns_cli(char *buf, int len, int argc, char **argv)
         }
     } else if (0 == strcmp(argv[1], "stop")) {
         if (1 == stop_flag) {
-            ret = mdns_responder_stop(mdns.netif);
+            ret = netifapi_netif_common(mdns.netif, NULL, mdns_responder_stop_netifapi_errt_fn);
             if (ret != 0) {
                 printf("stop mdns failed\r\n");
                 return;

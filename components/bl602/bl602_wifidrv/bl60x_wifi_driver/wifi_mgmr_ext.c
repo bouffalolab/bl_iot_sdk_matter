@@ -167,8 +167,8 @@ static void wifi_eth_sta_enable(struct netif *netif, uint8_t mac[6])
     netif->name[0] = 's';
     netif->name[1] = 't';
     netif->flags |=  NETIF_FLAG_LINK_UP | NETIF_FLAG_IGMP;
-    netif_set_default(netif);
-    netif_set_up(netif);
+    netifapi_netif_set_default(netif);
+    netifapi_netif_set_up(netif);
 }
 
 int wifi_mgmr_psk_cal(char *password, char *ssid, int ssid_len, char *output)
@@ -220,6 +220,11 @@ int wifi_mgmr_sta_disable(wifi_interface_t *interface)
 {
     wifi_mgmr_api_idle();
     return 0;
+}
+
+struct netif *wifi_mgmr_sta_netif_get(void)
+{
+    return &wifiMgmr.wlan_sta.netif;
 }
 
 int wifi_mgmr_sta_mac_set(uint8_t mac[6])
@@ -448,8 +453,8 @@ static void wifi_eth_ap_enable(struct netif *netif, uint8_t mac[6])
     netifapi_netif_add(netif, &ipaddr, &netmask, &gw, NULL, &bl606a0_wifi_netif_init, &tcpip_input);
     netif->name[0] = 'a';
     netif->name[1] = 'p';
-    netif_set_default(netif);
-    netif_set_up(netif);
+    netifapi_netif_set_default(netif);
+    netifapi_netif_set_up(netif);
 }
 
 wifi_interface_t wifi_mgmr_ap_enable()

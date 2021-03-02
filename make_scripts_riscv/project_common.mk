@@ -13,3 +13,8 @@ endif
 include $(BL60X_SDK_PATH)/make_scripts_thead_riscv/project.mk
 
 endif
+
+ifeq ("$(CONFIG_CHIP_NAME)", "BL808")
+CFLAGS += -DBFLB_USE_HAL_DRIVER -DCPU_D0 -DARCH_RISCV
+include $(BL60X_SDK_PATH)/make_scripts_thead_riscv/project.mk
+endif

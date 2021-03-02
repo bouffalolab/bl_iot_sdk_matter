@@ -23,6 +23,11 @@ HAL_DRV_HAS_CONFIG := 1
 include $(COMPONENT_PATH)/bl606p.mk
 endif
 
+ifeq ($(CONFIG_CHIP_NAME),BL808)
+HAL_DRV_HAS_CONFIG := 1
+include $(COMPONENT_PATH)/bl808.mk
+endif
+
 ifeq ($(HAL_DRV_HAS_CONFIG),0)
-$(error "Please Set CONFIG_CHIP_NAME, Avaliable list: BL606 BL602 BL702 BL606p")
+$(error "Please Set CONFIG_CHIP_NAME, Avaliable list: BL606 BL602 BL702 BL606p BL808")
 endif

@@ -118,6 +118,7 @@ void wifi_mgmr_get_wifi_channel_conf(wifi_conf_t *wifi_chan_conf);
 
 wifi_interface_t wifi_mgmr_sta_enable(void);
 int wifi_mgmr_sta_disable(wifi_interface_t *interface);
+struct netif *wifi_mgmr_sta_netif_get(void);
 int wifi_mgmr_sta_mac_set(uint8_t mac[6]);
 int wifi_mgmr_sta_mac_get(uint8_t mac[6]);
 int wifi_mgmr_sta_ip_get(uint32_t *ip, uint32_t *gw, uint32_t *mask);

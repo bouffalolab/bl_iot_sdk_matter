@@ -207,17 +207,16 @@ SECTIONS
     *(COMMON)
   } > ram_tcm
 
-  PROVIDE( _heap_start = . );
-  PROVIDE( _heap_size = ADDR(.stack) - _heap_start );
-
-
-  .stack ORIGIN(ram_tcm) + LENGTH(ram_tcm) - __stack_size (NOLOAD) :
+  .stack (NOLOAD)   :
   {
+    . = ALIGN(16);
     . = . + __stack_size;
     PROVIDE( _sp_main = . );
     __freertos_irq_stack_top = .;
-  } >ram_tcm
+  }
 
+  PROVIDE( _heap_start = . );
+  PROVIDE( _heap_size = ORIGIN(ram_tcm) + LENGTH(ram_tcm) - _heap_start );
 
   /*SYMOBOL used in code*/
   PROVIDE( _ld_bl_static_cli_cmds_start = _bl_static_cli_cmds_start );

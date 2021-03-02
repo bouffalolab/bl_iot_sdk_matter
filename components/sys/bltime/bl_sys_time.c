@@ -36,7 +36,7 @@ static uint64_t epoch_time = 0; //in ms
 static uint64_t time_synced = 0; //in ms
 
 static uint32_t init_tick_rtos = 0;
-static uint32_t init_tick_rtc = 0;
+static uint64_t init_cnt_rtc = 0;
 static int sync_init = 0;
 
 void bl_sys_time_update(uint64_t epoch)
@@ -64,7 +64,7 @@ void bl_sys_time_sync_init(void)
 {
     taskENTER_CRITICAL();
     init_tick_rtos = xTaskGetTickCount();
-    init_tick_rtc = bl_rtc_get_timestamp_ms() & 0xFFFFFFFF;
+    init_cnt_rtc = bl_rtc_get_counter();
     taskEXIT_CRITICAL();
     
     sync_init = 1;
@@ -72,8 +72,6 @@ void bl_sys_time_sync_init(void)
 
 int bl_sys_time_sync_state(uint32_t *xTicksToJump)
 {
-    uint32_t currTickRtos;
-    uint32_t currTickRtc;
     uint32_t deltaTickRtos;
     uint32_t deltaTickRtc;
     
@@ -82,12 +80,9 @@ int bl_sys_time_sync_state(uint32_t *xTicksToJump)
     }
     
     taskENTER_CRITICAL();
-    currTickRtos = xTaskGetTickCount();
-    currTickRtc = bl_rtc_get_timestamp_ms() & 0xFFFFFFFF;
+    deltaTickRtos = xTaskGetTickCount() - init_tick_rtos;
+    deltaTickRtc = (uint32_t)bl_rtc_get_delta_time_ms(init_cnt_rtc);
     taskEXIT_CRITICAL();
-    
-    deltaTickRtos = currTickRtos - init_tick_rtos;
-    deltaTickRtc = currTickRtc - init_tick_rtc;
     
     if(deltaTickRtc > deltaTickRtos){
         *xTicksToJump = deltaTickRtc - deltaTickRtos;
