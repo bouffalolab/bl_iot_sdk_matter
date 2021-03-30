@@ -169,4 +169,5 @@ int wifi_mgmr_raw_80211_send(uint8_t *pkt, int len);
 int wifi_mgmr_set_country_code(char *country_code);
 int wifi_mgmr_ext_dump_needed();
 const char* wifi_mgmr_status_code_str(uint16_t status_code);
+int wifi_mgmr_beacon_interval_set(uint16_t beacon_int);
 #endif

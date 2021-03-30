@@ -119,8 +119,9 @@ int hal_hwtimer_init(void)
 
         return -1;
     }
-    
-    GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_TMR);
+
+    /* if reset here, wtd will reset too, so we will do reset in bl_sys_early_init() in bl_sys.c */
+    //GLB_AHB_Slave1_Reset(BL_AHB_SLAVE1_TMR);
     TIMER_IntMask(hw_timercfg.timerCh,TIMER_INT_ALL, MASK);
     TIMER_Disable(hw_timercfg.timerCh);
     TIMER_Init(&hw_timercfg);

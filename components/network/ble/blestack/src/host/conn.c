@@ -408,6 +408,20 @@ bool le_check_valid_conn(void)
 
     return false;
 }
+
+#if defined(BFLB_HOST_ASSISTANT)
+void bt_notify_disconnected(void)
+{
+    int i;
+
+    for(i= 0; i < ARRAY_SIZE(conns); i++){
+        if(atomic_get(&conns[i].ref)){
+			conns[i].err = BT_HCI_ERR_UNSPECIFIED;
+            notify_disconnected(&conns[i]);
+        }  
+    }
+}
+#endif//#if defined(BFLB_HOST_ASSISTANT)
 #endif
 
 #if defined(CONFIG_BT_BREDR)

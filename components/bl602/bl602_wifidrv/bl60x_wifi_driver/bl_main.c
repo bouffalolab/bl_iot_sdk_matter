@@ -268,6 +268,15 @@ int bl_main_monitor_channel_set(int channel, int use_40MHZ)
     return 0;
 }
 
+int bl_main_beacon_interval_set(uint16_t beacon_int)
+{
+    struct mm_set_beacon_int_cfm cfm;
+
+    bl_send_beacon_interval_set(&wifi_hw, &cfm, beacon_int);
+
+    return 0;
+}
+
 int bl_main_if_remove(uint8_t vif_index)
 {
     os_printf("[WF] MM_REMOVE_IF_REQ Sending with vif_index %u...\r\n", vif_index);
@@ -337,14 +346,14 @@ int bl_main_if_add(int is_sta, struct netif *netif, uint8_t *vif_index)
     return error;
 }
 
-int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid)
+int bl_main_apm_start(char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid, uint16_t bcn_int)
 {
     int error = 0;
     struct apm_start_cfm start_ap_cfm;
 
     memset(&start_ap_cfm, 0, sizeof(start_ap_cfm));
     os_printf("[WF] APM_START_REQ Sending with vif_index %u\r\n", vif_index);
-    error = bl_send_apm_start_req(&wifi_hw, &start_ap_cfm, ssid, password, channel, vif_index, hidden_ssid);
+    error = bl_send_apm_start_req(&wifi_hw, &start_ap_cfm, ssid, password, channel, vif_index, hidden_ssid, bcn_int);
     os_printf("[WF] APM_START_REQ Done\r\n");
     os_printf("[WF] status is %02X\r\n", start_ap_cfm.status);
     os_printf("[WF] vif_idx is %02X\r\n", start_ap_cfm.vif_idx);

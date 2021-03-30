@@ -3,6 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+//#include <semaphore.h>
+#include <signal.h>
 
 #ifdef __LINUX_PAL__
 #include <pthread.h>
@@ -304,6 +306,10 @@ jl_semaphore_t jl_platform_semaphore_create(void)
 #if 0 //CSRC
 #ifdef __LINUX_PAL__
     jl_semaphore_t semaphore_t = NULL;
+    sem_t *sem = NULL;
+    sem = (sem_t *)jl_platform_malloc(sizeof(sem_t));
+    sem_init(sem, 0, 0);
+    semaphore_t = (jl_semaphore_t)sem;
     return semaphore_t; 
 #else
     return NULL;
@@ -324,6 +330,14 @@ jl_semaphore_t jl_platform_semaphore_create(void)
 void jl_platform_semaphore_destroy(jl_semaphore_t handle)
 {
 #if 0 //CSRC
+#ifdef __LINUX_PAL__
+    if(handle == NULL)
+    {
+        jl_platform_printf("[semaphore] handle is NULL\n");
+        return ;
+    }
+    sem_destroy((sem_t *)handle);
+#endif
 
 #endif
     log_warn("NOT IMPLEMENTED\r\n");
@@ -346,6 +360,14 @@ void jl_platform_semaphore_destroy(jl_semaphore_t handle)
 void jl_platform_semaphore_wait(jl_semaphore_t handle, uint32_t timeout_ms)
 {
 #if 0 //CSRC
+#ifdef __LINUX_PAL__
+    if(handle == NULL)
+    {
+        jl_platform_printf("[semaphore] handle is NULL\n");
+        return ;
+    }
+    sem_wait((sem_t *)handle);
+#endif
 #endif
     log_warn("NOT IMPLEMENTED\r\n");
 }
@@ -361,6 +383,14 @@ void jl_platform_semaphore_wait(jl_semaphore_t handle, uint32_t timeout_ms)
 void jl_platform_semaphore_post(jl_semaphore_t handle)
 {
 #if 0 //CSRC
+#ifdef __LINUX_PAL__
+    if(handle == NULL)
+    {
+        jl_platform_printf("[semaphore] handle is NULL\n");
+        return ;
+    }
+    sem_post((sem_t *)handle);
+#endif
 #endif
     log_warn("NOT IMPLEMENTED\r\n");
 }

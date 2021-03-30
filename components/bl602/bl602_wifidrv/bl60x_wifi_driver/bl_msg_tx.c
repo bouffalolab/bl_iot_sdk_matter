@@ -409,6 +409,21 @@ int bl_send_monitor_enable(struct bl_hw *bl_hw, struct mm_monitor_cfm *cfm)
     return bl_send_msg(bl_hw, req, 1, MM_MONITOR_CFM, cfm);
 }
 
+int bl_send_beacon_interval_set(struct bl_hw *bl_hw, struct mm_set_beacon_int_cfm *cfm, uint16_t beacon_int)
+{
+    struct mm_set_beacon_int_req *req;
+
+    RWNX_DBG(RWNX_FN_ENTRY_STR);
+
+    req = bl_msg_zalloc(MM_SET_BEACON_INT_REQ, TASK_MM, DRV_TASK_ID, sizeof(struct mm_set_beacon_int_req));
+    if (!req)
+        return -ENOMEM;
+
+    req->beacon_int = beacon_int;
+
+    return bl_send_msg(bl_hw, req, 1, MM_SET_BEACON_INT_CFM, cfm);
+}
+
 //TODO we only support 2.4GHz
 int bl_send_monitor_channel_set(struct bl_hw *bl_hw, struct mm_monitor_channel_cfm *cfm, int channel, int use_40Mhz)
 {
@@ -876,7 +891,7 @@ int bl_send_mm_denoise_req(struct bl_hw *bl_hw, int mode)
     return bl_send_msg(bl_hw, req, 1, MM_SET_PS_MODE_CFM, NULL);
 }
 
-int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid)
+int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid, uint16_t bcn_int)
 {
     struct apm_start_req *req;
     uint8_t rate[] = {0x82,0x84,0x8b,0x96,0x12,0x24,0x48,0x6c,0x0c,0x18,0x30,0x60};
@@ -903,7 +918,7 @@ int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *
     req->bcn_addr = 0;
     req->bcn_len = 0;
     req->tim_oft = 0;
-    req->bcn_int = 0x64;
+    req->bcn_int = bcn_int;
     req->flags = 0x08;
     //req->ctrl_port_ethertype = ETH_P_PAE;
     req->ctrl_port_ethertype = 0x8e88;

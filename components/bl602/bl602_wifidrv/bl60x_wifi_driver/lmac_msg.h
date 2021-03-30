@@ -597,6 +597,12 @@ struct mm_set_beacon_int_req
     u8_l inst_nbr;
 };
 
+/// Structure containing the parameters of the @ref MM_SET_BEACON_INT_CFM message
+struct mm_set_beacon_int_cfm
+{
+    u8_l status;
+};
+
 /// Structure containing the parameters of the @ref MM_SET_BASIC_RATES_REQ message
 struct mm_set_basic_rates_req
 {

@@ -79,7 +79,7 @@ static void cmd_jl_dump_jlp(char *buf, int len, int argc, char **argv)
 static void cmd_jl_dump_time(char *buf, int len, int argc, char **argv)
 {
     jl_time_t time;
-    jl_time_get_time(&time);
+    jl_get_time(&time);
 
     printf("jl year %lu, month %d, week %d, day %d, hour %d, minute %d, second %d, timestamp %lu\r\n",
             time.year,

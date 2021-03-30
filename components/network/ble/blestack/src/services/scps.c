@@ -15,6 +15,7 @@
 #include "gatt.h"
 #include "uuid.h"
 #include "scps.h"
+#include "byteorder.h"
 
 struct scan_intvl_win {
 	u16_t scan_intvl;
@@ -34,6 +35,8 @@ static ssize_t scan_intvl_win_write(struct bt_conn *conn,
     intvl_win.scan_intvl = sys_get_le16(data);
     data += 2;
     intvl_win.scan_win = sys_get_le16(data);
+
+    return len;
 }
 
 static struct bt_gatt_attr attrs[]= {

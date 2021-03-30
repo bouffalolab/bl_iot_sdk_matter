@@ -692,6 +692,12 @@ int wifi_mgmr_cfg_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t ty
     return wifi_mgmr_api_cfg_req(ops, task, element, type, length, buf);
 }
 
+int wifi_mgmr_beacon_interval_set(uint16_t beacon_int)
+{
+    wifiMgmr.ap_bcn_int = beacon_int;
+    return 0;
+}
+
 int wifi_mgmr_scan_filter_hidden_ssid(int filter)
 {
     taskENTER_CRITICAL();

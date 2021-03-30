@@ -131,6 +131,10 @@ ifeq ($(CONFIG_BT_DIS_SERVER),1)
 ble_stack_srcs   += src/services/dis.c
 endif
 
+ifeq ($(CONFIG_HOGP_SERVER),1)
+ble_stack_srcs   += src/services/hog.c
+endif
+
 ifeq ($(CONFIG_BLE_TP_SERVER),1)
 ble_stack_srcs   += src/services/ble_tp_svc.c
 endif
@@ -138,6 +142,8 @@ endif
 ifeq ($(CONFIG_BLE_MULTI_ADV),1)
 ble_stack_srcs   += src/host/multi_adv.c
 endif
+
+ble_stack_srcs   += src/host/bl_host_assist.c
 
 bredr_stack_srcs := src/host/a2dp.c \
 					src/host/avdtp.c \

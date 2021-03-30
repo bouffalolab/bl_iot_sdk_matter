@@ -133,9 +133,12 @@
 * range 73 to 2000
 */
 #ifndef CONFIG_BT_RX_BUF_LEN
+#if defined(CONFIG_BT_BREDR)
+#define CONFIG_BT_RX_BUF_LEN 680 //CONFIG_BT_L2CAP_RX_MTU + 4 + 4
+#else
 #define CONFIG_BT_RX_BUF_LEN 255 //108 //76
 #endif
-
+#endif
 
 /**
 * CONFIG_BT_CENTRAL: Enable central Role
@@ -544,7 +547,9 @@
 
 #if defined(CONFIG_BT_BREDR)
 #define CONFIG_BT_PAGE_TIMEOUT 0x2000 //5.12s
-#define CONFIG_BT_L2CAP_RX_MTU 128
+#define CONFIG_BT_L2CAP_RX_MTU 672
+
+#define PCM_PRINTF 0
 #endif
 
 /*******************************Bouffalo Lab Modification******************************/
@@ -574,6 +579,9 @@ happens, which cause memory leak issue.*/
 /*Semaphore is used during flash operation. Make sure that freertos has already run up when it
   intends to write information to flash.*/
 #define BFLB_BLE_PATCH_SETTINGS_LOAD
+#endif
+#if defined(CFG_BT_RESET)
+#define BFLB_HOST_ASSISTANT
 #endif
 #if defined(__cplusplus)
 }

@@ -40,7 +40,14 @@ struct dis_pnp {
 } __packed;
 
 #if defined(BFLB_BLE)
-#define CONFIG_BT_GATT_DIS_MODEL    "BL707_BLE_MODEL"
+#if defined(BL702)
+#define CONFIG_BT_GATT_DIS_MODEL    "BL702_BLE_MODEL"
+#elif defined(BL602)
+#define CONFIG_BT_GATT_DIS_MODEL    "BL602_BLE_MODEL"
+#else
+#define CONFIG_BT_GATT_DIS_MODEL
+#endif
+
 #define CONFIG_BT_GATT_DIS_MANUF    "Bouffalo Lab"
 #define CONFIG_BT_GATT_DIS_SERIAL_NUMBER_STR    "G0G0U40690230TFC"
 #define CONFIG_BT_GATT_DIS_FW_REV_STR    "52512901"

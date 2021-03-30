@@ -31,9 +31,13 @@
 #define BLE_LIB_API_H_
 
 #include <stdbool.h>
+#include <stdint.h> 
 
 void ble_controller_init(uint8_t task_priority);
 void ble_controller_deinit(void);
+#if defined(CFG_BT_RESET)
+void ble_controller_reset(void);
+#endif
 
 // return sleep duration, in unit of 1/32768s
 // if 0, means not allow sleep
@@ -46,6 +50,14 @@ void ble_rf_set_tx_channel(uint16_t tx_channel);
 
 
 #if defined(CONFIG_BLE_MFG)
+enum
+{
+    BLE_TEST_TX                  = 0x00,
+    BLE_TEST_RX,
+    BLE_TEST_RXTX,
+    BLE_TEST_END
+};
+
 ///HCI LE Receiver Test Command parameters structure
 struct le_rx_test_cmd
 {
@@ -90,7 +102,8 @@ struct le_enhanced_tx_test_cmd
 int le_rx_test_cmd_handler(uint16_t src_id, void *param, bool from_hci);
 int le_tx_test_cmd_handler(uint16_t src_id, void *param, bool from_hci);
 int le_test_end_cmd_handler(bool from_hci);
-int le_set_tx_pwr_handler(uint8_t power);
+uint8_t le_get_direct_test_type(void);
+
 #if defined(CONFIG_BLE_MFG_HCI_CMD)
 int reset_cmd_handler(void);
 #endif

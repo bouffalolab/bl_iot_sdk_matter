@@ -230,7 +230,6 @@ typedef struct wifi_mgmr_scan_fixed_channels {
     uint16_t channels[];
 } wifi_mgmr_scan_fixed_channels_t;
 
-
 typedef struct wifi_mgmr_connect_ind_stat_info {
     uint16_t status_code;
     uint16_t chan_freq;
@@ -275,6 +274,7 @@ typedef struct wifi_mgmr {
     uint8_t ready;//TODO mgmr init process
     char country_code[3];
     uint8_t disable_autoreconnect;
+    uint8_t ap_bcn_int;
     int channel_nums;
 
     /*pending task*/

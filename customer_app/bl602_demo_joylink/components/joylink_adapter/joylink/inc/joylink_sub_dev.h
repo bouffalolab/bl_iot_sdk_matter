@@ -130,8 +130,15 @@ joylink_proc_lan_sub_script_ctrl(uint8_t *src, int src_len, jl_sockaddr_in *sin_
  *
  * @Returns: 
  */
+int 
+joylink_packet_check_sub_hb(void);
+/**
+ * brief: 
+ *
+ * @Returns: 
+ */
 int
-joylink_packet_server_sub_hb_req(void);
+joylink_packet_server_sub_hb_req(int index);
 
 /**
  * brief: 

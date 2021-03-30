@@ -12,6 +12,9 @@
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #endif
 
 #include <lwip/tcpip.h>
@@ -26,6 +29,8 @@
 #include "joylink_memory.h"
 #include "joylink_socket.h"
 
+// 默认使用 getaddrinfo 函数
+#define __GET_ADDR_INFO__
 
 /** @defgroup group_platform_net_api_manage
  *  @{
@@ -35,6 +40,8 @@
  * @brief   根据主机名获取主机的资料
  *
  * @param[in] hostname: 主机明字符串指针
+ * @param[in] ip_buff: DNS解析出的ip存放首地址
+ * @param[in] buff_len: ip_buff的长度上限，IPV4最少16字节；IPV6最少40字节。
  * @return 0:success, -1:failed
  * @see None.
  * @note None.
@@ -42,20 +49,98 @@
 int32_t jl_platform_gethostbyname(char *hostname, char *ip_buff, uint32_t buff_len)
 {
 #if 0 //CSRC
-#ifdef __LINUX_PAL__
-    struct hostent *pGethost = NULL;
-    char **pptr = NULL;
-    struct in_addr addrConv, inaddr;
-    jl_platform_memset(&addrConv, 0, sizeof(struct in_addr));
-    pGethost = gethostbyname(hostname);
-    if(pGethost != NULL)
+#ifdef __GET_ADDR_INFO__
+    struct addrinfo hints;
+    struct addrinfo *res, *cur;
+    int ret;
+    char *family, *socktype, *protocol;
+    const char *ip;
+    void *sin_addr = NULL;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    /* ******************************
+       AF_INET, Allow IPv4; 
+       AF_INET6, Allow IPv6; 
+       AF_UNSPEC, allow IPv4 & IPv6;  
+    *********************************/
+    hints.ai_family = AF_INET;
+    hints.ai_flags = 0;             /* For wildcard IP address */
+    hints.ai_protocol = 0;          /* Any protocol */
+    hints.ai_socktype = SOCK_STREAM;
+
+    ret = getaddrinfo(hostname, NULL,&hints,&res);
+
+    if (ret != 0) {
+        jl_platform_printf("getaddrinfo() failed, ret = %d(%s)", ret, gai_strerror(ret));
+        return -1;
+    }
+
+    for (cur = res; cur != NULL; cur = cur->ai_next)
     {
-        pptr = pGethost->h_addr_list;
-        for(; *pptr != NULL; pptr++){
-            addrConv.s_addr = *(uint32_t *)(*pptr);
-            jl_platform_printf("[%s] ip address:[%s] [%lu]\r\n", hostname, inet_ntoa(addrConv), addrConv.s_addr);
-            jl_platform_memcpy(&inaddr, &addrConv, sizeof(struct in_addr));
+        switch(cur->ai_family)
+        {
+            case AF_INET : 
+            {
+                struct sockaddr_in *addr = (struct sockaddr_in *)(cur->ai_addr);
+                sin_addr = &addr->sin_addr;
+                family = "AF_INET";
+                break;
+            }
+            case AF_INET6 : 
+            {
+                struct sockaddr_in6 *addr = (struct sockaddr_in6 *)cur->ai_addr;
+                sin_addr = &addr->sin6_addr;
+                family = "AF_INET6";
+                break;
+            }
+            case AF_PACKET		: family = "AF_PACKET"; 		break;
         }
+        switch(cur->ai_socktype)
+        {
+            case SOCK_STREAM	: socktype = "SOCK_STREAM"; 	break;
+            case SOCK_DGRAM		: socktype = "SOCK_DGRAM"; 		break;
+            case SOCK_SEQPACKET	: socktype = "SOCK_SEQPACKET"; 	break;
+            case SOCK_RAW		: socktype = "SOCK_RAW"; 		break;
+            case SOCK_RDM		: socktype = "SOCK_RDM"; 		break;
+            case SOCK_PACKET	: socktype = "SOCK_PACKET"; 	break;
+        }
+        switch(cur->ai_protocol)
+        {
+            case IPPROTO_IP 	: protocol = "IPPROTO_IP"; 		break;
+            case IPPROTO_TCP	: protocol = "IPPROTO_TCP"; 	break;
+            case IPPROTO_UDP	: protocol = "IPPROTO_UDP"; 	break;
+            case IPPROTO_IPV6	: protocol = "IPPROTO_IPV6"; 	break;
+        }
+        jl_platform_printf("family = %s, socktype = %s, protocol = %s\n", family, socktype, protocol);
+        jl_platform_printf("ai_flags = %d, ai_family = %d, ai_socktype = %d, ai_protocol = %d, ai_addrlen = %d\n", 
+            cur->ai_flags, 
+            cur->ai_family, 
+            cur->ai_socktype, 
+            cur->ai_protocol, 
+            cur->ai_addrlen);
+
+        ip = inet_ntop(cur->ai_family, sin_addr, ip_buff, buff_len);
+	    jl_platform_printf("[%s] ip address:[%s]\r\n", hostname, ip_buff);
+        if(ip != NULL)
+            break;
+
+    }
+    freeaddrinfo(res);
+    return 0;
+#elif defined(__LINUX_PAL__)
+    struct hostent *pGethost = NULL;
+	char **pptr = NULL;
+	struct in_addr addrConv, inaddr;
+	jl_platform_memset(&addrConv, 0, sizeof(struct in_addr));
+	pGethost = gethostbyname(hostname);
+	if(pGethost != NULL)
+	{
+		pptr = pGethost->h_addr_list;
+		for(; *pptr != NULL; pptr++){
+			addrConv.s_addr = *(uint32_t *)(*pptr);
+			jl_platform_printf("[%s] ip address:[%s] [%lu]\r\n", hostname, inet_ntoa(addrConv), addrConv.s_addr);
+			jl_platform_memcpy(&inaddr, &addrConv, sizeof(struct in_addr));
+		}
 
        jl_platform_memset(ip_buff,  0, buff_len);
         jl_platform_strncpy(ip_buff, inet_ntoa(inaddr), buff_len);

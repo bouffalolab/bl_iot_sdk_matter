@@ -60,6 +60,23 @@
 #endif /* CONFIG_BT_MESH_MODEL */
 
 #endif
+
+#if defined(CONFIG_HOGP_SERVER)
+#include "hog.h"
+#endif
+
+#if defined(CONFIG_BT_BAS_SERVER)
+#include "bas.h"
+#endif
+
+#if defined(CONFIG_BT_SCPS_SERVER)
+#include "scps.h"
+#endif
+
+#if defined(CONFIG_BT_DIS_SERVER)
+#include "dis.h"
+#endif
+
 #include "ble_lib_api.h"
 #include "wifi_prov_api.h"
 
@@ -313,6 +330,23 @@ void bt_enable_cb(int err)
 #if defined(CONFIG_BLE_TP_SERVER)
         ble_tp_init();
 #endif
+
+#if defined(CONFIG_BT_BAS_SERVER)
+        bas_init();
+#endif
+
+#if defined(CONFIG_BT_DIS_SERVER)
+        dis_init(USB_IMPL_VID, AR_VENDOR_ID, AR_PRODUCT_ID, 0);
+#endif
+
+#if defined(CONFIG_BT_SCPS_SERVER)
+        scps_init(BT_GAP_SCAN_FAST_INTERVAL, BT_GAP_SCAN_FAST_WINDOW);
+#endif
+
+#if defined(CONFIG_HOGP_SERVER)
+        hog_init();
+#endif
+
     }
 }
 

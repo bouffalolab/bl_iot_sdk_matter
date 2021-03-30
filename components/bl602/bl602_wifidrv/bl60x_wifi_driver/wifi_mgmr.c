@@ -552,7 +552,7 @@ void dhcpd_start(struct netif *netif);
     os_printf(DEBUG_HEADER "start AP with ssid %s;\r\n", ap->ssid);
     os_printf(DEBUG_HEADER "              pwd  %s;\r\n", ap->psk);
     os_printf(DEBUG_HEADER "              channel  %ld;\r\n", ap->channel);
-    bl_main_apm_start(ap->ssid, ap->psk, ap->channel, wifiMgmr.wlan_ap.vif_index, ap->hidden_ssid);
+    bl_main_apm_start(ap->ssid, ap->psk, ap->channel, wifiMgmr.wlan_ap.vif_index, ap->hidden_ssid, wifiMgmr.ap_bcn_int);
     wifiMgmr.inf_ap_enabled = 1;
     dns_server_init();
     aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STARTED, 0);
@@ -1482,6 +1482,7 @@ int wifi_mgmr_init(void)
             sizeof(wifiMgmr.mq_pool)
     );
     wifiMgmr.ready = 1;//TODO check ret
+    wifiMgmr.ap_bcn_int = 100;
     wifiMgmr.scan_item_timeout = WIFI_MGMR_CONFIG_SCAN_ITEM_TIMEOUT;
     return ret;
 }

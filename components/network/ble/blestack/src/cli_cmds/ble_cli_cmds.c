@@ -7,9 +7,12 @@
 #include "cli.h"
 #include "bl_port.h"
 #include "ble_cli_cmds.h"
-
 #if defined(CONFIG_BLE_MULTI_ADV)
 #include "multi_adv.h"
+#endif
+
+#if defined(CONFIG_HOGP_SERVER)
+#include "hog.h"
 #endif
 
 #define 		PASSKEY_MAX  		0xF423F
@@ -45,30 +48,23 @@ static void ble_start_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 static void ble_stop_scan(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 static void ble_read_local_address(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
 #if defined(CONFIG_BT_PERIPHERAL)
-
 static void ble_set_adv_channel(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_stop_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
 #endif
 #if defined(CONFIG_BLE_TP_SERVER)
 static void ble_tp_start(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
-
 #if defined(CONFIG_BT_CONN)
 #if defined(CONFIG_BT_CENTRAL)
 static void ble_connect(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
-
 static void ble_disconnect(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_select_conn(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_conn_update(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_unpair(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
 #endif
-
 #if defined(CONFIG_BT_SMP)
 static void ble_security(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void ble_auth(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -93,6 +89,9 @@ static void ble_stop_multi_advertise(char *pcWriteBuffer, int xWriteBufferLen, i
 #endif
 #if defined(CONFIG_SET_TX_PWR)
 static void ble_set_tx_pwr(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
+#if defined(CONFIG_HOGP_SERVER)
+static void ble_hog_srv_notify(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
 const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
@@ -282,6 +281,9 @@ const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
     {"ble_conn_info", "", ble_get_all_conn_info},
 #if defined(CONFIG_SET_TX_PWR)
     {"ble_set_tx_pwr", "", ble_set_tx_pwr},
+#endif
+#if defined(CONFIG_HOGP_SERVER)
+    {"ble_hog_srv_notify", "", ble_hog_srv_notify},
 #endif
 #endif
 };
@@ -1581,6 +1583,30 @@ static void ble_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
         vOutputString("Fail to disable bt, there is existed scan/adv/conn event \r\n");
     }else{
         vOutputString("Disable bt successfully\r\n");
+    }
+}
+#endif
+
+#if defined(CONFIG_HOGP_SERVER)
+static void ble_hog_srv_notify(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    uint16_t hid_usage;
+    uint8_t press;
+    int err = 0;
+
+    if(!default_conn){
+        vOutputString("Not connected\r\n");
+        return;
+    }
+
+    get_uint16_from_string(&argv[1],&hid_usage);
+    get_uint8_from_string(&argv[2],&press);
+
+    err = hog_notify(default_conn,hid_usage,press);
+    if(err){
+        vOutputString("Failed to send notification\r\n");
+    }else{
+        vOutputString("Notification sent successfully\r\n");
     }
 }
 #endif

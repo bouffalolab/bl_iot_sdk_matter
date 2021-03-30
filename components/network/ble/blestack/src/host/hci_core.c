@@ -135,6 +135,10 @@ bt_addr_le_t pts_addr;
 volatile u8_t event_flag = 0;
 #endif
 
+#if defined(BFLB_HOST_ASSISTANT)
+struct blhast_cb *host_assist_cb;
+#endif
+
 struct cmd_state_set {
 	atomic_t *target;
 	int bit;
@@ -216,6 +220,7 @@ struct net_buf_pool num_complete_pool;
 struct net_buf_pool discardable_pool;
 #endif
 #endif /*!defined(BFLB_DYNAMIC_ALLOC_MEM)*/
+
 
 struct event_handler {
 	u8_t event;
@@ -385,6 +390,10 @@ int bt_hci_cmd_send(u16_t opcode, struct net_buf *buf)
 	return 0;
 }
 
+#if defined(BFLB_HOST_ASSISTANT)
+extern void blhast_bt_reset(void);
+uint16_t hci_cmd_to_cnt = 0;
+#endif
 int bt_hci_cmd_send_sync(u16_t opcode, struct net_buf *buf,
 			 struct net_buf **rsp)
 {
@@ -430,9 +439,19 @@ int bt_hci_cmd_send_sync(u16_t opcode, struct net_buf *buf,
 			break;
 	    #if defined(BFLB_BLE)
 	    case 0xff:
-		     err = -ETIME;
+		    err = -ETIME;
             BT_ERR("k_sem_take timeout with opcode 0x%04x", opcode);
+		    #if (defined(BL602)|| defined(BL702)) && defined(BFLB_HOST_ASSISTANT)
+			BT_ERR("Restart and restore bt");
+			hci_cmd_to_cnt++;
+			if (cmd(buf)->state) {
+  			    struct cmd_state_set *update = cmd(buf)->state;
+  			    atomic_set_bit_to(update->target, update->bit, update->val);
+			}
+		    blhast_bt_reset();
+			#else
             BT_ASSERT(err == 0);
+			#endif
 			break;
 		#endif
 		default:
@@ -2310,6 +2329,13 @@ static void link_key_notify(struct net_buf *buf)
 {
 	struct bt_hci_evt_link_key_notify *evt = (void *)buf->data;
 	struct bt_conn *conn;
+
+        printf("bredr link key: ");
+        for(int i = 0; i < 16; i++)
+        {
+            printf("0x%02x ", evt->link_key[i]);
+        }
+        printf("\n");
 
 	conn = bt_conn_lookup_addr_br(&evt->bdaddr);
 	if (!conn) {
@@ -5388,6 +5414,9 @@ void bt_finalize_init(void)
 	bt_dev_show_info();
 }
 
+#if defined(BFLB_HOST_ASSISTANT)
+extern void blhast_init(struct blhast_cb *cb);
+#endif
 static int bt_init(void)
 {
 	int err;
@@ -5408,6 +5437,9 @@ static int bt_init(void)
     if (err) {
 		return err;
 	}
+#if defined(BFLB_HOST_ASSISTANT)
+	blhast_init(host_assist_cb);
+#endif
 #endif
 
 	err = host_hci_init();
@@ -6449,6 +6481,13 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
 	atomic_set_bit_to(bt_dev.flags, BT_DEV_ADVERTISING_CONNECTABLE,
 			  param->options & BT_LE_ADV_OPT_CONNECTABLE);
 
+	
+	#if defined(BFLB_HOST_ASSISTANT)
+    if(!atomic_test_bit(bt_dev.flags, BT_DEV_ASSIST_RUN) 
+		&& host_assist_cb && host_assist_cb->le_adv_cb)
+		host_assist_cb->le_adv_cb(param, ad, ad_len, sd, sd_len);
+	#endif
+
 	return 0;
 }
 #if defined (BFLB_BLE)
@@ -7039,6 +7078,12 @@ int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb)
 	}
 
 	scan_dev_found_cb = cb;
+
+	#if defined(BFLB_HOST_ASSISTANT)
+    if(!atomic_test_bit(bt_dev.flags, BT_DEV_ASSIST_RUN) 
+		&& host_assist_cb && host_assist_cb->le_scan_cb)
+		host_assist_cb->le_scan_cb(param, cb);
+	#endif
 
 	return 0;
 }
@@ -7647,5 +7692,33 @@ int bt_le_oob_get_sc_data(struct bt_conn *conn,
 			  const struct bt_le_oob_sc_data **oobd_remote)
 {
 	return bt_smp_le_oob_get_sc_data(conn, oobd_local, oobd_remote);
+}
+#endif
+
+#if defined(BFLB_HOST_ASSISTANT)
+#if defined(CONFIG_BT_HCI_ACL_FLOW_CONTROL)
+int bt_set_flow_control(void)
+{
+   return set_flow_control();
+}
+#endif
+int bt_set_event_mask(void)
+{
+    return set_event_mask();
+}
+
+int bt_le_set_event_mask(void)
+{
+    return le_set_event_mask();
+}
+
+void bt_hci_reset_complete(struct net_buf *buf)
+{
+    hci_reset_complete(buf);
+}
+
+void bt_register_host_assist_cb(struct blhast_cb *cb)
+{
+    host_assist_cb = cb;
 }
 #endif

@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>13. blog &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.19-11-gf4c000f1 文档</title>
+  <title>14. blog &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-6-g2463b6e1 文档</title>
   
 
   
@@ -38,8 +38,8 @@
     
     <link rel="index" title="索引" href="../../../genindex.html" />
     <link rel="search" title="搜索" href="../../../search.html" />
-    <link rel="next" title="14. AOS VFS" href="../vfs/vfs.html" />
-    <link rel="prev" title="12. Provision_WiFi" href="../../BLE/provision_WiFi/provision_WiFi.html" /> 
+    <link rel="next" title="15. AOS VFS" href="../vfs/vfs.html" />
+    <link rel="prev" title="13. Provision_WiFi" href="../../BLE/provision_WiFi/provision_WiFi.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -127,19 +127,20 @@
 <li class="toctree-l1"><a class="reference internal" href="../../Network/httpc/httpc.html">9. HTTPC</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Network/https/https.html">10. HTTPS</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Network/tls/tls.html">11. TLS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../BLE/provision_WiFi/provision_WiFi.html">12. Provision_WiFi</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">13. blog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">13.1. 概述</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">13.2. 功能介绍</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#log">13.3. log等级说明</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">13.4. 使用方法</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">13.5. 总结</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Network/wifi/wifi.html">12. WiFi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BLE/provision_WiFi/provision_WiFi.html">13. Provision_WiFi</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">14. blog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">14.1. 概述</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">14.2. 功能介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#log">14.3. log等级说明</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">14.4. 使用方法</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">14.5. 总结</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../vfs/vfs.html">14. AOS VFS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../yloop/yloop.html">15. yloop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../BLE/mesh/mesh.html">16. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../BLE/ble_stack/ble_stack.html">17. BLE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfs/vfs.html">15. AOS VFS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../yloop/yloop.html">16. yloop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BLE/mesh/mesh.html">17. Mesh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BLE/ble_stack/ble_stack.html">18. BLE</a></li>
 </ul>
 <p class="caption"><span class="caption-text">API</span></p>
 <ul>
@@ -195,7 +196,7 @@
     
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li><span class="section-number">13. </span>blog</li>
+      <li><span class="section-number">14. </span>blog</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -215,13 +216,13 @@
            <div itemprop="articleBody">
             
   <div class="section" id="blog">
-<h1><span class="section-number">13. </span>blog<a class="headerlink" href="#blog" title="永久链接至标题">¶</a></h1>
+<h1><span class="section-number">14. </span>blog<a class="headerlink" href="#blog" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id1">
-<h2><span class="section-number">13.1. </span>概述<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<h2><span class="section-number">14.1. </span>概述<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
 <p>blog 是一款超轻量级的日志组件，非常适合对资源敏感的软件项目.</p>
 </div>
 <div class="section" id="id2">
-<h2><span class="section-number">13.2. </span>功能介绍<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<h2><span class="section-number">14.2. </span>功能介绍<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
 <p>blog
 将log简化成3类，分别是组件、文件、私有log，且分别支持软件动态修改、宏彻底关闭方案（不占用rom）。下文统称动态修改为软开关，宏彻底关闭方案为静态开关。</p>
 <ul class="simple">
@@ -232,7 +233,7 @@
 </ul>
 </div>
 <div class="section" id="log">
-<h2><span class="section-number">13.3. </span>log等级说明<a class="headerlink" href="#log" title="永久链接至标题">¶</a></h2>
+<h2><span class="section-number">14.3. </span>log等级说明<a class="headerlink" href="#log" title="永久链接至标题">¶</a></h2>
 <p>按照等级高低分别如下，其中all最低，即所有log均输出</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>all : 所有log均输出，其实等同于all
 debug : debug及以上
@@ -245,7 +246,7 @@ never: 所有log均不输出，其实等同于assert
 </div>
 </div>
 <div class="section" id="id3">
-<h2><span class="section-number">13.4. </span>使用方法<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<h2><span class="section-number">14.4. </span>使用方法<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
 <p>包含必要的头文件
 <code class="docutils literal notranslate"><span class="pre">#include</span> <span class="pre">&lt;blog.h&gt;</span></code>然后分别设置组件log、文件log、私有log。</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;blog.h&gt;</span><span class="cp"></span>
@@ -301,7 +302,7 @@ component_name.file_name.pri_name例如：
 </ul>
 </div>
 <div class="section" id="id4">
-<h2><span class="section-number">13.5. </span>总结<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
+<h2><span class="section-number">14.5. </span>总结<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
 </div>
 </div>
 
@@ -313,10 +314,10 @@ component_name.file_name.pri_name例如：
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../vfs/vfs.html" class="btn btn-neutral float-right" title="14. AOS VFS" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../vfs/vfs.html" class="btn btn-neutral float-right" title="15. AOS VFS" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../../BLE/provision_WiFi/provision_WiFi.html" class="btn btn-neutral float-left" title="12. Provision_WiFi" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> 上一页</a>
+        <a href="../../BLE/provision_WiFi/provision_WiFi.html" class="btn btn-neutral float-left" title="13. Provision_WiFi" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> 上一页</a>
       
     </div>
   

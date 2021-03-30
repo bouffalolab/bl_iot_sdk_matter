@@ -326,6 +326,23 @@ static void wifi_capcode_cmd(char *buf, int len, int argc, char **argv)
     }
 }
 
+static void wifi_bcnint_set(char *buf, int len, int argc, char **argv)
+{
+    uint16_t bcnint = 0;
+
+    if (2 != argc) {
+        printf("Usage: %s bcnint\r\n", argv[0]);
+        return;
+    }
+
+    bcnint = atoi(argv[1]);
+    printf("Setting beacon interval to %d\r\n", bcnint);
+
+    if (bcnint > 0) {
+        wifi_mgmr_beacon_interval_set(bcnint);
+    }
+}
+
 static void wifi_scan_cmd(char *buf, int len, int argc, char **argv)
 {
     uint16_t channel_num;
@@ -957,6 +974,7 @@ static void cmd_wifi_power_table_update(char *buf, int len, int argc, char **arg
 // STATIC_CLI_CMD_ATTRIBUTE makes this(these) command(s) static
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "rf_dump", "rf dump", cmd_rf_dump},
+        { "wifi_ap_bcnint_set", "wifi ap bcnin set", wifi_bcnint_set},
         { "wifi_capcode", "wifi capcode", wifi_capcode_cmd},
         { "wifi_scan", "wifi scan", wifi_scan_cmd},
         { "wifi_scan_filter", "wifi scan", wifi_scan_filter_cmd},

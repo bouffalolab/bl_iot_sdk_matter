@@ -45,6 +45,7 @@
    Components/Network/httpc/httpc
    Components/Network/https/https
    Components/Network/tls/tls
+   Components/Network/wifi/wifi
    Components/BLE/provision_WiFi/provision_WiFi
    Components/Middleware/log/blog
    Components/Middleware/vfs/vfs

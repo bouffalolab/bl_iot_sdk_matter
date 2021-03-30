@@ -62,6 +62,11 @@
 #define BT_AVDTP_SERVICE_CAT_MEDIA_CODEC        0x07
 #define BT_AVDTP_SERVICE_CAT_DELAYREPORTING     0x08
 
+/* @brief AVDTP Content Protection Capabilities */
+#define BT_AVDTP_CONTENT_PROTECTION_MSB     0x00
+#define BT_AVDTP_CONTENT_PROTECTION_LSB_DTCP    0x01
+#define BT_AVDTP_CONTENT_PROTECTION_LSB_SCMS_T      0x02
+
 /* AVDTP Error Codes */
 #define BT_AVDTP_SUCCESS                        0x00
 #define BT_AVDTP_ERR_BAD_HDR_FORMAT             0x01

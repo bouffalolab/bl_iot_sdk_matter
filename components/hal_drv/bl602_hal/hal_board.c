@@ -898,7 +898,7 @@ static int hal_board_load_rftv_info(uint32_t rftlv_addr)
     }
 
     if (rftlv_get(rftlv_addr, RFTLV_API_TYPE_PWR_TABLE_BLE, 80, p_buffer) > 0) {
-        pwr_table_ble = *(int *)p_buffer;
+        pwr_table_ble = *(int8_t *)p_buffer;
         blog_info("set pwr_table_ble = %ld in dts\r\n", pwr_table_ble);
     } else {
         blog_error("RFTLV_TYPE_PWR_TABLE_BLE NULL\r\n");
@@ -1079,7 +1079,7 @@ static int hal_board_load_fdt_info(const void *dtb)
     if (offset2 > 0) {
         addr_prop = fdt_getprop(fdt, offset2, "pwr_table_ble", &lentmp);
         if (addr_prop) {
-            pwr_table_ble = BL_FDT32_TO_U32(addr_prop, 0);
+            pwr_table_ble = (int8_t)BL_FDT32_TO_U32(addr_prop, 0);
         } else {
             pwr_table_ble = 0;
         }

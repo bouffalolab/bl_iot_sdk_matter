@@ -35,6 +35,16 @@ enum bt_a2dp_codec_id {
 	BT_A2DP_VENDOR = 0xff
 };
 
+/** @brief Media Codec Type */
+enum MEDIA_CODEC_TYPE {
+	/** SBC codec type */
+	BT_A2DP_CODEC_TYPE_SBC = 0x00,
+	/** AAC codec type */
+	BT_A2DP_CODEC_TYPE_AAC = 0x02,
+	/** AAC codec type */
+	BT_A2DP_CODEC_TYPE_VENDOR = 0xff,
+};
+
 /** @brief Preset for the endpoint */
 struct bt_a2dp_preset {
 	/** Length of preset */
@@ -103,6 +113,18 @@ struct bt_a2dp *bt_a2dp_connect(struct bt_conn *conn);
  */
 int bt_a2dp_register_endpoint(struct bt_a2dp_endpoint *endpoint,
 			      uint8_t media_type, uint8_t role);
+
+/** @brief SBC decode init.
+ *
+ *  @return 0 in case of success and error code in case of error.
+ */
+int a2dp_sbc_decode_init();
+
+/** @brief SBC decode process.
+ *
+ *  @return 0 in case of success and error code in case of error.
+ */
+int a2dp_sbc_decode_process(uint8_t* media_data, uint16_t data_len);
 
 #ifdef __cplusplus
 }
