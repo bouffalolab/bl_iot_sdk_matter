@@ -38,6 +38,11 @@ void ble_controller_deinit(void);
 #if defined(CFG_BT_RESET)
 void ble_controller_reset(void);
 #endif
+char * ble_controller_get_lib_ver(void);
+
+// if 0, success.
+// if -1, fail, 
+int8_t ble_controller_set_scan_filter_table_size(uint8_t size);
 
 // return sleep duration, in unit of 1/32768s
 // if 0, means not allow sleep

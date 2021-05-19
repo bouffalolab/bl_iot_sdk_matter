@@ -21,7 +21,10 @@ endif
 COMPONENTS_BLSYS   := bltime blfdt blmtd bloop loopadc looprt loopset
 COMPONENTS_VFS     := romfs
 
-INCLUDE_COMPONENTS += freertos_riscv_ram bl602 bl602_std hal_drv vfs yloop utils cli blog blog_testc
+SOC_DRV = $(shell echo $(CONFIG_CHIP_NAME) | tr A-Z a-z)
+INCLUDE_COMPONENTS += $(SOC_DRV) $(SOC_DRV)_std
+
+INCLUDE_COMPONENTS += freertos_riscv_ram hal_drv vfs yloop utils cli blog blog_testc
 INCLUDE_COMPONENTS += easyflash4
 INCLUDE_COMPONENTS += $(COMPONENTS_BLSYS)
 INCLUDE_COMPONENTS += $(COMPONENTS_VFS)

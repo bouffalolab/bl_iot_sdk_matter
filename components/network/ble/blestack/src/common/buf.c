@@ -77,10 +77,19 @@ extern struct net_buf_pool friend_buf_pool;
 #endif //CONFIG_BT_MESH_FRIEND
 #endif
 #if defined(CONFIG_BT_BREDR)
-extern struct net_buf_pool sdp_pool;
 extern struct net_buf_pool br_sig_pool;
+extern struct net_buf_pool sdp_pool;
+extern struct net_buf_pool hf_pool;
+extern struct net_buf_pool dummy_pool;
 #endif
+
+#if defined(CONFIG_AUTO_PTS)
+extern struct net_buf_pool server_pool;
+extern struct net_buf_pool data_pool;
+#endif
+
 struct net_buf_pool *_net_buf_pool_list[] = {&hci_cmd_pool, &hci_rx_pool,
+
     #if defined(CONFIG_BT_CONN)
     &acl_tx_pool,
     &num_complete_pool,
@@ -107,8 +116,15 @@ struct net_buf_pool *_net_buf_pool_list[] = {&hci_cmd_pool, &hci_rx_pool,
 	#if defined(CONFIG_BT_BREDR)
 	&sdp_pool,
 	&br_sig_pool,
+	&hf_pool,
+	&dummy_pool,
 	#endif
-    };
+	#if defined(CONFIG_AUTO_PTS)
+	&server_pool,
+	&data_pool,
+	#endif
+};
+
 #else //defined(BFLB_DYNAMIC_ALLOC_MEM)
 extern struct net_buf_pool _net_buf_pool_list[];
 #endif //BFLB_BLE

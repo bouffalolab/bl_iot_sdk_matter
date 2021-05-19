@@ -25,10 +25,11 @@
 #include "hci_core.h"
 #include "conn_internal.h"
 #include "l2cap_internal.h"
+#include "sdp_internal.h"
 #include "avdtp_internal.h"
 #include "a2dp_internal.h"
 #include "rfcomm_internal.h"
-#include "sdp_internal.h"
+#include "hfp_hf.h"
 
 #define BR_CHAN(_ch) CONTAINER_OF(_ch, struct bt_l2cap_br_chan, chan)
 #define BR_CHAN_RTX(_w) CONTAINER_OF(_w, struct bt_l2cap_br_chan, chan.rtx_work)
@@ -1547,17 +1548,22 @@ void bt_l2cap_br_init(void)
 #endif
 	sys_slist_init(&br_servers);
 
+	bt_sdp_init();
+
 	if (IS_ENABLED(CONFIG_BT_RFCOMM)) {
 		bt_rfcomm_init();
+	}
+
+	if (IS_ENABLED(CONFIG_BT_HFP)) {
+		bt_hfp_hf_init();
 	}
 
 	if (IS_ENABLED(CONFIG_BT_AVDTP)) {
 		bt_avdtp_init();
 	}
 
-	bt_sdp_init();
-
 	if (IS_ENABLED(CONFIG_BT_A2DP)) {
 		bt_a2dp_init();
 	}
+
 }

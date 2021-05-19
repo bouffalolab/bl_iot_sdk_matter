@@ -90,40 +90,46 @@ boot times测试
 ::
 
     static void __easyflash_boottimes_dump()
-    {
-        char *times = NULL;
-        uint32_t times_num = 0;
-        char env_set[12] = {0};
+	{
+		char     times[12] = {0};
+		size_t   env_len = 0;
+		uint32_t times_num = 0;
+		char     env_set[12] = {0};
 
-        uint32_t timer_us;
+		uint32_t timer_us;
 
-        timer_us = bl_timer_now_us();
-        times = ef_get_env(EASYFLASH_BOOT_TIMES);
-        timer_us = bl_timer_now_us() - timer_us;
-        printf("easyflash read boot_times us %ld\r\n", timer_us);
-        
-        if (times == NULL) {
-            __easyflash_first_boottimes();
-            return;
-        }
-        times_num = atoi(times);
-        sprintf(env_set, "%ld", ++times_num);
-        
-        timer_us = bl_timer_now_us();
-        ef_set_env(EASYFLASH_BOOT_TIMES, env_set);
-        ef_save_env();
-        timer_us = bl_timer_now_us() - timer_us;
-        printf("easyflash write boot_times us %ld\r\n", timer_us);
-        
-        printf("The system now boot times %ld\r\n", times_num);
-    }
+		timer_us = bl_timer_now_us();
+		env_len  = ef_get_env_blob(EASYFLASH_BOOT_TIMES, times, sizeof(times) , NULL);
+		timer_us = bl_timer_now_us() - timer_us;
+		
+		printf("easyflash read boot_times us %ld\r\n", timer_us);
+
+		if (env_len == 0) {
+		__easyflash_first_boottimes();
+		return;
+		}
+		times_num = atoi(times);
+		sprintf(env_set, "%ld", ++times_num);
+		
+		timer_us = bl_timer_now_us();
+		ef_set_env_blob(EASYFLASH_BOOT_TIMES, env_set, sizeof(env_set));
+		timer_us = bl_timer_now_us() - timer_us;
+
+		printf("easyflash write boot_times us %ld\r\n", timer_us);
+		printf("The system now boot times %ld\r\n", times_num);
+	}
 
 3) 测试结果如下图：
 
-    .. figure:: imgs/image5.png
+    .. figure:: imgs/image5_easyflash4.png
        :width: 900
        :height: 450
-       :alt: 
+
+上一版本测试结果图
+
+    .. figure:: imgs/image5_easyflash.png
+       :width: 900
+       :height: 450 
 
 横坐标：boot times （单位：次数）      
 
@@ -144,4 +150,64 @@ boot times测试
 
 3) 写过程分析：写之前都需要read找到kv（修改KV详细过程见： 修改KV_），本次测试write在read之后，每read一次后easyflash会更新到cache，故write的时间并没有与read呈线性关系。
 
-4) 图中可见，在boottimes在688次左右时，读写操作时间“初始化”了，同时write的时间出现尖峰，此时触发了GC（触发GC过程详见： 触发GC_），说明flash的大小已经快操作尽，只剩一个空闲sector。
+4) 图中可见，在boottimes在576次左右时，读写操作时间“初始化”了，同时write的时间出现尖峰，此时触发了GC（触发GC过程详见： 触发GC_），说明flash的大小已经快操作尽，只剩一个空闲sector，此后的set_env会触发gc，每次触发擦除一个sector，直至无dirty的sector存在。
+
+3. 测试结果对比
+~~~~~~~~~~~~~
+
+1) easyflash4初次使用时，init耗时相较于上一版本有所提升，缩短约120000（us）。
+
+2) 读写过程分析：4版本的NG模式操作效率比以前的模式高，充分利用剩余空闲区域，擦除次数及操作时间显著降低。
+
+3) 由于修改了GC处理机制，现版本的GC处理分多次擦除，降低了单一时间的GC操作时间。
+
+4. 代码修改
+~~~~~~~~~~~~~
+
+::
+
+    /* default sector hdr gc_flag*/
+	#define DEFAULT_GC_FLAG                          0xFFFFFFFF
+	
+	struct sector_hdr_data {
+    struct {
+        uint8_t store[STORE_STATUS_TABLE_SIZE];  /**< sector store status @see sector_store_status_t */
+        uint8_t dirty[DIRTY_STATUS_TABLE_SIZE];  /**< sector dirty status @see sector_dirty_status_t */
+    } status_table;
+    uint32_t magic;                              /**< magic word(`E`, `F`, `4`, `0`) */
+    uint32_t combined;                           /**< the combined next sector number, 0xFFFFFFFF: not combined */
+    uint32_t reserved;
+    uint32_t gc_flag;                            /**< sector gc_flag 0xFFFFFFFF-NO GC  0-NEED GC */
+	};
+	
+	/* sector hdr gc_flag */
+	static uint32_t sector_hdr_gc_flag = DEFAULT_GC_FLAG;
+	
+	static bool read_hdr_gc(sector_meta_data_t sector, void *arg1, void *arg2){
+
+		ef_port_read(sector->addr+SECTOR_HDR_GC_FLAG_OFFSET, (uint32_t *)&sector_hdr_gc_flag, sizeof(sector_hdr_gc_flag));
+		if(sector_hdr_gc_flag == DEFAULT_GC_FLAG){
+		    return false;
+		}
+		else{
+		    EF_DEBUG("Have sector to gc @0x%08x\r\n", sector->addr);
+		    return true;
+		}
+	}
+
+	static bool write_hdr_gc(sector_meta_data_t sector, void *arg1, void *arg2){
+		uint32_t data = 0;
+
+		if (sector->check_ok && 
+		   (sector->status.dirty == SECTOR_DIRTY_TRUE || sector->status.dirty == SECTOR_DIRTY_GC) &&
+		    sector->status.store == SECTOR_STORE_FULL) {
+		    EF_DEBUG("Write sector hdr gc flag @0x%08x\r\n", sector->addr);
+		    ef_port_write(sector->addr+SECTOR_HDR_GC_FLAG_OFFSET, (uint32_t *)&data, sizeof(data));
+		}
+
+		return false;
+	}
+
+
+
+

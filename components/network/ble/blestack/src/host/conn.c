@@ -333,7 +333,7 @@ static void conn_update_timeout(struct k_work *work)
 		 * auto connect flag if it was set, instead just cancel
 		 * connection directly
 		 */
-		bt_hci_cmd_send(BT_HCI_OP_LE_CREATE_CONN_CANCEL, NULL);
+		bt_hci_cmd_send_sync(BT_HCI_OP_LE_CREATE_CONN_CANCEL, NULL, NULL);
 		return;
 	}
 
@@ -368,6 +368,29 @@ static void conn_update_timeout(struct k_work *work)
 
 	atomic_set_bit(conn->flags, BT_CONN_SLAVE_PARAM_UPDATE);
 }
+
+#if defined(CONFIG_BT_AUDIO)
+struct bt_conn *iso_conn_new(struct bt_conn *conns, size_t size)
+{
+	struct bt_conn *conn = NULL;
+	int i;
+
+	for (i = 0; i < size; i++) {
+		if (atomic_cas(&conns[i].ref, 0, 1)) {
+			conn = &conns[i];
+			break;
+		}
+	}
+
+	if (!conn) {
+		return NULL;
+	}
+
+	(void)memset(conn, 0, offsetof(struct bt_conn, ref));
+
+	return conn;
+}
+#endif
 
 static struct bt_conn *conn_new(void)
 {
@@ -1020,6 +1043,12 @@ int bt_conn_le_start_encryption(struct bt_conn *conn, u8_t rand[8],
 #if defined(CONFIG_BT_SMP) || defined(CONFIG_BT_BREDR)
 u8_t bt_conn_enc_key_size(struct bt_conn *conn)
 {
+	//GATT/SR/GAR/BV-04-C
+	// if the connection instance is valid
+	if(!conn){
+		return 0;
+	}
+
 	if (!conn->encrypt) {
 		return 0;
 	}
@@ -1155,7 +1184,7 @@ void bt_conn_cb_register(struct bt_conn_cb *cb)
 	callback_list = cb;
 }
 
-static void bt_conn_reset_rx_state(struct bt_conn *conn)
+void bt_conn_reset_rx_state(struct bt_conn *conn)
 {
 	if (!conn->rx_len) {
 		return;
@@ -1976,7 +2005,7 @@ static int bt_hci_disconnect(struct bt_conn *conn, u8_t reason)
 	disconn->handle = sys_cpu_to_le16(conn->handle);
 	disconn->reason = reason;
 
-	err = bt_hci_cmd_send(BT_HCI_OP_DISCONNECT, buf);
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_DISCONNECT, buf, NULL);
 	if (err) {
 		return err;
 	}
@@ -2089,8 +2118,8 @@ int bt_conn_disconnect(struct bt_conn *conn, u8_t reason)
 
 		if (IS_ENABLED(CONFIG_BT_CENTRAL)) {
 			k_delayed_work_cancel(&conn->update_work);
-			return bt_hci_cmd_send(BT_HCI_OP_LE_CREATE_CONN_CANCEL,
-					       NULL);
+			return bt_hci_cmd_send_sync(BT_HCI_OP_LE_CREATE_CONN_CANCEL,
+					       NULL, NULL);
 		}
 
 		return 0;

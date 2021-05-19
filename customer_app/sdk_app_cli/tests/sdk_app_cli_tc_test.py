@@ -20,11 +20,11 @@ def sdk_app_cli_tc(env, extra_data):
     try:
         dut.expect("Booting BL602 Chip...", timeout=1)
         print('BL602 booted')
-        dut.expect('Init CLI with event Driven', timeout=1)
+        dut.expect('Init CLI with event Driven', timeout=5)
         print('BL602 CLI init done')
 
         dut.write('test')
-        dut.expect("hello world", timeout=1)
+        dut.expect("hello world", timeout=5)
         dut.halt()
     except DUT.ExpectTimeout:
         print('ENV_TEST_FAILURE: BL602 cli test failed')

@@ -55,11 +55,11 @@ def bl602_demo_wifi_ota_tc(env, extra_data):
         #p = subprocess.Popen('cat FW_OTA.bin.xz.ota | nc -l 3333', shell=True, cwd=ota_path)
         p = subprocess.Popen("timeout 60 sh -c 'cat FW_OTA.bin.xz.ota | nc -l 3333'", shell=True, cwd=ota_path)
         print(p.pid)
-        
+        time.sleep(5)
         cmd = 'ota_tcp' + ' ' + ip
         dut.write(cmd)
         time.sleep(0.5)
-        dut.expect("Update PARTITION", timeout=50)
+        dut.expect("Update PARTITION", timeout=100)
         time.sleep(10)
         dut.expect("Booting BL602 Chip...", timeout=0.5)
         list_all = dut.expect(re.compile(r'======= PtTable_Config([\s\S]*?)======= FlashCfg magiccode'), timeout=4)

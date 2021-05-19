@@ -32,8 +32,7 @@ def sdk_app_http_client_tcp_tc(env, extra_data):
         cmd_wifi_connect = ' '.join(cmd)
         dut.write(cmd_wifi_connect)            
         #dut.write('wifi_sta_connect bl_test_013 tester12345678')
-        dut.expect("Entering wifiConnected_IPOK state", timeout=20)
-
+        dut.expect("Entering wifiConnected_IPOK state", timeout=50)
         dut.write('httpc')
         dut.expect("Transfer finished", timeout=500)
         

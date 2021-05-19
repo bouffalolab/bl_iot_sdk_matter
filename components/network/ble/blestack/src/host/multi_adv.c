@@ -235,7 +235,7 @@ int multi_adv_start_adv_instant(struct multi_adv_instant *adv_instant)
                                 adv_instant->ad, adv_instant->ad_len,
                                 adv_instant->sd, adv_instant->sd_len);
     if (ret) {
-        //printf("adv start instant failed: inst_id %d, err %d", adv_instant->instant_id, ret);
+        printf("adv start instant failed: inst_id %d, err %d\r\n", adv_instant->instant_id, ret);
     }
     return ret;
 }

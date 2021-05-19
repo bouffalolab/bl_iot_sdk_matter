@@ -45,7 +45,7 @@ void psm_test_cmd(char *buf, int len, int argc, char **argv)
     uint8_t *data_src = NULL;
     uint8_t *data_buf = NULL;
     uint32_t data_len = 0;
-    uint32_t tbuf[] = {1, 1024, 2048, 3979, 3980, 3981};
+    uint32_t tbuf[] = {1, 1024, 2048, 3978, 3979, 3980};
     uint32_t i, j;
 
     size_t read_len;

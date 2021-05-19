@@ -281,6 +281,71 @@ void* pvPortCalloc(size_t numElements, size_t sizeOfElement)
     return pv;
 }
 
+void *pvPortRealloc(void *pv, size_t xWantedSize)
+{
+    size_t block_size;
+    BlockLink_t *pxLink;
+    void *pvReturn = NULL;
+    uint8_t *puc = (uint8_t *)pv;
+
+    vTaskSuspendAll();
+    {
+        if (xWantedSize > 0)
+        {
+            if (pv != NULL)
+            {
+                puc -= xHeapStructSize;
+                pxLink = (BlockLink_t *)puc;
+
+                if ((pxLink->xBlockSize & xBlockAllocatedBit) != 0)
+                {
+                    if (pxLink->pxNextFreeBlock == NULL)
+                    {
+                        /* Get the size of the current memory block */
+                        block_size = (pxLink->xBlockSize & ~xBlockAllocatedBit) - xHeapStructSize;
+						pvReturn = pvPortCalloc(1, xWantedSize);
+
+						if (pvReturn != NULL)
+                        {
+                            if (block_size < xWantedSize)
+                            {
+                                memcpy(pvReturn, pv, block_size);
+                            }
+                            else
+                            {
+                                puc = pvReturn - xHeapStructSize;
+                                pxLink = (BlockLink_t *)puc;
+								block_size = (pxLink->xBlockSize & ~xBlockAllocatedBit) - xHeapStructSize;
+                                memcpy(pvReturn, pv, block_size);
+                            }
+                            vPortFree(pv);
+                        }
+                    }
+                    else
+					{
+						pvReturn = pvPortMalloc(xWantedSize);
+					}
+                }
+                else
+                {
+                    pvReturn = pvPortMalloc(xWantedSize);
+                }
+            }
+            else
+            {
+                pvReturn = pvPortMalloc(xWantedSize);
+            }
+        }
+        else
+        {
+            vPortFree(pv);
+            pvReturn = NULL;
+        }
+    }
+	( void ) xTaskResumeAll();
+    return pvReturn;
+}
+
 void vPortFree( void *pv )
 {
 uint8_t *puc = ( uint8_t * ) pv;

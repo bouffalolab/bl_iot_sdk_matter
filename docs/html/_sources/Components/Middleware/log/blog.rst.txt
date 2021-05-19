@@ -65,7 +65,7 @@ log等级说明
       例如这里需要增加blog\_testa blog\_testb
       blog\_testc组件静态开关，其他组件默认关闭
       ``LOG_ENABLED_COMPONENTS:=blog_testa blog_testb blog_testc``
-   -  软件开关 通过输入如下命令来使能log输出等级 形如，logset level
+   -  软件开关 通过输入如下命令来使能log输出等级 形如，blogset level
       component\_name例如： ``blogset assert blog_testc``
 
 -  文件log管理
@@ -73,7 +73,7 @@ log等级说明
    -  静态开关
       在对应的\*.c文件中，加入此行代码，注意，不管是开或者关，必须选择一种。
       ``默认就是开`` ``#define BLOG_HARD_DECLARE_DISABLE 1    // 关``
-   -  软件开关 通过输入如下命令来使能log输出等级 形如，logset level
+   -  软件开关 通过输入如下命令来使能log输出等级 形如，blogset level
       component\_name.file\_name例如：
       ``blogset info blog_testc.blog_testc2_full``
 
@@ -81,7 +81,7 @@ log等级说明
 
    -  静态开关 使用就增加BLOG\_DECLARE(...)，不用直接不增加此行即可。
       ``BLOG_DECLARE(blog_testc2);    // 打开，其中　"blog_testc2"为用户自定义``
-   -  软件开关 通过输入如下命令来使能log输出等级 形如，logset level
+   -  软件开关 通过输入如下命令来使能log输出等级 形如，blogset level
       component\_name.file\_name.pri\_name例如：
       ``blogset debug blog_testc.blog_testc2_full.blog_testc2``
 

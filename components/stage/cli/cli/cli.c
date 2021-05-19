@@ -1427,3 +1427,9 @@ int cli_getchar(char *inbuf)
         return 0;
     }
 }
+
+int aos_cli_device_fd_get(void)
+{
+    return fd_console;
+}
+

@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>15. AOS VFS &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-6-g2463b6e1 文档</title>
+  <title>15. AOS VFS &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-138-gb54c10f45 文档</title>
   
 
   
@@ -113,6 +113,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_mesh/mesh.html">14. Mesh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_blsync_ble/blsync_ble.html">15. BLSYNC-BLE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Examples/sdk_app_easyflash_boottimes/easyflash_boottimes.html">16. Easyflash4 boot times</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_dac/DAC.html">17. DAC</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul class="current">
@@ -268,7 +269,7 @@ Things的代码命名规则中规定：所有的对外接口都需要加上前�
 </pre></div>
 </div>
 <p>因为VFS虚拟文件系统将文件和目录都当做文件来看待，上述的数据结构是索引节点类型，其具有节点具有的操作方法、节点的数据存放指针、节点的名称（即节点路径名/dev/null）、节点类型、节点被引用的次数。</p>
-<p>在<code class="docutils literal notranslate"><span class="pre">inode_</span></code>t结构体当中，ops是针对索引节点的操作方法，具体如下：</p>
+<p>在<code class="docutils literal notranslate"><span class="pre">inode_t</span></code>结构体当中，ops是针对索引节点的操作方法，具体如下：</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">union</span> <span class="n">inode_ops_t</span> <span class="p">{</span>
 
     <span class="k">const</span> <span class="n">file_ops_t</span> <span class="o">*</span><span class="n">i_ops</span><span class="p">;</span>  <span class="cm">/* char driver operations */</span>

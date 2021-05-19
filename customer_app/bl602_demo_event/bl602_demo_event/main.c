@@ -90,6 +90,11 @@
 #include "bl_rtc.h"
 #include "utils_string.h"
 
+#if defined(CONFIG_AUTO_PTS)
+#include "bttester.h"
+#include "autopts_uart.h"
+#endif
+
 #define TASK_PRIORITY_FW            ( 30 )
 #define mainHELLO_TASK_PRIORITY     ( 20 )
 #define UART_ID_2 (2)
@@ -1285,6 +1290,18 @@ static void aos_loop_proc(void *pvParameters)
     ble_controller_init(configMAX_PRIORITIES - 1);
     #endif
 
+    #if defined(CONFIG_AUTO_PTS)
+    pts_uart_init(1,115200,8,1,0,0);
+    // Initialize BLE controller
+    ble_controller_init(configMAX_PRIORITIES - 1);
+    extern int hci_driver_init(void);
+    // Initialize BLE Host stack
+    hci_driver_init();
+
+    tester_send(BTP_SERVICE_ID_CORE, CORE_EV_IUT_READY, BTP_INDEX_NONE,
+		    NULL, 0);
+    #endif
+
     aos_loop_run();
 
     puts("------------------------------------------\r\n");
@@ -1454,6 +1471,10 @@ void bfl_main()
     xTaskCreateStatic(aos_loop_proc, (char*)"event_loop", 1024, NULL, 15, aos_loop_proc_stack, &aos_loop_proc_task);
     puts("[OS] Starting TCP/IP Stack...\r\n");
     tcpip_init(NULL, NULL);
+
+#if defined(CONFIG_AUTO_PTS)
+    tester_init();
+#endif
 
     puts("[OS] Starting OS Scheduler...\r\n");
     vTaskStartScheduler();

@@ -17,23 +17,23 @@ cli 命令表
 +-----------+---------------------+
 | m         | modify memory       |
 +-----------+---------------------+
-| cho       | echo for command    |
+| echo      | echo for command    |
 +-----------+---------------------+
-| xit       | close CLI           |
+| exit      | close CLI           |
 +-----------+---------------------+
-| evname    | print device name   |
+| devname   | print device name   |
 +-----------+---------------------+
-| ysver     | system version      |
+| sysver    | system version      |
 +-----------+---------------------+
-| eboot     | reboot system       |
+| reboot    | reboot system       |
 +-----------+---------------------+
-| oweroff   | poweroff system     |
+| poweroff  | poweroff system     |
 +-----------+---------------------+
-| ime       | system time         |
+| time      | system time         |
 +-----------+---------------------+
-| ta        | system ota          |
+| ota       | system ota          |
 +-----------+---------------------+
-| s         | thread dump         |
+| ls        | thread dump         |
 +-----------+---------------------+
 
 -  **用户命令**

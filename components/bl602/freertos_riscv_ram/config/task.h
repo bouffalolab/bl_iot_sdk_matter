@@ -1635,6 +1635,8 @@ TaskHandle_t xTaskGetIdleTaskHandle( void ) PRIVILEGED_FUNCTION;
 	</pre>
  */
 UBaseType_t uxTaskGetSystemState( TaskStatus_t * const pxTaskStatusArray, const UBaseType_t uxArraySize, uint32_t * const pulTotalRunTime ) PRIVILEGED_FUNCTION;
+UBaseType_t xAddTasksToAllList( void ) PRIVILEGED_FUNCTION;
+List_t * pxTaskGetAllList( void ) PRIVILEGED_FUNCTION;
 
 /**
  * task. h

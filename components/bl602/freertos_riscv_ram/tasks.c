@@ -223,6 +223,17 @@ count overflows. */
 /*-----------------------------------------------------------*/
 
 /*
+ * Place the task represented by pxTCB into the appropriate ready list for
+ * the task.  It is inserted at the end of the list.
+ */
+#if ( configUSE_TRACE_FACILITY == 1 )
+	#define prvAddTaskToAllList( pxTCB )																\
+		uxListRemove( &( ( pxTCB )->xStateListItem ) );													\
+		vListInsertEnd( &( xAllTaskList ), &( ( pxTCB )->xStateListItem ) )
+#endif
+/*-----------------------------------------------------------*/
+
+/*
  * Several functions take an TaskHandle_t parameter that can optionally be NULL,
  * where NULL is used to indicate that the handle of the currently executing
  * task should be used in place of the parameter.  This macro simply checks to
@@ -343,6 +354,10 @@ PRIVILEGED_DATA static List_t xDelayedTaskList2;						/*< Delayed tasks (two lis
 PRIVILEGED_DATA static List_t * volatile pxDelayedTaskList;				/*< Points to the delayed task list currently being used. */
 PRIVILEGED_DATA static List_t * volatile pxOverflowDelayedTaskList;		/*< Points to the delayed task list currently being used to hold tasks that have overflowed the current tick count. */
 PRIVILEGED_DATA static List_t xPendingReadyList;						/*< Tasks that have been readied while the scheduler was suspended.  They will be moved to the ready list when the scheduler is resumed. */
+
+#if ( configUSE_TRACE_FACILITY == 1 )
+	PRIVILEGED_DATA static List_t xAllTaskList;							/*< All of tasks */
+#endif
 
 #if( INCLUDE_vTaskDelete == 1 )
 
@@ -486,6 +501,20 @@ static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait, const BaseT
 #if ( configUSE_TRACE_FACILITY == 1 )
 
 	static UBaseType_t prvListTasksWithinSingleList( TaskStatus_t *pxTaskStatusArray, List_t *pxList, eTaskState eState ) PRIVILEGED_FUNCTION;
+
+#endif
+
+/*
+ * Fills an TaskTCB structure with information on each task that is
+ * referenced from the pxList list (which may be a ready list, a delayed list,
+ * a suspended list, etc.).
+ *
+ * THIS FUNCTION IS INTENDED FOR DEBUGGING ONLY, AND SHOULD NOT BE CALLED FROM
+ * NORMAL APPLICATION CODE.
+ */
+#if ( configUSE_TRACE_FACILITY == 1 )
+
+	static UBaseType_t prvAddTaskToAllListWithSingleList( List_t *pxList ) PRIVILEGED_FUNCTION;
 
 #endif
 
@@ -2578,6 +2607,57 @@ TCB_t *pxTCB;
 	}
 
 #endif /* configUSE_TRACE_FACILITY */
+/*-----------------------------------------------------------*/
+
+#if ( configUSE_TRACE_FACILITY == 1 )
+
+	UBaseType_t xAddTasksToAllList( void )
+	{
+    UBaseType_t uxTask = 0, uxQueue = configMAX_PRIORITIES;
+	
+        /* Fill in an TaskStatus_t structure with information on each
+			task in the Ready state. */
+        do
+        {
+            uxQueue--;
+            uxTask += prvAddTaskToAllListWithSingleList( &( pxReadyTasksLists[ uxQueue ] ) );
+        } while (uxQueue > (UBaseType_t)tskIDLE_PRIORITY); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
+
+        /* Fill in an TaskStatus_t structure with information on each
+			task in the Blocked state. */
+        uxTask += prvAddTaskToAllListWithSingleList( ( List_t * )pxDelayedTaskList );
+        uxTask += prvAddTaskToAllListWithSingleList( ( List_t * )pxOverflowDelayedTaskList );
+
+		#if (INCLUDE_vTaskDelete == 1)
+        {
+            /* Fill in an TaskStatus_t structure with information on
+				each task that has been deleted but not yet cleaned up. */
+            uxTask += prvAddTaskToAllListWithSingleList( &xTasksWaitingTermination );
+        }
+		#endif
+
+		#if (INCLUDE_vTaskSuspend == 1)
+        {
+            /* Fill in an TaskStatus_t structure with information on
+				each task in the Suspended state. */
+            uxTask += prvAddTaskToAllListWithSingleList( &xSuspendedTaskList );
+        }
+		#endif
+	
+        return uxTask;
+    }
+
+#endif /* configUSE_TRACE_FACILITY */
+/*----------------------------------------------------------*/
+
+#if ( configUSE_TRACE_FACILITY == 1 )
+
+	List_t * pxTaskGetAllList( void )
+	{
+		return &xAllTaskList;
+    }
+
+#endif /* configUSE_TRACE_FACILITY */
 /*----------------------------------------------------------*/
 
 #if ( INCLUDE_xTaskGetIdleTaskHandle == 1 )
@@ -3659,6 +3739,12 @@ UBaseType_t uxPriority;
 	}
 	#endif /* INCLUDE_vTaskSuspend */
 
+	#if ( configUSE_TRACE_FACILITY == 1 )
+	{
+		vListInitialise( &xAllTaskList );
+	}
+	#endif
+
 	/* Start with pxDelayedTaskList using list1 and the pxOverflowDelayedTaskList
 	using list2. */
 	pxDelayedTaskList = &xDelayedTaskList1;
@@ -3820,7 +3906,39 @@ static void prvCheckTasksWaitingTermination( void )
 
 		return uxTask;
 	}
+#endif /* configUSE_TRACE_FACILITY */
+/*-----------------------------------------------------------*/
 
+#if ( configUSE_TRACE_FACILITY == 1 )
+	static UBaseType_t prvAddTaskToAllListWithSingleList( List_t *pxList )
+	{
+	configLIST_VOLATILE TCB_t *pxNextTCB, *pxFirstTCB;
+	UBaseType_t uxTask = 0;
+	TCB_t *pxTCB;
+
+		if( listCURRENT_LIST_LENGTH( pxList ) > ( UBaseType_t ) 0 )
+		{
+			listGET_OWNER_OF_NEXT_ENTRY( pxFirstTCB, pxList ); /*lint !e9079 void * is used as this macro is used with timers and co-routines too.  Alignment is known to be fine as the type of the pointer stored and retrieved is the same. */
+
+			/* Populate an TaskStatus_t structure within the
+			pxTaskStatusArray array for each task that is referenced from
+			pxList.  See the definition of TaskStatus_t in task.h for the
+			meaning of each TaskStatus_t structure member. */
+			do
+			{
+				listGET_OWNER_OF_NEXT_ENTRY( pxNextTCB, pxList ); /*lint !e9079 void * is used as this macro is used with timers and co-routines too.  Alignment is known to be fine as the type of the pointer stored and retrieved is the same. */
+				pxTCB = prvGetTCBFromHandle( pxNextTCB );
+				prvAddTaskToAllList(pxTCB);
+				uxTask++;
+			} while( pxNextTCB != pxFirstTCB );
+		}
+		else
+		{
+			mtCOVERAGE_TEST_MARKER();
+		}
+
+		return uxTask;
+	}
 #endif /* configUSE_TRACE_FACILITY */
 /*-----------------------------------------------------------*/
 

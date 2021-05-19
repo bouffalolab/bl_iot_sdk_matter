@@ -35,7 +35,7 @@ def sdk_app_uart_echo_tc(env, extra_data):
             ser.write(data)
         time.sleep(0.5)
 
-        dut.expect('recvbuff:', timeout=1)
+        dut.expect('recvbuff:', timeout=5)
         dut.halt()
     except DUT.ExpectTimeout:
         print('ENV_TEST_FAILURE: BL602 uart echo test failed')

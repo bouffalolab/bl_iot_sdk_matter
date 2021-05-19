@@ -155,30 +155,23 @@ static int ble_tp_recv_wr(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 NAME    
     indicate_rsp /bl_tp_send_indicate
 */ 
-struct bt_gatt_indicate_params *ind_params;
-
 void indicate_rsp(struct bt_conn *conn, const struct bt_gatt_attr *attr,	u8_t err)
 {
-    free(ind_params);
-    printf("%s, receive comfirmation, err:%d\n", __func__, err);
+    printf("receive confirm, err:%d\n", err);
 }
 
 static int bl_tp_send_indicate(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				                    const void *data, u16_t len)
 {
-	ind_params = malloc(sizeof(struct bt_gatt_indicate_params));
-	if(ind_params == NULL)
-	{
-	    return -1;
-	}
+	//indicate paramete must be allocated statically
+	static struct bt_gatt_indicate_params ind_params;
+	ind_params.attr = attr;
+	ind_params.data = data;
+	ind_params.len = len;
+	ind_params.func = indicate_rsp;
+	ind_params.uuid = NULL;
 
-	ind_params->attr = attr;
-	ind_params->data = data;
-	ind_params->len = len;
-	ind_params->func = indicate_rsp;
-	ind_params->uuid = NULL;
-
-	return bt_gatt_indicate(conn, ind_params);
+	return bt_gatt_indicate(conn, &ind_params);
 }
 
 /*************************************************************************

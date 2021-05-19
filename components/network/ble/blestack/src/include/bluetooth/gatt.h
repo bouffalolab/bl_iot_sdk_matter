@@ -1365,6 +1365,11 @@ int bt_gatt_unsubscribe(struct bt_conn *conn,
  */
 void bt_gatt_cancel(struct bt_conn *conn, void *params);
 
+#if defined(BFLB_BLE_MTU_CHANGE_CB)
+typedef void (*bt_gatt_mtu_changed_cb_t)(struct bt_conn *conn, int mtu);
+void bt_gatt_register_mtu_callback(bt_gatt_mtu_changed_cb_t cb);
+#endif
+
 #if defined(BFLB_BLE)
 /** @brief load gatt ccc from flash
  *

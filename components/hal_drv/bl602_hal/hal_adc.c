@@ -47,21 +47,21 @@ static int check_adc_gpio_valid(int gpio_num)
     return -1; 
 }
 
-//mode = 0, for normal adc. freq 40HZ~1300HZ. one time sampling one data.
-//mode = 1, for mic, freq 500HZ~16000HZ, one time sampling data_num data.
+//mode = 0, for normal adc. freq 100HZ~2080HZ. one time sampling one data.
+//mode = 1, for mic, freq 1180Hz~25000Hz, one time sampling data_num data.
 int hal_adc_init(int mode, int freq, int data_num, int gpio_num)
 {
     int ret;
     int buf_size;
     
     if (mode == 0) {
-        if (freq < 40 || freq > 1300) {
+        if (freq < 100 || freq > 2080) {
             blog_error("illegal freq. for mode0, freq 40HZ ~ 1300HZ \r\n");
             
             return -1;
         }
     } else if (mode == 1) {
-        if (freq < 500 || freq > 16000) {
+        if (freq < 1180 || freq > 25000) {
             blog_error("illegal freq. for mode1, freq 500HZ ~ 16000HZ \r\n");
             
             return -1;
@@ -149,7 +149,8 @@ int32_t hal_adc_get_data(int gpio_num, int raw_flag)
     
     ret = check_adc_gpio_valid(gpio_num);
     if (ret < 0) {
-        blog_error("not legal gpio num, adc only support gpio 4,5,6,9,10,11,12,13,14,15 \r\n");
+        blog_error("gpio = %d not legal gpio num, "
+        		"adc only support gpio 4,5,6,9,10,11,12,13,14,15 \r\n", gpio_num);
 
         return -1;
     }
@@ -175,6 +176,9 @@ int32_t hal_adc_get_data(int gpio_num, int raw_flag)
     memcpy((uint8_t*)adc_data, (uint8_t*)(pstctx->channel_data), ADC_CHANNEL_MAX * 4);  
     data = bl_adc_parse_data(adc_data, ADC_CHANNEL_MAX, channel, raw_flag);
 
+    if (data < 0) {
+    	blog_error("gpio = %d adc data = %ld parse error. \r\n", gpio_num, data);
+    }
     return data;
 }
 

@@ -208,11 +208,14 @@ BL_SDK_STDDRV_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl602/bl602_std/bl6
 EXTRA_CPPFLAGS += -D BL_SDK_PHY_VER=\"$(BL_SDK_PHY_VER)\"
 EXTRA_CPPFLAGS += -D BL_SDK_RF_VER=\"$(BL_SDK_RF_VER)\"
 EXTRA_CPPFLAGS += -D BL_SDK_STDDRV_VER=\"$(BL_SDK_STDDRV_VER)\"
-else
+endif
+ifeq ("$(CONFIG_CHIP_NAME)", "BL702")
 BL_SDK_STDDRV_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl702/bl702_std/BSP_Driver && git describe --always --tags --dirty)
 BL_SDK_STDCOM_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl702/bl702_std/BSP_Common && git describe --always --tags --dirty)
+BL_SDK_RF_VER := $(shell cd ${BL60X_SDK_PATH}/components/bl702/bl702_rf && git describe --always --tags --dirty)
 EXTRA_CPPFLAGS += -D BL_SDK_STDDRV_VER=\"$(BL_SDK_STDDRV_VER)\"
 EXTRA_CPPFLAGS += -D BL_SDK_STDCOM_VER=\"$(BL_SDK_STDCOM_VER)\"
+EXTRA_CPPFLAGS += -D BL_SDK_RF_VER=\"$(BL_SDK_RF_VER)\"
 endif
 $(info use git describe to generate Version Define)
 else
@@ -311,6 +314,10 @@ COMMON_FLAGS += -fstack-protector-all
 endif
 ifeq ($(CONFIG_ENABLE_FP),1)
 COMMON_FLAGS += -fno-omit-frame-pointer -DCONF_ENABLE_FRAME_PTR
+endif
+ifeq ($(CONF_ENABLE_FUNC_BACKTRACE),1)
+PROJ_ELF:=$(PROJECT_NAME).elf
+COMMON_FLAGS += -fno-omit-frame-pointer -DCONF_ENABLE_FUNC_BACKTRACE_ELF=$(PROJ_ELF) -DCONF_BUILD_PATH=$(BUILD_DIR_BASE)/$(PROJ_ELF)
 endif
 
 ifeq ($(CONFIG_ENABLE_STACK_OVERFLOW_CHECK),1)

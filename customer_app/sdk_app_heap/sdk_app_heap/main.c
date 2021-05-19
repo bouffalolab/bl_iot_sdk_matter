@@ -84,7 +84,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName )
 
 void vApplicationMallocFailedHook(void)
 {
-    printf("Memory Allocate Failed. Current left size is %d bytes\r\n",
+    blog_error("Memory Allocate Failed. Current left size is %d bytes\r\n",
         xPortGetFreeHeapSize()
     );
 //    while (1) {
@@ -273,6 +273,7 @@ static void __heap_test_fun (void *p_arg)
     uint32_t *ptr, *p_heap_addr;
     uint32_t  ptr_piece_num;
     uint8_t   test_ok;
+    uint32_t  len = 0;
 
     TaskHandle_t *p_handle;
 
@@ -317,6 +318,25 @@ static void __heap_test_fun (void *p_arg)
         vPortFree(ptr);
     }
     vPortFree(p_heap_addr);
+
+    ptr = pvPortMalloc(HEAP_TEST_UNIT_SIZE);
+
+    for ( ; len < HEAP_TEST_UNIT_SIZE; len += 32)
+    {
+    	ptr = pvPortRealloc(ptr, len);
+    	blog_info("Realloc %d, ptr = %p\r\n", len, ptr);
+    	blog_info("FreeHeapSize %d \r\n", xPortGetFreeHeapSize());
+    }
+
+    for ( ; len > 0; len -= 32)
+    {
+        ptr = pvPortRealloc(ptr, len);
+        blog_info("Realloc %d, ptr = %p\r\n", len, ptr);
+        blog_info("FreeHeapSize %d \r\n", xPortGetFreeHeapSize());
+    }
+
+    vPortFree(ptr);
+    blog_info("FreeHeapSize %d \r\n", xPortGetFreeHeapSize());
 
     if (test_ok == 1) {
         blog_info("mem heap test ok!\r\n");

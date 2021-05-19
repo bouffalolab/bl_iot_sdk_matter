@@ -45,5 +45,8 @@ endif
 ifeq ($(CONFIG_BT_MESH_SYNC),1)
 INCLUDE_COMPONENTS += blsync_ble
 endif
+ifeq ($(CONFIG_AUTO_PTS),1)
+INCLUDE_COMPONENTS += bleptstest
+endif
 endif
 include $(BL60X_SDK_PATH)/make_scripts_riscv/project.mk

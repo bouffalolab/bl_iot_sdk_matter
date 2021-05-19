@@ -18,6 +18,7 @@
 
 /* SCO  settings */
 #define BT_VOICE_CVSD_16BIT     0x0060
+#define BT_VOICE_MSBC_16BIT     0x0063
 
 /* k_poll event tags */
 enum {

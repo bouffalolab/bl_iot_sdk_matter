@@ -279,7 +279,7 @@ int wifi_mgmr_api_fw_scan(uint16_t *channels, uint16_t channel_num)
 
 int wifi_mgmr_api_fw_powersaving(int mode)
 {
-    return wifi_mgmr_api_common_msg(WIFI_MGMR_EVENT_FW_POWERSAVING, (void*)0x1, (void*)0x2);
+    return wifi_mgmr_api_common_msg(WIFI_MGMR_EVENT_FW_POWERSAVING, (void*)mode, (void*)0x2);
 }
 
 int wifi_mgmr_api_ap_start(char *ssid, char *passwd, int channel, uint8_t hidden_ssid)

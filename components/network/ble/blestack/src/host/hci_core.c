@@ -145,6 +145,10 @@ struct cmd_state_set {
 	bool val;
 };
 
+#if defined(BFLB_RELEASE_CMD_SEM_IF_CONN_DISC)
+void hci_release_conn_related_cmd(void);
+#endif
+
 void cmd_state_set_init(struct cmd_state_set *state, atomic_t *target, int bit,
 			bool val)
 {
@@ -221,6 +225,7 @@ struct net_buf_pool discardable_pool;
 #endif
 #endif /*!defined(BFLB_DYNAMIC_ALLOC_MEM)*/
 
+extern bool hfp_codec_msbc;
 
 struct event_handler {
 	u8_t event;
@@ -669,7 +674,7 @@ static void rpa_timeout(struct k_work *work)
 	}
 }
 
-#if defined(CONFIG_BT_STACK_PTS)
+#if defined(CONFIG_BT_STACK_PTS) || defined(CONFIG_AUTO_PTS)
 static int le_set_non_resolv_private_addr(u8_t id)
 {
 	bt_addr_t nrpa;
@@ -1117,6 +1122,27 @@ static void hci_disconn_complete(struct net_buf *buf)
 
 #if defined(BFLB_BLE_PATCH_CLEAN_UP_CONNECT_REF)
 	atomic_clear(&conn->ref);
+#endif
+
+#if defined(BFLB_RELEASE_CMD_SEM_IF_CONN_DISC)
+    hci_release_conn_related_cmd();
+#endif
+
+#if defined(CONFIG_BLE_RECONNECT_TEST)
+if (conn->role == BT_CONN_ROLE_MASTER) {
+    struct bt_le_conn_param param = {
+        .interval_min =  BT_GAP_INIT_CONN_INT_MIN,
+        .interval_max =  BT_GAP_INIT_CONN_INT_MAX,
+        .latency = 0,
+        .timeout = 400,
+    };
+
+    if(bt_conn_create_le(&conn->le.dst, &param)) {
+        printf("Reconnecting. \n");
+    } else {
+        printf("Reconnect fail. \n");
+    }
+}
 #endif
 
 advertise:
@@ -2069,11 +2095,20 @@ static int accept_sco_conn(const bt_addr_t *bdaddr, struct bt_conn *sco_conn)
 	cp = net_buf_add(buf, sizeof(*cp));
 	bt_addr_copy(&cp->bdaddr, bdaddr);
 	cp->pkt_type = sco_conn->sco.pkt_type;
+
 	cp->tx_bandwidth = 0x00001f40;
 	cp->rx_bandwidth = 0x00001f40;
-	cp->max_latency = 0x0007;
-	cp->retrans_effort = 0x01;
-	cp->content_format = BT_VOICE_CVSD_16BIT;
+        if (!hfp_codec_msbc) {
+		cp->max_latency = 0x0007;
+		cp->retrans_effort = 0x01;
+		cp->content_format = BT_VOICE_CVSD_16BIT;
+		BT_DBG("eSCO air coding CVSD!");
+        } else {
+		cp->max_latency = 0x000d;
+		cp->retrans_effort = 0x02;
+		cp->content_format = BT_VOICE_MSBC_16BIT;
+		BT_DBG("eSCO air coding mSBC!");
+        }
 
 	err = bt_hci_cmd_send_sync(BT_HCI_OP_ACCEPT_SYNC_CONN_REQ, buf, NULL);
 	if (err) {
@@ -3788,7 +3823,7 @@ static int start_le_scan(u8_t scan_type, u16_t interval, u16_t window)
 
 	net_buf_add_mem(buf, &set_param, sizeof(set_param));
 
-	bt_hci_cmd_send(BT_HCI_OP_LE_SET_SCAN_PARAM, buf);
+	bt_hci_cmd_send_sync(BT_HCI_OP_LE_SET_SCAN_PARAM, buf, NULL);
 
 	err = set_le_scan_enable(BT_HCI_LE_SCAN_ENABLE);
 	if (err) {
@@ -3863,7 +3898,7 @@ static int start_le_scan_with_isrpa(u8_t scan_type, u16_t interval, u16_t window
 
     net_buf_add_mem(buf, &set_param, sizeof(set_param));
 
-    bt_hci_cmd_send(BT_HCI_OP_LE_SET_SCAN_PARAM, buf);
+    bt_hci_cmd_send_sync(BT_HCI_OP_LE_SET_SCAN_PARAM, buf, NULL);
 
     err = set_le_scan_enable(BT_HCI_LE_SCAN_ENABLE);
     if (err) {
@@ -5594,9 +5629,11 @@ int bt_enable(bt_ready_cb_t cb)
 #if defined(BFLB_BLE_PATCH_SETTINGS_LOAD)
     if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
         #if defined(CFG_SLEEP)
-        if( HBN_Get_Status_Flag() == 0)
+        /* When using eflash_loader upprade firmware and softreset, 
+         * HBN_Get_Status_Flag() is 0x594c440b. so comment this line. */
+        //if( HBN_Get_Status_Flag() == 0)
         #endif
-        bt_local_info_load();
+        	bt_local_info_load();
      }
 #else
     if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
@@ -5707,6 +5744,12 @@ void bt_delete_queue(struct k_fifo * queue_to_del)
 #if defined(BFLB_DYNAMIC_ALLOC_MEM) && (CONFIG_BT_CONN)
 extern struct net_buf_pool acl_tx_pool;
 extern struct net_buf_pool prep_pool;
+#if defined(CONFIG_BT_BREDR)
+extern struct net_buf_pool br_sig_pool;
+extern struct net_buf_pool sdp_pool;
+extern struct net_buf_pool hf_pool;
+extern struct net_buf_pool dummy_pool;
+#endif
 #endif
 
 int bt_disable_action(void)
@@ -5754,6 +5797,12 @@ int bt_disable_action(void)
     #endif
     #if (CONFIG_BT_L2CAP_TX_FRAG_COUNT > 0)
     net_buf_deinit(&frag_pool);
+    #endif
+    #if defined(CONFIG_BT_BREDR)
+    net_buf_deinit(&br_sig_pool);
+    net_buf_deinit(&sdp_pool);
+    net_buf_deinit(&hf_pool);
+    net_buf_deinit(&dummy_pool);
     #endif
     #endif//defined(CONFIG_BT_CONN)
     #if defined(CONFIG_BT_DISCARDABLE_BUF_COUNT)
@@ -6417,7 +6466,9 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
             else if(param->addr_type == BT_ADDR_TYPE_NON_RPA)
                 err = le_set_non_resolv_private_addr(param->id);
             #else
+			#if !defined(CONFIG_BT_ADV_WITH_PUBLIC_ADDR)
 			err = le_set_private_addr(param->id);
+			#endif
             #endif//CONFIG_BT_STACK_PTS
             #if defined(CONFIG_BT_STACK_PTS)
 			if(param->addr_type == BT_ADDR_LE_PUBLIC)
@@ -6425,6 +6476,9 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
 			else
 			#endif
 			    set_param.own_addr_type = BT_ADDR_LE_RANDOM;
+				#if defined(CONFIG_BT_ADV_WITH_PUBLIC_ADDR)
+				set_param.own_addr_type = BT_ADDR_LE_PUBLIC;
+				#endif
             #endif
 		}
 
@@ -7692,6 +7746,42 @@ int bt_le_oob_get_sc_data(struct bt_conn *conn,
 			  const struct bt_le_oob_sc_data **oobd_remote)
 {
 	return bt_smp_le_oob_get_sc_data(conn, oobd_local, oobd_remote);
+}
+#endif
+
+#if defined(BFLB_RELEASE_CMD_SEM_IF_CONN_DISC)
+void hci_release_conn_related_cmd(void)
+{
+    u16_t opcode;
+
+    (void)opcode;
+    
+    if(bt_dev.sent_cmd)
+    {
+        opcode = cmd(bt_dev.sent_cmd)->opcode;
+        switch(opcode)
+        {
+            case BT_HCI_OP_LE_SET_DATA_LEN:
+            case BT_HCI_OP_LE_READ_REMOTE_FEATURES:
+            case BT_HCI_OP_LE_SET_DEFAULT_PHY:
+            case BT_HCI_OP_LE_SET_PHY:
+            case BT_HCI_OP_LE_CONN_PARAM_REQ_NEG_REPLY:
+            case BT_HCI_OP_LE_CONN_PARAM_REQ_REPLY:
+            case BT_HCI_OP_LE_LTK_REQ_NEG_REPLY:
+            case BT_HCI_OP_LE_LTK_REQ_REPLY:
+            {
+                
+                k_sem_give(&bt_dev.ncmd_sem);
+                hci_cmd_done(opcode, BT_HCI_ERR_UNSPECIFIED, bt_dev.sent_cmd);
+                net_buf_unref(bt_dev.sent_cmd);        
+                bt_dev.sent_cmd = NULL;
+            }
+            break;
+            default:
+            break;
+        }
+
+    }
 }
 #endif
 

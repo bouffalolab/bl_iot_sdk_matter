@@ -1207,6 +1207,10 @@ static int generic_client_init(struct bt_mesh_model *model)
 int bt_mesh_gen_onoff_cli_init(struct bt_mesh_model *model)
 {
 	model->op = gen_onoff_cli_op;
+    bt_mesh_gen_onoff_client_t *cli = (bt_mesh_gen_onoff_client_t *)model->user_data;
+    if (cli != NULL) {
+        cli->publish_status = btc_ble_mesh_generic_client_publish_callback;
+    }
     return generic_client_init(model);
 }
 

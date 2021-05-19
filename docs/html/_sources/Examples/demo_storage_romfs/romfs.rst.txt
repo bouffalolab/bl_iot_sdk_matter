@@ -13,26 +13,26 @@ Romfs
 
 - 使用之前新建目录 ``test/child`` 准备名为 ``aa.bin`` 的文件，将其放入新建的目录下。
 
-.. figure:: imgs/image1.png
-   :alt: 
+    .. figure:: imgs/image1.png
+	   :align: center
 
 - 使用步骤：
 
-  - 下载时将烧写工具上的 ``Romfs`` 选项勾选起来，路径选择如下图一所示，烧写完后可以使用 ``ls`` 命令查看romfs分区中的内容；
+  - 下载时将烧写工具上的 ``Romfs`` 选项勾选起来，路径选择如下图一所示，烧写完后可以使用 ``ls`` 命令查看romfs分区中的内容。
 
-.. figure:: imgs/image2.png
-   :alt: 
+    .. figure:: imgs/image2.png
+	   :align: center
 
-.. figure:: imgs/image3.png
-   :alt: 
+    .. figure:: imgs/image3.png
+	   :align: center
 
   - 使用 ``romfs`` 命令可以对Romfs进行读写等操作，对比可以看到读到的数据与下载的文件数据一致。
 
-.. figure:: imgs/image4.png
-   :alt: 
+    .. figure:: imgs/image4.png
+	   :align: center
 
-.. figure:: imgs/image5.png
-   :alt: 
+    .. figure:: imgs/image5.png
+	   :align: center
 
 应用实例
 ----------

@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>9. Romfs &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-6-g2463b6e1 文档</title>
+  <title>9. Romfs &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-138-gb54c10f45 文档</title>
   
 
   
@@ -118,6 +118,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../demo_mesh/mesh.html">14. Mesh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../demo_blsync_ble/blsync_ble.html">15. BLSYNC-BLE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../sdk_app_easyflash_boottimes/easyflash_boottimes.html">16. Easyflash4 boot times</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demo_dac/DAC.html">17. DAC</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Components</span></p>
 <ul>
@@ -221,31 +222,35 @@
 </div>
 <div class="section" id="id2">
 <h2><span class="section-number">9.2. </span>准备和使用步骤<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<ul class="simple">
-<li><p>使用之前新建目录 <code class="docutils literal notranslate"><span class="pre">test/child</span></code> 准备名为 <code class="docutils literal notranslate"><span class="pre">aa.bin</span></code> 的文件，将其放入新建的目录下。</p></li>
-</ul>
-<div class="figure align-default">
-<img alt="" src="../../_images/image119.png" />
+<ul>
+<li><p>使用之前新建目录 <code class="docutils literal notranslate"><span class="pre">test/child</span></code> 准备名为 <code class="docutils literal notranslate"><span class="pre">aa.bin</span></code> 的文件，将其放入新建的目录下。</p>
+<blockquote>
+<div><div class="figure align-center">
+<img alt="../../_images/image119.png" src="../../_images/image119.png" />
 </div>
-<ul class="simple">
+</div></blockquote>
+</li>
 <li><p>使用步骤：</p>
 <ul>
-<li><p>下载时将烧写工具上的 <code class="docutils literal notranslate"><span class="pre">Romfs</span></code> 选项勾选起来，路径选择如下图一所示，烧写完后可以使用 <code class="docutils literal notranslate"><span class="pre">ls</span></code> 命令查看romfs分区中的内容；</p></li>
+<li><p>下载时将烧写工具上的 <code class="docutils literal notranslate"><span class="pre">Romfs</span></code> 选项勾选起来，路径选择如下图一所示，烧写完后可以使用 <code class="docutils literal notranslate"><span class="pre">ls</span></code> 命令查看romfs分区中的内容。</p>
+<div class="figure align-center">
+<img alt="../../_images/image217.png" src="../../_images/image217.png" />
+</div>
+<div class="figure align-center">
+<img alt="../../_images/image316.png" src="../../_images/image316.png" />
+</div>
+</li>
+<li><p>使用 <code class="docutils literal notranslate"><span class="pre">romfs</span></code> 命令可以对Romfs进行读写等操作，对比可以看到读到的数据与下载的文件数据一致。</p>
+<div class="figure align-center">
+<img alt="../../_images/image44.png" src="../../_images/image44.png" />
+</div>
+<div class="figure align-center">
+<img alt="../../_images/image53.png" src="../../_images/image53.png" />
+</div>
+</li>
 </ul>
 </li>
 </ul>
-<div class="figure align-default">
-<img alt="" src="../../_images/image217.png" />
-</div>
-<div class="figure align-default">
-<img alt="Examples/demo_storage_romfs/imgs/image3.png:alt:" src="Examples/demo_storage_romfs/imgs/image3.png:alt:" />
-</div>
-<div class="figure align-default">
-<img alt="" src="../../_images/image44.png" />
-</div>
-<div class="figure align-default">
-<img alt="" src="../../_images/image53.png" />
-</div>
 </div>
 <div class="section" id="id3">
 <h2><span class="section-number">9.3. </span>应用实例<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>

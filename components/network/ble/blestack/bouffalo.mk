@@ -145,10 +145,15 @@ endif
 
 ble_stack_srcs   += src/host/bl_host_assist.c
 
+ble_audio_srcs   := src/host/iso.c
+
 bredr_stack_srcs := src/host/a2dp.c \
+					src/host/at.c \
 					src/host/avdtp.c \
+					src/host/hfp_hf.c \
 					src/host/keys_br.c \
 					src/host/l2cap_br.c \
+					src/host/rfcomm.c \
 					src/host/sdp.c \
 
 sbc_codec_srcs := 	src/sbc/dec/alloc.c \
@@ -178,6 +183,10 @@ sbc_codec_include_dirs := 	src/sbc/dec \
 							src/sbc/enc \
 
 COMPONENT_SRCS := $(ble_stack_srcs)
+
+ifeq ($(CONFIG_BT_AUDIO),1)
+COMPONENT_SRCS += $(ble_audio_srcs)
+endif
 
 ifeq ($(CONFIG_BT_BREDR),1)
 COMPONENT_SRCS += $(bredr_stack_srcs)

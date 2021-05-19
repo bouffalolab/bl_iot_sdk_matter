@@ -1,12 +1,21 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
-#ifdef CONF_ENABLE_STACK_OVERFLOW_CHECK
+//#ifdef CONF_ENABLE_STACK_OVERFLOW_CHECK
 #include <FreeRTOS.h>
 #include <task.h>
-#endif
+//#endif
 
 #include "panic.h"
+
+#define STR(R)  	#R
+#define DEF2STR(R)  STR(R)
+
+#define VALID_IROM_START_XIP  (0x01000000)
+#define VALID_FP_START_XIP    (0x02000000)
+#define VALID_PC_START_XIP    (0x03000000)
+
 
 int backtrace_now(int (*print_func)(const char *fmt, ...), uintptr_t *regs) __attribute__ ((weak, alias ("backtrace_riscv")));
 
@@ -102,37 +111,35 @@ int backtrace_riscv(int (*print_func)(const char *fmt, ...), uintptr_t *regs)
     return 0;
 }
 
-#define VALID_PC_START_XIP (0x23000000)
-#define VALID_FP_START_XIP (0x42000000)
-
 static inline void backtrace_stack_app(int (*print_func)(const char *fmt, ...), unsigned long *fp, int depth) {
   uintptr_t *pc;
 
   while (depth--) {
     if ((((uintptr_t)fp & 0xff000000ul) != VALID_PC_START_XIP) && (((uintptr_t)fp & 0xff000000ul) != VALID_FP_START_XIP)) {
-      print_func("!!");
+      print_func("!!\r\n");
       return;
     }
 
-    pc = fp[-1];
+    pc = (uintptr_t *)fp[-1];
 
     if ((((uintptr_t)pc & 0xff000000ul) != VALID_PC_START_XIP) && (((uintptr_t)pc & 0xff000000ul) != VALID_FP_START_XIP)) {
-      print_func("!!");
+      print_func("!!\r\n");
       return;
     }
 
-    if (pc > VALID_FP_START_XIP) {
+    if ((unsigned long)pc > VALID_FP_START_XIP) {
       /* there is a function that does not saved ra,
       * skip!
       * this value is the next fp
       */
-      fp = (uintptr_t *)pc;
+      fp = (unsigned long *)pc;
     } else if ((uintptr_t)pc > VALID_PC_START_XIP) {
-      print_func(" %p", pc);
-      fp = (uintptr_t *)fp[-2];
+      print_func("backtrace: %p\r\n", pc);
+      fp = (unsigned long *)fp[-2];
 
       if (pc == (uintptr_t *)0) {
         break;
+        print_func("\r\n");
       }
     }
   }
@@ -146,7 +153,7 @@ int backtrace_now_app(int (*print_func)(const char *fmt, ...)) {
     processing_backtrace = 1;
   } else {
     print_func("backtrace nested...\r\n");
-    return;
+    return 0;
   }
 
 #if defined(__GNUC__)
@@ -162,6 +169,7 @@ int backtrace_now_app(int (*print_func)(const char *fmt, ...)) {
 
   processing_backtrace = 0;
 
+  return 0;
 }
 
 #else
@@ -207,9 +215,120 @@ void __attribute__((no_instrument_function)) __cyg_profile_func_exit(void *this_
   return;
 }
 #endif
-#include "FreeRTOS.h"
+
 extern BaseType_t TrapNetCounter;
 BaseType_t xPortIsInsideInterrupt( void )
 {
     return TrapNetCounter ? 1 : 0;
 }
+
+
+#ifdef CONF_ENABLE_FUNC_BACKTRACE_ELF
+
+#define portasmADDITIONAL_CONTEXT_SIZE 34
+
+static void backtrace_task(int (*print_func)(const char *s), char ptAddr[][12], uintptr_t *fp, int depth)
+{
+	uintptr_t *ra;
+	uintptr_t *cur_fp = fp;
+	int pt_num = 0;
+
+	while (depth && (((uintptr_t) cur_fp & 0xf000000ul) == VALID_FP_START_XIP)) {
+		ra = (uintptr_t*) cur_fp[-1];
+		if ((((uintptr_t) ra & 0x0f000000ul) != VALID_PC_START_XIP)
+			&& (((uintptr_t) ra & 0x0f000000ul) != VALID_FP_START_XIP)
+			&& (((uintptr_t) ra & 0x0f000000ul) != VALID_IROM_START_XIP)) {
+			break;
+		}
+
+		snprintf(&ptAddr[pt_num][0], sizeof(ptAddr[0]), "%p", ra);
+		print_func("    ");
+		print_func((char *)&ptAddr[pt_num++][0]);
+		print_func("\r\n");
+
+		cur_fp = (uintptr_t*) cur_fp[-2];
+		depth--;
+	}
+}
+
+
+
+int backtrace_now_task(int (*print_func)(const char *s), uintptr_t *regs)
+{
+	TaskHandle_t pxFirstTCB, pxNextTCB;
+	List_t *pxAllList;
+	StackType_t *pxTopOfStack;
+	uintptr_t *fp, *reg;
+	char ptAddr[16][12];
+	int pt_num = 0;
+	static char log[]=	"\r\n==========\r\n"
+						"ELF File: "DEF2STR(CONF_BUILD_PATH)"\r\n"
+						"Visit http://bug.bouffalolab.com/sdk?id=exception for more detail\r\n";
+
+	print_func(log);
+
+	taskENTER_CRITICAL();
+	/* Get num of task */
+	xAddTasksToAllList();
+	pxAllList = pxTaskGetAllList();
+
+	if (pxAllList->uxNumberOfItems > (UBaseType_t) 0)
+	{
+		listGET_OWNER_OF_NEXT_ENTRY(pxFirstTCB, pxAllList);
+		do
+		{
+			listGET_OWNER_OF_NEXT_ENTRY(pxNextTCB, pxAllList);
+			pxTopOfStack = (StackType_t*) (*(StackType_t*) pxNextTCB);
+
+			/* Clear buf */
+			pt_num = 0;
+			memset(ptAddr, 0xA5, sizeof(ptAddr));
+
+			print_func("==========\r\nTask name:");
+			print_func(pcTaskGetName(pxNextTCB));
+			print_func("\r\nBacktrace:\r\n");
+
+			/* Get fp */
+			fp = (uintptr_t*) (pxTopOfStack + portasmADDITIONAL_CONTEXT_SIZE + 5);
+			fp = (uintptr_t*) *fp;
+
+			/* Get pc reg */
+			reg = (uintptr_t*) (*(StackType_t*) pxTopOfStack);
+			snprintf(ptAddr[pt_num], sizeof(ptAddr[0]), "%p", reg);
+			print_func("    ");
+			print_func(ptAddr[pt_num++]);
+			print_func("\r\n");
+
+			/* Get ra reg */
+			reg = (uintptr_t*) pxTopOfStack + portasmADDITIONAL_CONTEXT_SIZE + 1;
+			reg = (uintptr_t*) *reg;
+			snprintf(ptAddr[pt_num], sizeof(ptAddr[0]), "%p", reg);
+			print_func("    ");
+			print_func(ptAddr[pt_num++]);
+			print_func("\r\n");
+
+			/* Find task call information */
+			backtrace_task(print_func, &ptAddr[pt_num], fp, 14);
+
+          char proj_elf[] = DEF2STR(CONF_ENABLE_FUNC_BACKTRACE_ELF);
+          print_func("CMD: riscv64-unknown-elf-addr2line -e ");
+          print_func(proj_elf);
+          print_func(" -a -f ");
+          for (int i = 0; ptAddr[i][1] == 'x'; i++)
+          {
+              print_func(ptAddr[i]);
+              print_func(" ");
+          }
+          print_func("\r\n");
+
+		} while (pxNextTCB != pxFirstTCB);
+	}
+	
+	return 0;
+}
+#else
+int backtrace_now_task(int (*print_func)(const char *s), uintptr_t *regs)
+{
+	return -1;
+}
+#endif

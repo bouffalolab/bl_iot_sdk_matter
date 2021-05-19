@@ -302,6 +302,12 @@ static u8_t att_mtu_req(struct bt_att *att, struct net_buf *buf)
 	att->chan.tx.mtu = att->chan.rx.mtu;
 
 	BT_DBG("Negotiated MTU %u", att->chan.rx.mtu);
+
+    #if defined(BFLB_BLE_MTU_CHANGE_CB)
+    if(att->chan.chan.ops->mtu_changed)
+        att->chan.chan.ops->mtu_changed(&(att->chan.chan), att->chan.rx.mtu);    
+    #endif
+    
 	return 0;
 }
 
@@ -1088,7 +1094,7 @@ static u8_t att_read_mult_req(struct bt_att *att, struct net_buf *buf)
 			net_buf_unref(data.buf);
 			/* Respond here since handle is set */
 			send_err_rsp(conn, BT_ATT_OP_READ_MULT_REQ, handle,
-				     data.err);
+			             data.err);
 			return 0;
 		}
 	}
@@ -2272,6 +2278,13 @@ static void bt_att_encrypt_change(struct bt_l2cap_chan *chan,
 }
 #endif /* CONFIG_BT_SMP */
 
+#if defined(BFLB_BLE_MTU_CHANGE_CB)
+void bt_att_mtu_changed(struct bt_l2cap_chan *chan, u16_t mtu)
+{
+    bt_gatt_mtu_changed(chan->conn, mtu);
+}
+#endif
+
 static int bt_att_accept(struct bt_conn *conn, struct bt_l2cap_chan **chan)
 {
 	int i;
@@ -2282,6 +2295,9 @@ static int bt_att_accept(struct bt_conn *conn, struct bt_l2cap_chan **chan)
 #if defined(CONFIG_BT_SMP)
 		.encrypt_change = bt_att_encrypt_change,
 #endif /* CONFIG_BT_SMP */
+#if defined(BFLB_BLE_MTU_CHANGE_CB)
+        .mtu_changed = bt_att_mtu_changed,
+#endif     
 	};
 
 	BT_DBG("conn %p handle %u", conn, conn->handle);

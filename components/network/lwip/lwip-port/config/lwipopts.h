@@ -98,8 +98,12 @@ a lot of data that needs to be copied, this should be set high. */
 //#define TCP_MSS                 (1500 - 80)	  /* TCP_MSS = (Ethernet MTU - IP header size - TCP header size) */
 //#define TCP_MSS                 (800 - 40 - 80 + 8)	  /* TCP_MSS = (Ethernet MTU - IP header size - TCP header size) */
 
+#ifdef CFG_ETHERNET_ENABLE
+#define TCP_SND_BUF             (11*TCP_MSS)
+#else
 /* TCP sender buffer space (bytes). */
 #define TCP_SND_BUF             (3*TCP_MSS)
+#endif
 
 /*  TCP_SND_QUEUELEN: TCP sender buffer space (pbufs). This must be at least
   as much as (2 * TCP_SND_BUF/TCP_MSS) for things to work. */
@@ -116,7 +120,11 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_SNDQUEUELOWAT               ((TCP_SND_QUEUELEN)/2)
 
 /* TCP receive window. */
+#ifdef CFG_ETHERNET_ENABLE
+#define TCP_WND                 (6*TCP_MSS)
+#else
 #define TCP_WND                 (3*TCP_MSS)
+#endif
 
 /**
  * TCP_WND_UPDATE_THRESHOLD: difference in window to trigger an

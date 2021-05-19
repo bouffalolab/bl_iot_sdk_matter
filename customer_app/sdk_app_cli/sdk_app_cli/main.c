@@ -97,6 +97,7 @@ static void _cli_init()
     test_cli_init();
 }
 
+#if 0
 static int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
 {
     uint32_t addr = hal_board_get_factory_addr();
@@ -118,19 +119,25 @@ static int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
 
     return 0;
 }
+#endif
 
 static void aos_loop_proc(void *pvParameters)
 {
     int fd_console;
-    uint32_t fdt = 0, offset = 0;
 
     vfs_init();
     vfs_device_init();
+
+#if 0
+    uint32_t fdt = 0, offset = 0;
 
     /* uart */
     if (0 == get_dts_addr("uart", &fdt, &offset)) {
         vfs_uart_init(fdt, offset);
     }
+#else
+    vfs_uart_init_simple_mode(0, 16, 7, 2 * 1000 * 1000, "/dev/ttyS0");
+#endif
 
     aos_loop_init();
 
@@ -248,7 +255,9 @@ static void system_init(void)
     hal_boot2_init();
 
     /* board config is set after system is init*/
+#if 0
     hal_board_cfg(0);
+#endif
 }
 
 static void system_thread_init()

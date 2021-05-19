@@ -127,8 +127,7 @@ static err_t wifi_tx(struct netif *netif, struct pbuf* p)
     NET_DEBUG("\r\n");
 #endif
     wlan = container_of(netif, struct wlan_netif, netif);
-    bl_output(bl606a0_sta.bl_hw, netif, p, 0 == wlan->mode);
-    return 0;
+    return bl_output(bl606a0_sta.bl_hw, netif, p, 0 == wlan->mode);
 }
 #endif
 

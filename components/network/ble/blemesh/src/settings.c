@@ -2128,10 +2128,12 @@ static void store_pending(struct k_work *work)
 
 void bt_mesh_store_rpl(struct bt_mesh_rpl *entry)
 {
+#if !defined(BFLB_BLE)
 #ifdef CONFIG_BT_SETTINGS
 	entry->store = true;
 #endif
 	schedule_store(BT_MESH_RPL_PENDING);
+#endif /* BFLB_BLE */
 }
 
 static struct key_update *key_update_find(bool app_key, u16_t key_idx,

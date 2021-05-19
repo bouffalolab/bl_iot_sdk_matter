@@ -18,11 +18,11 @@
 #include <settings.h>
 
 #if defined(CONFIG_BT_GATT_CACHING)
-#include <tinycrypt/constants.h>
-#include <tinycrypt/utils.h>
-#include <tinycrypt/aes.h>
-#include <tinycrypt/cmac_mode.h>
-#include <tinycrypt/ccm_mode.h>
+#include <constants.h>
+#include <utils.h>
+#include <aes.h>
+#include <cmac_mode.h>
+#include <ccm_mode.h>
 #endif /* CONFIG_BT_GATT_CACHING */
 #include <hci_host.h>
 #include <bluetooth.h>
@@ -75,6 +75,10 @@ static sys_slist_t db;
 #endif /* CONFIG_BT_GATT_DYNAMIC_DB */
 
 static atomic_t init;
+
+#if defined(BFLB_BLE_MTU_CHANGE_CB)
+bt_gatt_mtu_changed_cb_t gatt_mtu_changed_cb;
+#endif
 
 static ssize_t read_name(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset)
@@ -175,7 +179,7 @@ BT_GATT_SERVICE_DEFINE(_2_gap_svc,
 	/* Require pairing for writes to device name */
 	BT_GATT_CHARACTERISTIC(BT_UUID_GAP_DEVICE_NAME,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE,
-			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT,
+			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
 			       read_name, write_name, bt_dev.name),
 #else
 	BT_GATT_CHARACTERISTIC(BT_UUID_GAP_DEVICE_NAME, BT_GATT_CHRC_READ,
@@ -639,7 +643,9 @@ static void db_hash_gen(bool store)
 	 */
 	sys_mem_swap(db_hash, sizeof(db_hash));
 
+    #if !defined(BFLB_BLE)
 	BT_HEXDUMP_DBG(db_hash, sizeof(db_hash), "Hash: ");
+    #endif
 
 	if (IS_ENABLED(CONFIG_BT_SETTINGS) && store) {
 		db_hash_store();
@@ -1402,6 +1408,7 @@ static void foreach_attr_type_dyndb(u16_t start_handle, u16_t end_handle,
 {
 #if defined(CONFIG_BT_GATT_DYNAMIC_DB)
 	int i;
+
 	struct bt_gatt_service *svc;
 
 	SYS_SLIST_FOR_EACH_CONTAINER(&db, svc, node) {
@@ -4155,7 +4162,11 @@ static int bt_gatt_store_cf(struct bt_conn *conn)
 				       &conn->le.dst, NULL);
 	}
 
+	#if defined(BFLB_BLE)
+	err = settings_save_one(key, (u8_t*)str, len);
+	#else
 	err = settings_save_one(key, str, len);
+	#endif
 	if (err) {
 		BT_ERR("Failed to store Client Features (err %d)", err);
 		return err;
@@ -4194,6 +4205,19 @@ void bt_gatt_disconnected(struct bt_conn *conn)
 	remove_cf_cfg(conn);
 #endif
 }
+
+#if defined(BFLB_BLE_MTU_CHANGE_CB)
+void bt_gatt_mtu_changed(struct bt_conn *conn, u16_t mtu)
+{
+    if(gatt_mtu_changed_cb)
+        gatt_mtu_changed_cb(conn, (int)mtu);
+}
+
+void bt_gatt_register_mtu_callback(bt_gatt_mtu_changed_cb_t cb)
+{
+    gatt_mtu_changed_cb = cb;
+}
+#endif
 
 #if defined(CONFIG_BT_SETTINGS)
 

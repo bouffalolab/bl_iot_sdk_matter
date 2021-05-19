@@ -417,6 +417,9 @@ void aos_msleep(int ms)
 #if !defined(USE_STDLIB_MALLOC)
 void *malloc(size_t size)
 {
+	if (!size) {
+		return NULL;
+	}
     return pvPortMalloc(size);
 }
 #endif

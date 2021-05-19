@@ -23,7 +23,7 @@ COMPONENTS_BLSYS   := bltime blfdt blmtd blota bloop loopadc looprt loopset
 COMPONENTS_VFS     := romfs
 COMPONENTS_BLE     := blecontroller blestack
 
-INCLUDE_COMPONENTS += freertos_riscv_ram bl602 bl602_std bl602_wifi bl602_wifidrv hal_drv lwip lwip_dhcpd mbedtls vfs yloop utils cli aws-iot httpc netutils blog blog_testc audio_device audio_framework
+INCLUDE_COMPONENTS += freertos_riscv_ram bl602 bl602_std bl602_wifi bl602_wifidrv hal_drv lwip lwip_dhcpd mbedtls vfs yloop utils cli aws-iot httpc netutils blog blog_testc audio_device audio_framework blcrypto_suite
 INCLUDE_COMPONENTS += easyflash4
 INCLUDE_COMPONENTS += $(COMPONENTS_NETWORK)
 INCLUDE_COMPONENTS += $(COMPONENTS_BLSYS)
