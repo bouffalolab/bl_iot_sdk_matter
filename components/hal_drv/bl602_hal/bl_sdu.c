@@ -1,4 +1,4 @@
-//#ifdef GLOBAL_NETBUS_WIFI_APP_ENABLE
+#ifdef GLOBAL_NETBUS_WIFI_APP_ENABLE//
 #include <stdint.h>
 #include <bl602_glb.h>
 #include <bl602.h>
@@ -610,4 +610,4 @@ void sdu_interrupt_entry(void)
     return;
 }
 
-//#endif
+#endif//

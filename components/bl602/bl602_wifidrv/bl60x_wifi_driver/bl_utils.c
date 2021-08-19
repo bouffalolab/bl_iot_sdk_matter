@@ -365,6 +365,7 @@ int tcpip_stack_input(void *swdesc, uint8_t status, uint8_t is_amsdu, void *hwhd
                 }
                 /* log_debug("[RX] len %u\r\n", h->tot_len); */
 
+#if 0
                 if (bflbmsg_send_pbuf(&g_netbus_wifi_mgmr_env.trcver_ctx,
                         BF1B_MSG_TYPE_ETH_WIFI_FRAME, BF1B_MSG_ETH_WIFI_FRAME_SUBTYPE_STA_FROM_WIFI_RX,
                         h, is_amsdu, sdio_pbuf_cfm_cb, swdesc)) {
@@ -373,7 +374,8 @@ int tcpip_stack_input(void *swdesc, uint8_t status, uint8_t is_amsdu, void *hwhd
                 } else {
                     /* printf("FRM TX swdesc %p\r\n", swdesc); */
                 }
-                return 0;
+#endif
+                //return 0;
             } else {
                 printf("------ Frame received but no active vif (%d)\r\n", hw_rxhdr->flags_vif_idx);
             }

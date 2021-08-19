@@ -8,7 +8,7 @@
 #include <lwip/netif.h>
 #include <lwip/pbuf.h>
 
-#define BF1B_MSG_TYPE_ETH_WIFI_FRAME 0xabcd
+#define BF1B_MSG_TYPE_ETH_WIFI_FRAME 0x7878
 #define BF1B_MSG_TYPE_CMD            0xef01
 
 /*

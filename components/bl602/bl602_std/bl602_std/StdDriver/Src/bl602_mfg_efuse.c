@@ -33,6 +33,7 @@ uint8_t mfg_efuse_is_xtal_capcode_slot_empty(uint8_t reload)
 {
     uint8_t empty=0;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -53,7 +54,7 @@ uint8_t mfg_efuse_is_xtal_capcode_slot_empty(uint8_t reload)
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     return empty;
 }
@@ -63,6 +64,7 @@ int8_t mfg_efuse_write_xtal_capcode_pre(uint8_t capcode,uint8_t program)
     BL_Err_Type ret=SUCCESS;
     uint8_t slot=0xff;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -84,7 +86,7 @@ int8_t mfg_efuse_write_xtal_capcode_pre(uint8_t capcode,uint8_t program)
         mfg_print("Write slot:%d\r\n",slot);
     }
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     if(ret==SUCCESS){
         return 0;
@@ -96,6 +98,7 @@ int8_t mfg_efuse_write_xtal_capcode_pre(uint8_t capcode,uint8_t program)
 void mfg_efuse_write_xtal_capcode(void)
 {
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -106,7 +109,7 @@ void mfg_efuse_write_xtal_capcode(void)
     while(SET==EF_Ctrl_Busy());
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
 }
 
@@ -115,6 +118,7 @@ int8_t mfg_efuse_read_xtal_capcode(uint8_t *capcode,uint8_t reload)
     uint8_t slot=0xff;
     BL_Err_Type ret=ERROR;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -137,7 +141,7 @@ int8_t mfg_efuse_read_xtal_capcode(uint8_t *capcode,uint8_t reload)
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     if(ret==SUCCESS){
         return 0;
@@ -150,6 +154,7 @@ uint8_t mfg_efuse_is_poweroffset_slot_empty(uint8_t reload)
 {
     uint8_t empty=0;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -170,7 +175,7 @@ uint8_t mfg_efuse_is_poweroffset_slot_empty(uint8_t reload)
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     return empty;
 }
@@ -181,6 +186,7 @@ int8_t mfg_efuse_write_poweroffset_pre(int8_t pwrOffset[14],uint8_t program)
     uint8_t slot=0xff;
     int8_t pwrOffsetTmp[3];
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -207,7 +213,7 @@ int8_t mfg_efuse_write_poweroffset_pre(int8_t pwrOffset[14],uint8_t program)
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     
     if(ret==SUCCESS){
@@ -220,6 +226,7 @@ int8_t mfg_efuse_write_poweroffset_pre(int8_t pwrOffset[14],uint8_t program)
 void mfg_efuse_write_poweroffset(void)
 {
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -230,7 +237,7 @@ void mfg_efuse_write_poweroffset(void)
     while(SET==EF_Ctrl_Busy());
 
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
 }
 
@@ -242,6 +249,7 @@ int8_t mfg_efuse_read_poweroffset(int8_t pwrOffset[14],uint8_t reload)
 
     int32_t step=0;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -265,30 +273,30 @@ int8_t mfg_efuse_read_poweroffset(int8_t pwrOffset[14],uint8_t reload)
         pwrOffset[0]=pwrOffsetTmp[0];
 
         step=(pwrOffsetTmp[1]-pwrOffsetTmp[0])*100/6;
-        pwrOffset[1]=(step+50)/100+pwrOffsetTmp[0];
-        pwrOffset[2]=(step*2+50)/100+pwrOffsetTmp[0];
-        pwrOffset[3]=(step*3+50)/100+pwrOffsetTmp[0];
-        pwrOffset[4]=(step*4+50)/100+pwrOffsetTmp[0];
-        pwrOffset[5]=(step*5+50)/100+pwrOffsetTmp[0];
+        pwrOffset[1]=(step+50+pwrOffsetTmp[0]*100)/100;
+        pwrOffset[2]=(step*2+50+pwrOffsetTmp[0]*100)/100;
+        pwrOffset[3]=(step*3+50+pwrOffsetTmp[0]*100)/100;
+        pwrOffset[4]=(step*4+50+pwrOffsetTmp[0]*100)/100;
+        pwrOffset[5]=(step*5+50+pwrOffsetTmp[0]*100)/100;
 
         pwrOffset[6]=pwrOffsetTmp[1];
 
         step=(pwrOffsetTmp[2]-pwrOffsetTmp[1])*100/6;
-        pwrOffset[7]=(step+50)/100+pwrOffsetTmp[1];
-        pwrOffset[8]=(step*2+50)/100+pwrOffsetTmp[1];
-        pwrOffset[9]=(step*3+50)/100+pwrOffsetTmp[1];
-        pwrOffset[10]=(step*4+50)/100+pwrOffsetTmp[1];
-        pwrOffset[11]=(step*5+50)/100+pwrOffsetTmp[1];
+        pwrOffset[7]=(step+50+pwrOffsetTmp[1]*100)/100;
+        pwrOffset[8]=(step*2+50+pwrOffsetTmp[1]*100)/100;
+        pwrOffset[9]=(step*3+50+pwrOffsetTmp[1]*100)/100;
+        pwrOffset[10]=(step*4+50+pwrOffsetTmp[1]*100)/100;
+        pwrOffset[11]=(step*5+50+pwrOffsetTmp[1]*100)/100;
 
         pwrOffset[12]=pwrOffsetTmp[2];
 
-        pwrOffset[13]=(step*7+50)/100+pwrOffsetTmp[1];
+        pwrOffset[13]=(step*7+50+pwrOffsetTmp[1]*100)/100;
     }else{
         mfg_print("No written slot found\r\n");
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     if(ret==SUCCESS){
         return 0;
@@ -297,10 +305,37 @@ int8_t mfg_efuse_read_poweroffset(int8_t pwrOffset[14],uint8_t reload)
     }
 }
 
+int8_t mfg_efuse_read_poweroffset_ate(int8_t *pwrOffset)
+{
+    int8_t pwrOffsetTmp = 0;
+    int8_t ret = 0;
+
+    uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
+
+    bdiv=GLB_Get_BCLK_Div();
+    hdiv=GLB_Get_HCLK_Div();
+
+    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_XTAL);
+    
+    if(SUCCESS != EF_Ctrl_Read_TxPower_ATE(&pwrOffsetTmp)){
+        ret = -1;
+    }
+    
+    *pwrOffset = pwrOffsetTmp;
+    GLB_Set_System_CLK_Div(hdiv,bdiv);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
+
+
+    return ret;
+
+}
+
 uint8_t mfg_efuse_is_macaddr_slot_empty(uint8_t reload)
 {
     uint8_t empty=0;    
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -321,7 +356,7 @@ uint8_t mfg_efuse_is_macaddr_slot_empty(uint8_t reload)
     }
  
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     return empty;
 }
@@ -331,6 +366,7 @@ int8_t mfg_efuse_write_macaddr_pre(uint8_t mac[6],uint8_t program)
     BL_Err_Type ret=SUCCESS;
     uint8_t slot=0xff;   
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -354,7 +390,7 @@ int8_t mfg_efuse_write_macaddr_pre(uint8_t mac[6],uint8_t program)
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
     
 #endif
     if(ret==SUCCESS){
@@ -367,6 +403,7 @@ int8_t mfg_efuse_write_macaddr_pre(uint8_t mac[6],uint8_t program)
 void mfg_efuse_write_macaddr(void)
 { 
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -379,15 +416,16 @@ void mfg_efuse_write_macaddr(void)
     //while(SET==EF_Ctrl_Busy());
 
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
 }
 
 int8_t mfg_efuse_read_macaddr(uint8_t mac[6],uint8_t reload)
 {
     uint8_t slot=0xff;
-    BL_Err_Type ret=ERROR; 
+    BL_Err_Type ret=ERROR;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -411,7 +449,7 @@ int8_t mfg_efuse_read_macaddr(uint8_t mac[6],uint8_t reload)
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
 #endif
     if(ret==SUCCESS){
         return 0;
@@ -424,6 +462,7 @@ int8_t mfg_efuse_write_pre(uint32_t addr,uint32_t *data,uint32_t countInword)
 {
     BL_Err_Type ret=SUCCESS;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     if(addr>128){
         return -1;
@@ -437,7 +476,7 @@ int8_t mfg_efuse_write_pre(uint32_t addr,uint32_t *data,uint32_t countInword)
     EF_Ctrl_Write_R0(addr/4,data,countInword);
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
     
     if(ret==SUCCESS){
         return 0;
@@ -450,6 +489,7 @@ int8_t mfg_efuse_read(uint32_t addr,uint32_t *data,uint32_t countInword,uint8_t 
 {
     BL_Err_Type ret=SUCCESS;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     if(addr>128){
         return -1;
@@ -467,7 +507,7 @@ int8_t mfg_efuse_read(uint32_t addr,uint32_t *data,uint32_t countInword,uint8_t 
     }
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
     
     if(ret==SUCCESS){
         return 0;
@@ -480,6 +520,7 @@ int8_t mfg_efuse_program(void)
 {
     BL_Err_Type ret=SUCCESS;
     uint8_t hdiv=0,bdiv=0;
+    HBN_ROOT_CLK_Type rtClk=GLB_Get_Root_CLK_Sel();
 
     bdiv=GLB_Get_BCLK_Div();
     hdiv=GLB_Get_HCLK_Div();
@@ -490,7 +531,7 @@ int8_t mfg_efuse_program(void)
     while(SET==EF_Ctrl_Busy());
     
     GLB_Set_System_CLK_Div(hdiv,bdiv);
-    HBN_Set_ROOT_CLK_Sel(HBN_ROOT_CLK_PLL);
+    HBN_Set_ROOT_CLK_Sel(rtClk);
     
     if(ret==SUCCESS){
         return 0;

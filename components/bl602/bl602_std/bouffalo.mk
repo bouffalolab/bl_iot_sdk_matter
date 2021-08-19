@@ -67,6 +67,7 @@ else
 COMPONENT_SRCS += bl602_std/StdDriver/Src/bl602_romapi.c \
                   bl602_std/StdDriver/Src/bl602_sflash_ext.c \
                   bl602_std/StdDriver/Src/bl602_sf_cfg_ext.c \
+                  bl602_std/StdDriver/Src/bl602_xip_sflash_ext.c \
 
 endif
 

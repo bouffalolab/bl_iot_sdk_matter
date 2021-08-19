@@ -7,7 +7,7 @@
 #include <aos/kernel.h>
 
 #include <bl_wifi.h>
-
+#include "blog.h"
 #include <netbus_mgmr.h>
 #include "netbus_transceiver.h"
 #include <tp_spi_slave.h>
@@ -63,7 +63,7 @@ static void handle_sta_ap_to_wifi_tx(netbus_wifi_mgmr_ctx_t *ctx, const uint8_t 
     }
     swm_msg.u.cmd.data_ptr = p;
     swm_msg.u.cmd.data_len = frame_len;
-    if (netbus_wifi_mgmr_msg_send(ctx, &swm_msg, false, true)) {
+    if (netbus_wifi_mgmr_msg_send(ctx, &swm_msg, false, false)) {
         log_error("mgmr msg send failed, drop frame\r\n");
         pbuf_free(p);
         return;
@@ -85,7 +85,7 @@ static void handle_sniffer_tx(netbus_wifi_mgmr_ctx_t *ctx, const uint8_t *frame,
     swm_msg.type = NETBUS_WIFI_MGMR_MSG_TYPE_WIFI_FRAME_SNIFFER_TO_WIFI_TX;
     swm_msg.u.cmd.data_ptr = cp;
     swm_msg.u.cmd.data_len = frame_len;
-    if (netbus_wifi_mgmr_msg_send(ctx, &swm_msg, false, true)) {
+    if (netbus_wifi_mgmr_msg_send(ctx, &swm_msg, false, false)) {
         log_error("mgmr msg send failed, drop raw tx frame\r\n");
         vPortFree(cp);
     }
@@ -96,6 +96,7 @@ static void handle_eth_wifi_frame_recv(netbus_wifi_mgmr_ctx_t *ctx, const uint8_
     uint16_t subtype;
 
     subtype = frame[0] + (frame[1] << 8);
+    blog_info("subtype 0x%x\r\n", subtype);
     switch (subtype) {
     case BF1B_MSG_ETH_WIFI_FRAME_SUBTYPE_STA_TO_WIFI_TX:
         handle_sta_ap_to_wifi_tx(ctx, frame + 2, frame_len - 2, true);
@@ -107,7 +108,7 @@ static void handle_eth_wifi_frame_recv(netbus_wifi_mgmr_ctx_t *ctx, const uint8_
         handle_sniffer_tx(ctx, frame + 2, frame_len - 2);
         break;
     case BF1B_MSG_ETH_WIFI_FRAME_SUBTYPE_EXT:
-        log_info("not support.\r\n");
+        blog_info("not support.\r\n");
         //sdiowifi_ext_frame_process(ctx, frame + 2, frame_len - 2);
         break;
     default:
@@ -156,10 +157,12 @@ static void netbus_recv_cb(void *arg, void *data_ptr, uint16_t data_len)
 
     netbus_wifi_mgmr_ctx_t *ctx;
     /* log_debug("[SDIO RX] len %u, buf:\r\n", data_len); */
-    log_info("nb_recv <----- [%d]\r\n", data_len);
     //log_buf(data_ptr, data_len);
 
     msg = (netbus_msg_t *)data_ptr;
+
+    //log_info("nb_recv <----- [%d] type:0x%x\r\n", data_len, msg->type);
+    //log_buf(data_ptr, 128);
 
     /* ctx = (netbus_wifi_mgmr_ctx_t *)((net_wifi_trcver_ctx_t *)arg)->arg; */
     ctx = &g_netbus_wifi_mgmr_env;
@@ -240,8 +243,9 @@ int bl_netbus_write_tlv(uint16_t type, void *data_ptr, uint16_t data_len)
     msg->len = data_len;
     memcpy(msg->buf, data_ptr, data_len);
 
-    printf("%p msg->type %d, msg->len %d\r\n", msg, msg->type, msg->len);
-    tp_spi_slave_send_asyn(&g_tpslave_desc, NULL, 0); // send NULL data
+    blog_info("write %p msg->type 0x%x, msg->len %d\r\n", msg, msg->type, msg->len);
+//    log_buf(msg->buf, 128);
+//    tp_spi_slave_send_asyn(&g_tpslave_desc, NULL, 0); // send NULL data
     ret = tp_spi_slave_send(&g_tpslave_desc, msg, 4 + data_len);
     aos_free(msg);
 
@@ -272,25 +276,27 @@ int bl_netbus_write_pbuf_tlv(struct pbuf *p)
     type = 0x7878;// fixme enum
     memcpy(buf + off, &type, 2);
     off += 2;
-    len = p->len;// ??? fixme
+
+    len = p->tot_len;// ??? fixme
     memcpy(buf + off, &len, 2);
     off += 2;
+
     memcpy(buf + off, p->payload, p->len);
     off += p->len;// ??? fixme
 
     next = p->next;
-    if (next) {
-        type = 0x7879;// fixme enum
-        memcpy(buf, &type, 2);
-
-        len = p->len;// ??? fixme
-        memcpy(buf + off, &len, 2);
-        off += 2;
-
-        memcpy(buf + off, p->payload, p->len);// ??? fixme
-        off += p->len;// ??? fixme
+    while (next) {
+        memcpy(buf + off, next->payload, next->len);// ??? fixme
+        off += next->len;// ??? fixme
+        next = next->next;
     }
 
+    if (off > 4040) {
+        blog_error("length %d BUG !!!\r\n", off);
+        while(1);
+    }
+    blog_info("write msg->type 0x%x, msg->len %d\r\n", 0x7878, off);
+    //log_buf(buf + 4, 128);
     ret = tp_spi_slave_send(&g_tpslave_desc, buf, off);
     aos_free(buf);
 
@@ -325,7 +331,7 @@ int bflbmsg_send_pbuf(net_wifi_trcver_ctx_t *ctx, const uint16_t type, const uin
 void bflbwrite_s_reg(net_wifi_trcver_ctx_t *ctx, const uint32_t offset, const uint8_t val)
 {
 #if USER_USE_SPISLAVE
-    log_error("bflbwrite_s_reg offset = %ld, val = %d\r\n", offset, val);
+	//log_warn("bflbwrite_s_reg offset = %ld, val = %d\r\n", offset, val);
 #else
 void sdu_write_s_reg(uint32_t offset, const uint8_t val);
     /* xSemaphoreTake(ctx->tx_lock, portMAX_DELAY); */

@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "bl602_xip_sflash.h"
+#include "bl602_xip_sflash_ext.h"
 
 typedef struct rf_para_flash_tag{
     uint32_t magic;            //"RFPA"

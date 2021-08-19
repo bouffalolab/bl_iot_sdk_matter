@@ -43,6 +43,7 @@ CONFIG_BLE_HOST_DISABLE:=1
 endif
 
 #blog enable components format :=blog_testc cli vfs helper
-LOG_ENABLED_COMPONENTS:=blog_testc hal_drv throughput bl602_demo_sdiowifi
+#LOG_ENABLED_COMPONENTS:=blog_testc hal_drv throughput bl602_demo_sdiowifi netbus_mgmr
+LOG_ENABLED_COMPONENTS:=blog_testc hal_drv 
 
 CONFIG_LINK_CUSTOMER := 1

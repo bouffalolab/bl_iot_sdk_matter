@@ -123,7 +123,7 @@ static void handle_hello(netbus_wifi_mgmr_ctx_t *env, netbus_wifi_mgmr_msg_cmd_t
         netbus_wifi_mgmr_send_ip_update(env);
     } else {
         // send NULL data
-        tp_spi_slave_send_asyn(&g_tpslave_desc, NULL, 0);
+        //tp_spi_slave_send_asyn(&g_tpslave_desc, NULL, 0);
     }
 }
 

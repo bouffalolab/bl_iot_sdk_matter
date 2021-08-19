@@ -305,7 +305,7 @@ static void wifi_mgmr_fastconnect_connected_config(void)
     memset(fconfig.adv.pmk, 0, sizeof(fconfig.adv.pmk));
     memcpy(fconfig.adv.pmk, wifi_mgmr_ind_stat.pmk, 64);
 
-    log_buf(fconfig.adv.pmk, 65);
+    //log_buf(fconfig.adv.pmk, 65);
 
     //save bssid into psm
     memcpy(fconfig.adv.mac, wifi_mgmr_ind_stat.bssid, 6);

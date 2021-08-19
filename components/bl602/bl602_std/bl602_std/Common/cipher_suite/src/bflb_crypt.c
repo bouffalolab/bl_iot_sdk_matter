@@ -7,6 +7,7 @@ int32_t bflb_crypt_init_do(bflb_crypt_handle_t *crypt_handle,uint8_t type)
 
     switch(type)
 	{
+		case BFLB_CRYPT_TYPE_AES_ECB:
 		case BFLB_CRYPT_TYPE_AES_CBC:
 		case BFLB_CRYPT_TYPE_AES_CTR:
 			mbedtls_aes_init((mbedtls_aes_context*)&crypt_handle->crypt_ctx);
@@ -47,6 +48,7 @@ int32_t bflb_crypt_setkey_do(bflb_crypt_handle_t *crypt_handle,const uint8_t *ke
 
     switch(crypt_handle->crypt_cfg.type)
     {
+        case BFLB_CRYPT_TYPE_AES_ECB:
         case BFLB_CRYPT_TYPE_AES_CBC:
             if(dir==BFLB_CRYPT_DIR_ENCRYPT){
                 ret=mbedtls_aes_setkey_enc((mbedtls_aes_context*)&crypt_handle->crypt_ctx,
@@ -110,6 +112,10 @@ int32_t bflb_crypt_encrypt_do(bflb_crypt_handle_t *crypt_handle,const uint8_t *i
 
     switch(crypt_handle->crypt_cfg.type)
     {
+        case BFLB_CRYPT_TYPE_AES_ECB:
+            result=mbedtls_aes_crypt_ecb((mbedtls_aes_context*)&crypt_handle->crypt_ctx,
+                    MBEDTLS_AES_ENCRYPT, in, out);
+            break;
         case BFLB_CRYPT_TYPE_AES_CBC:
             if(len%BFLB_CRYPT_BLK_SIZE!=0){
                 bflb_crypt_printe("input size must be BFLB_CRYPT_BLK_SIZE align\r\n");
@@ -195,6 +201,10 @@ int32_t bflb_crypt_decrypt_do(bflb_crypt_handle_t *crypt_handle,const uint8_t *i
 
     switch(crypt_handle->crypt_cfg.type)
     {
+        case BFLB_CRYPT_TYPE_AES_ECB:
+            result=mbedtls_aes_crypt_ecb((mbedtls_aes_context*)&crypt_handle->crypt_ctx,
+                    MBEDTLS_AES_DECRYPT, in, out);
+            break;
         case BFLB_CRYPT_TYPE_AES_CBC:
             if(len%BFLB_CRYPT_BLK_SIZE!=0){
                 bflb_crypt_printe("input size must be BFLB_CRYPT_BLK_SIZE align\r\n");
@@ -275,6 +285,7 @@ int32_t bflb_crypt_deinit_do(bflb_crypt_handle_t *crypt_handle)
 {
     switch(crypt_handle->crypt_cfg.type)
     {
+        case BFLB_CRYPT_TYPE_AES_ECB:
         case BFLB_CRYPT_TYPE_AES_CBC:
         case BFLB_CRYPT_TYPE_AES_CTR:
              mbedtls_aes_free((mbedtls_aes_context*)&crypt_handle->crypt_ctx);
@@ -311,6 +322,11 @@ int32_t bflb_crypt_setkey_do(bflb_crypt_handle_t *crypt_handle,const uint8_t *ke
 
 	switch(crypt_handle->crypt_cfg.type)
 	{
+		case BFLB_CRYPT_TYPE_AES_ECB:
+			Sec_Eng_AES_Enable_BE(SEC_ENG_AES_ID0);
+			Sec_Eng_AES_Init(&aesCtx,SEC_ENG_AES_ID0,SEC_ENG_AES_ECB,(SEC_ENG_AES_Key_Type)keytype,
+			BFLB_CRYPT_DIR_ENCRYPT==dir?SEC_ENG_AES_ENCRYPTION:SEC_ENG_AES_DECRYPTION);
+			break;
 		case BFLB_CRYPT_TYPE_AES_CBC:
 			Sec_Eng_AES_Enable_BE(SEC_ENG_AES_ID0);
             Sec_Eng_AES_Init(&aesCtx,SEC_ENG_AES_ID0,SEC_ENG_AES_CBC,(SEC_ENG_AES_Key_Type)keytype,
@@ -417,6 +433,7 @@ int32_t bflb_crypt_deinit_do(bflb_crypt_handle_t *crypt_handle)
 {
     switch(crypt_handle->crypt_cfg.type)
     {
+        case BFLB_CRYPT_TYPE_AES_ECB:
         case BFLB_CRYPT_TYPE_AES_CBC:
         case BFLB_CRYPT_TYPE_AES_CTR:
             break;

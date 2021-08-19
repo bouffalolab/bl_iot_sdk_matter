@@ -202,11 +202,6 @@ void I2C_Enable(I2C_ID_Type i2cNo)
     /* Check the parameters */
     CHECK_PARAM(IS_I2C_ID_TYPE(i2cNo));
 
-    tmpVal = BL_RD_REG(I2Cx, I2C_FIFO_CONFIG_0);
-    tmpVal = BL_SET_REG_BIT(tmpVal, I2C_TX_FIFO_CLR);
-    tmpVal = BL_SET_REG_BIT(tmpVal, I2C_RX_FIFO_CLR);
-    BL_WR_REG(I2Cx, I2C_FIFO_CONFIG_0, tmpVal);
-
     tmpVal = BL_RD_REG(I2Cx, I2C_CONFIG);
     tmpVal = BL_SET_REG_BIT(tmpVal, I2C_CR_I2C_M_EN);
     BL_WR_REG(I2Cx, I2C_CONFIG, tmpVal);
@@ -301,7 +296,7 @@ void I2C_Init(I2C_ID_Type i2cNo, I2C_Direction_Type direct, I2C_Transfer_Cfg *cf
     /* Set sub address */
     BL_WR_REG(I2Cx, I2C_SUB_ADDR, cfg->subAddr);
 
-#ifndef BL602_USE_HAL_DRIVER
+#ifndef BFLB_USE_HAL_DRIVER
     //Interrupt_Handler_Register(I2C_IRQn,I2C_IRQHandler);
 #endif
 }

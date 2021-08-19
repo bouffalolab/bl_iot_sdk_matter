@@ -208,6 +208,11 @@ BL_Err_Type L1C_BMX_Init(L1C_BMX_Cfg_Type *l1cBmxCfg)
     tmpVal=BL_SET_REG_BITS_VAL(tmpVal,L1C_BMX_ARB_MODE,l1cBmxCfg->arbMod);
     BL_WR_REG(L1C_BASE,L1C_CONFIG,tmpVal);
     
+#ifndef BFLB_USE_HAL_DRIVER
+    //Interrupt_Handler_Register(L1C_BMX_ERR_IRQn,L1C_BMX_ERR_IRQHandler);
+    //Interrupt_Handler_Register(L1C_BMX_TO_IRQn,L1C_BMX_TO_IRQHandler);
+#endif
+    
     return SUCCESS;
 }
 
@@ -349,7 +354,7 @@ BL_Err_Type L1C_BMX_ERR_INT_Callback_Install(L1C_BMX_ERR_INT_Type intType,intCal
  *
 *******************************************************************************/
 #ifndef BL602_USE_HAL_DRIVER
-void __IRQ L1C_BMX_ERR_IRQHandler(void)
+void L1C_BMX_ERR_IRQHandler(void)
 {
     L1C_BMX_ERR_INT_Type intType;
     
@@ -393,7 +398,7 @@ BL_Err_Type L1C_BMX_TIMEOUT_INT_Callback_Install(L1C_BMX_TO_INT_Type intType,int
  *
 *******************************************************************************/
 #ifndef BL602_USE_HAL_DRIVER
-void __IRQ L1C_BMX_TO_IRQHandler(void)
+void L1C_BMX_TO_IRQHandler(void)
 {
     L1C_BMX_TO_INT_Type intType;
     

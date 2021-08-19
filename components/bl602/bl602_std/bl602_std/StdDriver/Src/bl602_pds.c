@@ -343,6 +343,23 @@ PDS_STS_Type PDS_Get_PdsStstus(void)
 }
 
 /****************************************************************************//**
+ * @brief  PDS wakeup IRQHandler install
+ *
+ * @param  None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type PDS_WAKEUP_IRQHandler_Install(void)
+{
+#ifndef BFLB_USE_HAL_DRIVER
+    //Interrupt_Handler_Register(PDS_WAKEUP_IRQn,PDS_WAKEUP_IRQHandler);
+#endif
+    
+    return SUCCESS;
+}
+
+/****************************************************************************//**
  * @brief  Install PDS interrupt callback function
  *
  * @param  intType: PDS int type
@@ -605,6 +622,29 @@ BL_Err_Type ATTR_CLOCK_SECTION PDS_Power_On_PLL(PDS_PLL_XTAL_Type xtalType)
     return SUCCESS;
 }
 #endif
+
+/****************************************************************************//**
+ * @brief  Fix XTAL26M Setting
+ *
+ * @param  None
+ *
+ * @return SUCCESS or ERROR
+ *
+*******************************************************************************/
+BL_Err_Type ATTR_CLOCK_SECTION PDS_Fix_Xtal_Settig(void)
+{
+    uint32_t tmpVal;
+
+   /* Fix 26M xtal clkpll_sdmin */
+    tmpVal=BL_RD_REG(PDS_BASE,PDS_CLKPLL_SDM);
+    if(0x49D39D==BL_GET_REG_BITS_VAL(tmpVal,PDS_CLKPLL_SDMIN)){
+        tmpVal=BL_SET_REG_BITS_VAL(tmpVal,PDS_CLKPLL_SDMIN,0x49D89E);
+        BL_WR_REG(PDS_BASE,PDS_CLKPLL_SDM,tmpVal);
+    }
+
+    return SUCCESS;
+}
+
 /** PLL output config **/
 /*
 [8]    1'h0    r/w    clkpll_en_32m
@@ -757,7 +797,7 @@ BL_Err_Type ATTR_CLOCK_SECTION PDS_Power_Off_PLL(void)
  *
 *******************************************************************************/
 #ifndef BL602_USE_HAL_DRIVER
-void __IRQ PDS_WAKEUP_IRQHandler(void)
+void PDS_WAKEUP_IRQHandler(void)
 {
     for(PDS_INT_Type intType=PDS_INT_WAKEUP;intType<PDS_INT_MAX;intType++){
         if(PDS_Get_IntStatus(intType)&&(pdsIntCbfArra[intType][0]!=NULL)){

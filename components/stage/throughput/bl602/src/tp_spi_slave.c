@@ -101,7 +101,7 @@ static __attribute__((section(".tcm_code"))) void _spi_dma_rx_irq(void *p_arg, u
 	tp_spi_state_list_t *next, *now_loop, *next_loop;
 
 	if (HOSAL_DMA_INT_TRANS_COMPLETE != flag) {
-		printf("spi_dma_rx error\r\n");
+		blog_info("spi_dma_rx error\r\n");
 		return;
 	}
 
@@ -147,21 +147,26 @@ static __attribute__((section(".tcm_code"))) void _spi_dma_tx_irq(void *p_arg, u
 	BaseType_t xHigherPriorityTaskWoken;
 
 	if (HOSAL_DMA_INT_TRANS_COMPLETE != flag) {
-		printf("spi_dma_tx error\r\n");
+		blog_info("spi_dma_tx error\r\n");
 		return;
 	}
 
 	if (!slave_ctx->tx_now->tpf_item.used_by_dma) {
-		return;
+        blog_info("tx NULL\r\n");
+		goto _exit;
 	}
-	tp_flow_data_clear(&slave_ctx->ctx, &slave_ctx->tx_now->tpf_item);
 
-	/* update prev and now lli  */
-	slave_ctx->tx_prev = slave_ctx->tx_now;
-	slave_ctx->tx_now = _state_item_next(slave_ctx->tx_now);
+	tp_flow_data_clear(&slave_ctx->ctx, &slave_ctx->tx_now->tpf_item);
 
 	xSemaphoreGiveFromISR(slave_ctx->tx_sem, &xHigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+_exit:
+	/* update prev and now lli  */
+	slave_ctx->tx_prev = slave_ctx->tx_now;
+	slave_ctx->tx_now = _state_item_next(slave_ctx->tx_now);
+    slave_ctx->ctx.seq++;
+	blog_info("===tx_irq prev %p\r\n", slave_ctx->tx_prev);
 }
 
 static int _spi_hw_init(tp_spi_slave_ctx_t *ctx)
@@ -459,6 +464,7 @@ static int _slave_send_by_notify(tp_spi_slave_ctx_t *ctx, const uint8_t *buf, ui
 	}
 	bl_gpio_output_set(ctx->config->irq_pin, 0);
 	bl_gpio_output_set(ctx->config->irq_pin, 1);
+	xSemaphoreTake(ctx->tx_sem, (uint32_t)(0xffffffff));
 	return ret;
 }
 
@@ -482,6 +488,7 @@ int tp_spi_slave_rx_free_item_get(tp_spi_slave_ctx_t *ctx)
 	return free_cnt;
 }
 
+#if 0
 int tp_spi_slave_send_asyn(tp_spi_slave_ctx_t *ctx, const uint8_t *buf, uint16_t length)
 {
 	uint32_t len = 0;
@@ -513,7 +520,23 @@ int tp_spi_slave_send_asyn(tp_spi_slave_ctx_t *ctx, const uint8_t *buf, uint16_t
 
 	return len;
 }
+#else
+int tp_spi_slave_send_asyn(tp_spi_slave_ctx_t *ctx, const uint8_t *buf, uint16_t length)
+{
+	uint32_t len = 0;
+	tp_spi_state_list_t *tx_list = _state_item_next(ctx->tx_now);
+	struct spi_slave_item *tx = &tx_list->tpf_item;
 
+	len += tp_flow_data_put(&ctx->ctx, tx, buf + len, length - len);
+	tp_flow_item_windows_set(tx, tp_spi_slave_rx_free_item_get(ctx));
+	tp_flow_data_flush(&ctx->ctx, tx);
+//	ctx->tx_loop_idx = !ctx->tx_loop_idx;
+//	_state_item_add_tail(&ctx->tx_loop[ctx->tx_loop_idx], &ctx->tx_loop[ctx->tx_loop_idx]);
+//	_state_item_add_tail(ctx->tx_now, &ctx->tx_loop[ctx->tx_loop_idx]);
+	blog_info("===send_asyn now %p, len %ld, seq %ld\r\n", tx, len, ctx->ctx.seq);
+	return len;
+}
+#endif
 /* send sync */
 int tp_spi_slave_send(tp_spi_slave_ctx_t *ctx, const uint8_t *buf, uint16_t length)
 {

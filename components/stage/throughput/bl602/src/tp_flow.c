@@ -71,6 +71,8 @@ static int tp_rx_handle_cmd(struct tp_flow_ctx *ctx, struct spi_slave_item *item
     recv_cnt += sizeof(*item_rx->tpf_f);
 
     //blog_buf((uint8_t *)item_rx->tpf_f, sizeof(*item_rx->tpf_f));
+    blog_info("rx handle seq %ld\r\n", item_rx->tpf_f->status.seq);
+
     if (_check_data(&item_rx->tpf_f->tfd)) {
         // blog_info("[OK] check received,check sum %d\r\n", item_rx->tpf_f->tfd.data_crc);
     	if (ctx->rx_handler && data->length) {
@@ -155,7 +157,7 @@ int tp_flow_data_put(struct tp_flow_ctx *ctx, struct spi_slave_item *item, const
 
 	if (!item->used_by_dma) {
 		utils_list_extract(&ctx->tx_item_list, &item->item);
-		item->tpf_f->status.seq = ctx->seq++;
+		//item->tpf_f->status.seq = ctx->seq;
 	}
 	item->tpf_f->tfd.length += ret;
 	_check_data_set(&item->tpf_f->tfd);
@@ -167,7 +169,6 @@ int tp_flow_data_put(struct tp_flow_ctx *ctx, struct spi_slave_item *item, const
 int tp_flow_data_flush(struct tp_flow_ctx *ctx, struct spi_slave_item *item)
 {
 	uint16_t length;
-	uint8_t *buf;
 
 	taskENTER_CRITICAL();
 	length = ringbuf_get_size(&item->rbuf) - ringbuf_data_len(&item->rbuf);
@@ -176,16 +177,13 @@ int tp_flow_data_flush(struct tp_flow_ctx *ctx, struct spi_slave_item *item)
 	if (length == 0) {
 		return 0;
 	}
-	buf = pvPortMalloc(length);
-	if (buf == NULL) {
-		return -1;
-	}
-	memset(buf, 0, length);
+
 	taskENTER_CRITICAL();
-	ringbuf_put(&item->rbuf, buf, length);
+    while (length--) {
+        ringbuf_putchar(&item->rbuf, 0x00);
+    }
 	taskENTER_CRITICAL();
 
-	vPortFree(buf);
 	return 0;
 }
 
@@ -212,7 +210,7 @@ int tp_flow_data_clear(struct tp_flow_ctx *ctx, struct spi_slave_item *item)
 	ringbuf_reset(&item->rbuf);
 	item->tpf_f->tfd.length = 0;
 	item->used_by_dma = 0;
-	utils_list_push_back(&ctx->tx_item_list, &item->item);
+//	utils_list_push_back(&ctx->tx_item_list, &item->item);
 	taskENTER_CRITICAL();
 	memset(&item->tpf_f->tfd, 0, sizeof(item->tpf_f->tfd));
 

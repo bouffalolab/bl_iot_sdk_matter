@@ -6,7 +6,7 @@
 #include <bl_efuse.h>
 #include <bl_wifi.h>
 #include <aos/kernel.h>
-
+#include "utils_log.h"
 #include "bl_defs.h"
 #include "bl_tx.h"
 #include "bl_msg_tx.h"
@@ -67,6 +67,7 @@ static err_t wifi_tx(struct netif *netif, struct pbuf* p)
     if ((uintptr_t)p & 1) {
         can_tx = true;
     } else {
+#if 0
         from_local = true;
         if (npf_is_arp(p)) {
             can_tx = true;
@@ -74,9 +75,10 @@ static err_t wifi_tx(struct netif *netif, struct pbuf* p)
         if (npf_is_dhcp(p)) {
             can_tx = true;
         }
+#endif
     }
     if (!can_tx) {
-        /* log_error("can not tx %p\r\n", p); */
+        log_warn("[wifi tx] can not tx %p\r\n", p); 
         return ERR_IF;
     }
     p = (struct pbuf *)((uintptr_t)p & ~1);
