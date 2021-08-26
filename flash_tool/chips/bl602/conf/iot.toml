@@ -1,0 +1,34 @@
+[param]
+interface_type = "Uart"
+comport_uart = "COM17"
+speed_uart = "2000000"
+speed_jlink = "1000"
+bl60x_xtal = "40M"
+aes_key = ""
+aes_iv = ""
+addr = "0x0"
+
+[check_box]
+partition_download = true
+boot2_download = true
+bin_download = true
+media_download = false
+use_romfs = false
+mfg_download = false
+ro_params_download = false
+ckb_erase_all = "False"
+encrypt = false
+sign = false
+download_single = false
+
+[input_path]
+dts_input = "D:\\work\\v1.5.3\\chips\\bl602\\device_tree\\bl_factory_params_IoTKitA_40M.dts"
+pt_bin_input = "D:\\work\\v1.5.3\\chips\\bl602\\partition\\partition_cfg_2M.toml"
+boot2_bin_input = "D:\\work\\v1.5.3\\chips\\bl602\\builtin_imgs\\blsp_boot2_debug.bin"
+cfg2_bin_input = "T:\\bl_iot_sdk_spi\\customer_app\\bl602_demo_sdiowifi\\build_out\\bl602_demo_sdiowifi.bin"
+meida_bin_input = ""
+romfs_dir_input = ""
+mfg_bin_input = ""
+publickey = ""
+privatekey = ""
+img_bin_input = ""
