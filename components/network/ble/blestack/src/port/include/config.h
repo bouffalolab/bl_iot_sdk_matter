@@ -3,6 +3,10 @@
 
 #include "FreeRTOSConfig.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * CONFIG_BLUETOOTH: Enable the bluetooh stack
  */
