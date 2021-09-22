@@ -40,10 +40,14 @@ extern "C" {
 /* Evaluates to 0 if array is an array; compile error if not array (e.g.
  * pointer)
  */
+#ifndef __cplusplus
 #define IS_ARRAY(array) \
 	ZERO_OR_COMPILE_ERROR( \
 		!__builtin_types_compatible_p(__typeof__(array), \
 					      __typeof__(&(array)[0])))
+#else
+#define IS_ARRAY(array) (0)
+#endif
 
 /* Evaluates to number of elements in an array; compile error if not
  * an array (e.g. pointer)
