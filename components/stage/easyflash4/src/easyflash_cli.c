@@ -24,11 +24,6 @@ static void psm_unset_cmd(char *buf, int len, int argc, char **argv)
     ef_save_env();
 }
 
-static void psm_get_cmd(char *buf, int len, int argc, char **argv)
-{
-    /* You can add your code here. */
-}
-
 static void psm_dump_cmd(char *buf, int len, int argc, char **argv)
 {
     ef_print_env();
@@ -100,7 +95,6 @@ kvbin_exit:
 const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "psm_set", "psm set", psm_set_cmd },
         { "psm_unset", "psm unset", psm_unset_cmd },
-        { "psm_get", "psm get", psm_get_cmd },
         { "psm_dump", "psm dump", psm_dump_cmd },
         { "psm_erase", "psm dump", psm_erase_cmd },
         { "psm_test", "psm test", psm_test_cmd },

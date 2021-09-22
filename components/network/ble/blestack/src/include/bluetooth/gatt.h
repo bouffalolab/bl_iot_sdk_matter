@@ -1369,7 +1369,12 @@ void bt_gatt_cancel(struct bt_conn *conn, void *params);
 typedef void (*bt_gatt_mtu_changed_cb_t)(struct bt_conn *conn, int mtu);
 void bt_gatt_register_mtu_callback(bt_gatt_mtu_changed_cb_t cb);
 #endif
-
+#if defined(CONFIG_BT_GATT_CLIENT)
+#if defined(BFLB_BLE_NOTIFY_ALL)
+typedef void(*bt_notification_all_cb_t)(struct bt_conn *conn, u16_t handle,const void *data, u16_t length);
+void bt_gatt_register_notification_callback(bt_notification_all_cb_t cb);
+#endif
+#endif
 #if defined(BFLB_BLE)
 /** @brief load gatt ccc from flash
  *

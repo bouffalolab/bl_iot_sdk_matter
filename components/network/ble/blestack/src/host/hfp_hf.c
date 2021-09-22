@@ -904,7 +904,6 @@ int bt_hfp_hf_init(void)
 	int err;
 
 #if defined(BFLB_DYNAMIC_ALLOC_MEM)
-	k_lifo_init(&hf_pool.free, CONFIG_BT_MAX_CONN + 1);
 	net_buf_init(&hf_pool, CONFIG_BT_MAX_CONN + 1, BT_RFCOMM_BUF_SIZE(BT_HF_CLIENT_MAX_PDU), NULL);
 #endif
 

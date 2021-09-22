@@ -78,16 +78,24 @@ a lot of data that needs to be copied, this should be set high. */
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
 #if !defined PBUF_POOL_SIZE
+#ifdef CFG_ETHERNET_ENABLE
+#define PBUF_POOL_SIZE          12
+#else
 #define PBUF_POOL_SIZE          0
+#endif /*CFG_ETHERNET_ENABLE*/
 #endif
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
+#ifdef CFG_ETHERNET_ENABLE
+#define PBUF_POOL_BUFSIZE       1600
+#else
 #define PBUF_POOL_BUFSIZE       760
+#endif /* CFG_ETHERNET_ENABLE */
 
 
 /* ---------- TCP options ---------- */
 #define LWIP_TCP                1
-#define TCP_TTL                 255
+#define IP_DEFAULT_TTL          64
 
 /* Controls if TCP should queue segments that arrive out of
    order. Define to 0 if your device is low on memory. */
@@ -162,7 +170,6 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- UDP options ---------- */
 #define LWIP_UDP                1
-#define UDP_TTL                 255
 
 
 /* ---------- Statistics options ---------- */
@@ -182,7 +189,11 @@ a lot of data that needs to be copied, this should be set high. */
 */
 
 #define LWIP_CHECKSUM_ON_COPY            1
+#ifdef CFG_ETHERNET_ENABLE
+#define LWIP_NETIF_TX_SINGLE_PBUF    0
+#else
 #define LWIP_NETIF_TX_SINGLE_PBUF    1
+#endif /* CFG_ETHERNET_ENABLE */
 
 #ifdef CHECKSUM_BY_HARDWARE
   /* CHECKSUM_GEN_IP==0: Generate checksums by hardware for outgoing IP packets.*/
@@ -255,7 +266,11 @@ a lot of data that needs to be copied, this should be set high. */
 */
 
 #define TCPIP_THREAD_NAME              "TCP/IP"
+#ifdef CFG_ETHERNET_ENABLE
+#define TCPIP_THREAD_STACKSIZE          1536
+#else
 #define TCPIP_THREAD_STACKSIZE          4000
+#endif /* CFG_ETHERNET_ENABLE */
 #define TCPIP_MBOX_SIZE                 50
 #define DEFAULT_UDP_RECVMBOX_SIZE       2000
 #define DEFAULT_TCP_RECVMBOX_SIZE       2000

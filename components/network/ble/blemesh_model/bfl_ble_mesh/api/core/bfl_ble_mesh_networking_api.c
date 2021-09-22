@@ -111,7 +111,7 @@ static bfl_err_t ble_mesh_model_send_msg(bfl_ble_mesh_model_t *model,
         arg.model_send.msg_timeout = msg_timeout;
     }
 
-    status = (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_model_args_t), btc_ble_mesh_model_arg_deep_copy)
+    status = (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_model_args_t), NULL)
               == BT_STATUS_SUCCESS ? BFL_OK : BFL_FAIL);
 
     bt_mesh_free(msg_data);
@@ -240,7 +240,7 @@ bfl_err_t bfl_ble_mesh_server_model_update_state(bfl_ble_mesh_model_t *model,
     msg.pid = BTC_PID_MODEL;
     msg.act = BTC_BLE_MESH_ACT_SERVER_MODEL_UPDATE_STATE;
 
-    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_model_args_t), btc_ble_mesh_model_arg_deep_copy)
+    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_model_args_t), NULL)
             == BT_STATUS_SUCCESS ? BFL_OK : BFL_FAIL);
 }
 
@@ -314,7 +314,7 @@ bfl_err_t bfl_ble_mesh_provisioner_store_node_comp_data(uint16_t unicast_addr, u
     arg.store_node_comp_data.unicast_addr = unicast_addr;
     arg.store_node_comp_data.length = length;
     arg.store_node_comp_data.data = data;
-    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_prov_args_t), btc_ble_mesh_prov_arg_deep_copy)
+    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_prov_args_t), NULL)
             == BT_STATUS_SUCCESS ? BFL_OK : BFL_FAIL);
 }
 

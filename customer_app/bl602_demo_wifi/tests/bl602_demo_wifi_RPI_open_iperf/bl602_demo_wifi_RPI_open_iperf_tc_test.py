@@ -19,6 +19,8 @@ def bl602_demo_wifi_RPI_open_iperf_tc(env, extra_data):
     print('Starting app')
     dut.start_app()
 
+    time.sleep(2)
+
     try:
         RPI_ip = get_ip_address(bytes('eth0', encoding = "utf8"))
         board_log_name = env.log_path + '/port0.log'
@@ -27,6 +29,7 @@ def bl602_demo_wifi_RPI_open_iperf_tc(env, extra_data):
         for action_cmd in test_cmd:
             default_cmd_list = ['stack_wifi', 'wifi_sta_connect']
             dut.start_app()
+            time.sleep(1)
             for default_cmd in default_cmd_list:
                 print("------Executing default command {}, please wait...".format(default_cmd))
                 if default_cmd == 'wifi_sta_connect':
@@ -35,7 +38,7 @@ def bl602_demo_wifi_RPI_open_iperf_tc(env, extra_data):
                     cmd = ("wifi_sta_connect", bssid, pwd)
                     cmd_wifi_connect = ' '.join(cmd)
                     dut.write(cmd_wifi_connect)
-                    ip = dut.expect(re.compile(r"IP GOT IP:(.*), MASK:"), timeout=30)
+                    ip = dut.expect(re.compile(r"IP: (\S+)"), timeout=30)
                     board_ip = ''.join(ip)
                     print(f'board ip is {board_ip}')
                 else:
@@ -140,6 +143,9 @@ def bl602_demo_wifi_RPI_open_iperf_tc(env, extra_data):
 
         dut.halt()
     except Exception:
+        dut.write('p 0')
+        result_text = dut.read()
+        print(result_text)
         print('ENV_TEST_FAILURE: BL602 demo_wifi test failed')
         raise
 

@@ -9,8 +9,8 @@
 
 #include "btc_ble_mesh_generic_model.h"
 #include "btc_ble_mesh_lighting_model.h"
-//#include "btc_ble_mesh_time_scene_model.h"
-//#include "btc_ble_mesh_sensor_model.h"
+#include "btc_ble_mesh_time_scene_model.h"
+#include "btc_ble_mesh_sensor_model.h"
 
 #include "model_opcode.h"
 #include "state_transition.h"
@@ -205,12 +205,10 @@ void light_lc_tt_values(struct bt_mesh_light_lc_srv *srv,
     transition_time_values(&srv->transition, trans_time, delay);
 }
 
-#if 0
 void scene_tt_values(struct bt_mesh_scene_srv *srv, u8_t trans_time, u8_t delay)
 {
     transition_time_values(&srv->transition, trans_time, delay);
 }
-#endif
 
 static void transition_timer_start(struct bt_mesh_state_transition *transition)
 {
@@ -947,7 +945,6 @@ void light_lc_work_handler(struct k_work *work)
     return;
 }
 
-#if 0
 void scene_recall_work_handler(struct k_work *work)
 {
     struct bt_mesh_scene_srv *srv =
@@ -1000,7 +997,6 @@ void scene_recall_work_handler(struct k_work *work)
     bt_mesh_time_scene_server_unlock();
     return;
 }
-#endif
 
 /* Timers related handlers & threads (End) */
 

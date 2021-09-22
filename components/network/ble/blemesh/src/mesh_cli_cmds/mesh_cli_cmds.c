@@ -484,134 +484,130 @@ const struct cli_command btMeshCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 #else
 const struct cli_command btMeshCmdSet[] = {
 #endif
-    {"blemesh_init", "\r\nblemesh_init:[Initialize]\r\n Parameter[Null]\r\n", blemeshcli_init},
+    {"blemesh_init", "blemesh_init:[Initialize]\r\n Parameter[Null]", blemeshcli_init},
 #if defined(CONFIG_BT_MESH_PROVISIONER)
-    {"blemesh_pvnr_init", "\r\nblemesh_init:[Initialize]\r\n Parameter[Null]\r\n", blemeshcli_pvnr_init},
+    {"blemesh_pvnr_init", "blemesh_pvnr_init:[Initialize]\r\n Parameter[Null]", blemeshcli_pvnr_init},
 #endif
-	{"blemesh_set_dev_uuid", "\r\nblemesh_input_num:[input number in provisionging procedure]\r\n\
-     [Size:16 Octets, e.g.112233445566778899AA]\r\n", blemeshcli_set_dev_uuid},
-    {"blemesh_pb", "\r\nblemesh_pb:[Enable or disable provisioning]\r\n\
+	{"blemesh_set_dev_uuid", "blemesh_input_num:[input number in provisionging procedure]\r\n\
+     [Size:16 Octets, e.g.112233445566778899AA]", blemeshcli_set_dev_uuid},
+    {"blemesh_pb", "blemesh_pb:[Enable or disable provisioning]\r\n\
      [bear, 1:adv bear, 2:gatt bear]\r\n\
-     [enable, 0:disable provisioning, 1:enable provisioning]\r\n", blemeshcli_pb},
+     [enable, 0:disable provisioning, 1:enable provisioning]", blemeshcli_pb},
 #if defined(CONFIG_BT_MESH_PB_ADV)
 #if defined(CONFIG_BT_MESH_PROVISIONER)
-	{"blemesh_provision_adv", "\r\nblemesh_pb:[Enable or disable provisioning]\r\n\
+	{"blemesh_provision_adv", "blemesh_pb:[Enable or disable provisioning]\r\n\
 		 [bear, 1:adv bear, 2:gatt bear]\r\n\
-		 [enable, 0:disable provisioning, 1:enable provisioning]\r\n", blemeshcli_provision_adv},
+		 [enable, 0:disable provisioning, 1:enable provisioning]", blemeshcli_provision_adv},
 #endif /* CONFIG_BT_MESH_PROVISIONER */
 #endif /* CONFIG_BT_MESH_PB_ADV */
     
-    {"blemesh_reset", "\r\nblemesh_reset:[Reset the state of the local mesh node]\r\n Parameter[Null]\r\n", blemeshcli_reset},
-    {"blemesh_net_send", "\r\nblemesh_net_send:[Send a network packet]\r\n Parameter[TTL CTL SRC DST]\r\n", blemeshcli_net_send},
-    {"blemesh_seg_send", "\r\nblemesh_seg_send:[Send a segmented message]\r\n Parameter[SRC DST]\r\n", blemeshcli_seg_send},
-    {"blemesh_rpl_clr", "\r\nblemesh_rpl_clr:[Clear replay protection list]\r\n Parameter[Null]\r\n", blemeshcli_rpl_clr},
-    {"blemesh_ivu_test", "\r\nblemesh_ivu_test:[Enable or disable iv update test mode]\r\n\
-     [enable, 0:disable, 1:enable]\r\n", blemeshcli_ivu_test},
-    {"blemesh_iv_update", "\r\nblemesh_iv_update:[Enable or disable iv update procedure]\r\n\
-     [enable, 0:disable, 1:enable by sending secure network beacons]\r\n", blemeshcli_iv_update},
-    {"blemesh_fault_set", "\r\nblemesh_fault_set:[Set current fault or registered fault values]\r\n\
+    {"blemesh_reset", "blemesh_reset:[Reset the state of the local mesh node]\r\n Parameter[Null]", blemeshcli_reset},
+    {"blemesh_net_send", "blemesh_net_send:[Send a network packet]\r\n Parameter[TTL CTL SRC DST]", blemeshcli_net_send},
+    {"blemesh_seg_send", "blemesh_seg_send:[Send a segmented message]\r\n Parameter[SRC DST]", blemeshcli_seg_send},
+    {"blemesh_rpl_clr", "blemesh_rpl_clr:[Clear replay protection list]\r\n Parameter[Null]", blemeshcli_rpl_clr},
+    {"blemesh_ivu_test", "blemesh_ivu_test:[Enable or disable iv update test mode]\r\n\
+     [enable, 0:disable, 1:enable]", blemeshcli_ivu_test},
+    {"blemesh_iv_update", "blemesh_iv_update:[Enable or disable iv update procedure]\r\n\
+     [enable, 0:disable, 1:enable by sending secure network beacons]", blemeshcli_iv_update},
+    {"blemesh_fault_set", "blemesh_fault_set:[Set current fault or registered fault values]\r\n\
      [type, 0:current fault, 1:registered fault]\r\n\
-     [fault, fault array in hex format]\r\n", blemeshcli_fault_set},
+     [fault, fault array in hex format]", blemeshcli_fault_set},
     #if defined(CONFIG_BT_MESH_LOW_POWER)
-    {"blemesh_lpn_set", "\r\nblemesh_lpn_set:[Enable or disable low power node]\r\n\
-     [enable, 0:disable lpn, 1:enable lpn]\r\n", blemeshcli_lpn_set},
+    {"blemesh_lpn_set", "blemesh_lpn_set:[Enable or disable low power node]\r\n\
+     [enable, 0:disable lpn, 1:enable lpn]", blemeshcli_lpn_set},
     #endif
-    {"blemesh_input_num", "\r\nblemesh_input_num:[input number in provisionging procedure]\r\n\
-     [Max Size:16 Octets, e.g.112233445566778899AA]\r\n", blemeshcli_input_num},
+    {"blemesh_input_num", "blemesh_input_num:[input number in provisionging procedure]\r\n\
+     [Max Size:16 Octets, e.g.112233445566778899AA]", blemeshcli_input_num},
      
-    {"blemesh_input_str", "\r\nblemesh_input_str:[input Alphanumeric in provisionging procedure]\r\n\
-     [Max Size:16 Characters, e.g.123ABC]\r\n", blemeshcli_input_str},
+    {"blemesh_input_str", "blemesh_input_str:[input Alphanumeric in provisionging procedure]\r\n\
+     [Max Size:16 Characters, e.g.123ABC]", blemeshcli_input_str},
 #if defined(CONFIG_BT_MESH_MODEL)
 #if defined(CONFIG_BT_MESH_MODEL_GEN_CLI)
-	{"blemesh_gen_oo_cli", "\r\blemesh_gen_oo_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t onoff tid trans_time delay]\r\n\
-     []\r\n", blemeshcli_gen_oo_cli},
+	{"blemesh_gen_oo_cli", "blemesh_gen_oo_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t onoff tid trans_time delay]\r\n\
+     []", blemeshcli_gen_oo_cli},
 #endif
 #if defined(CONFIG_BT_MESH_MODEL_LIGHT_CLI)
-     {"blemesh_light_lgn_cli", "\r\blemesh_light_lgn_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t lightness tid trans_time delay]\r\n\
-     []\r\n", blemeshcli_light_lgn_cli},
-     {"blemesh_light_ctl_cli", "\r\blemesh_light_ctl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t ctl_lightness ctl_temperatrue ctl_delta_uv tid trans_time delay]\r\n\
-     []\r\n", blemeshcli_light_ctl_cli},
-     {"blemesh_light_hsl_cli", "\r\blemesh_light_hsl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en lightness hue saturation tid trans_time delay]\r\n\
-     []\r\n", blemeshcli_light_hsl_cli},
+     {"blemesh_light_lgn_cli", "blemesh_light_lgn_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t lightness tid trans_time delay]", blemeshcli_light_lgn_cli},
+     {"blemesh_light_ctl_cli", "blemesh_light_ctl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en_t ctl_lightness ctl_temperatrue ctl_delta_uv tid trans_time delay]", blemeshcli_light_ctl_cli},
+     {"blemesh_light_hsl_cli", "blemesh_light_hsl_cli:[cmd op app_idx opcode msg_role addr net_idx op_en lightness hue saturation tid trans_time delay]", blemeshcli_light_hsl_cli},
 #endif
 #if defined(CONFIG_BT_MESH_MODEL_VENDOR_CLI)
-	{"blemesh_vendor_cli", "\r\blemesh_vendor_cli:[cmd op app_idx opcode msg_role addr net_idx]\r\n\
-		[]\r\n", blemeshcli_vendor_cli},
+	{"blemesh_vendor_cli", "blemesh_vendor_cli:[cmd op app_idx opcode msg_role addr net_idx]", blemeshcli_vendor_cli},
 #endif
 #endif /* CONFIG_BT_MESH_MODEL */
 #if defined(CONFIG_BT_MESH_CDB)
-	{"blemesh_cdb_create", "\r\n\r\n", blemeshcli_cdb_create},
-	{"blemesh_cdb_clear", "\r\n\r\n", blemeshcli_cdb_clear},
-	{"blemesh_cdb_show", "\r\n\r\n", blemeshcli_cdb_show},
-	{"blemesh_cdb_node_add", "\r\n\r\n", blemeshcli_cdb_node_add},
-	{"blemesh_cdb_node_del", "\r\n\r\n", blemeshcli_cdb_node_del},
-	{"blemesh_cdb_subnet_add", "\r\n\r\n", blemeshcli_cdb_subnet_add},
-	{"blemesh_cdb_subnet_del", "\r\n\r\n", blemeshcli_cdb_subnet_del},
-	{"blemesh_cdb_app_key_add", "\r\n\r\n", blemeshcli_cdb_app_key_add},
-	{"blemesh_cdb_app_key_del", "\r\n\r\n", blemeshcli_cdb_app_key_del},
+	{"blemesh_cdb_create", "", blemeshcli_cdb_create},
+	{"blemesh_cdb_clear", "", blemeshcli_cdb_clear},
+	{"blemesh_cdb_show", "", blemeshcli_cdb_show},
+	{"blemesh_cdb_node_add", "", blemeshcli_cdb_node_add},
+	{"blemesh_cdb_node_del", "", blemeshcli_cdb_node_del},
+	{"blemesh_cdb_subnet_add", "", blemeshcli_cdb_subnet_add},
+	{"blemesh_cdb_subnet_del", "", blemeshcli_cdb_subnet_del},
+	{"blemesh_cdb_app_key_add", "", blemeshcli_cdb_app_key_add},
+	{"blemesh_cdb_app_key_del", "", blemeshcli_cdb_app_key_del},
 #endif /* CONFIG_BT_MESH_CDB */
 #if defined(CONFIG_BT_MESH_PROVISIONER)
-	{"blemesh_beacon_listen", "\r\n\r\n", blemeshcli_beacon_listen},
-	{"blemesh_provision", "\r\n\r\n", blemeshcli_provision},
-	{"blemesh_node_cfg", "\r\n\r\n", blemeshcli_node_cfg},
+	{"blemesh_beacon_listen", "", blemeshcli_beacon_listen},
+	{"blemesh_provision", "", blemeshcli_provision},
+	{"blemesh_node_cfg", "", blemeshcli_node_cfg},
 #endif /* CONFIG_BT_MESH_PROVISIONER */
 #if defined(CONFIG_BT_MESH_PROVISIONER)
-	{"blemesh_get_comp", "\r\n\r\n", blemeshcli_get_comp},
-	{"blemesh_set_dst", "\r\n\r\n", blemeshcli_set_dst},
-	{"blemesh_net_key_add", "\r\n\r\n", blemeshcli_net_key_add},
+	{"blemesh_get_comp", "", blemeshcli_get_comp},
+	{"blemesh_set_dst", "", blemeshcli_set_dst},
+	{"blemesh_net_key_add", "", blemeshcli_net_key_add},
 	/* Added by bouffalo */
-	{"blemesh_net_key_update", "\r\n\r\n", blemeshcli_net_key_update},
-	{"blemesh_net_key_get", "\r\n\r\n", blemeshcli_net_key_get},
-	{"blemesh_net_key_del", "\r\n\r\n", blemeshcli_net_key_del},
-	{"blemesh_app_key_add", "\r\n\r\n", blemeshcli_app_key_add},
+	{"blemesh_net_key_update", "", blemeshcli_net_key_update},
+	{"blemesh_net_key_get", "", blemeshcli_net_key_get},
+	{"blemesh_net_key_del", "", blemeshcli_net_key_del},
+	{"blemesh_app_key_add", "", blemeshcli_app_key_add},
 	/* Added by bouffalo */
-	{"blemesh_app_key_update", "\r\n\r\n", blemeshcli_app_key_update},
-	{"blemesh_app_key_get", "\r\n\r\n", blemeshcli_app_key_get},
-	{"blemesh_app_key_del", "\r\n\r\n", blemeshcli_app_key_del},
+	{"blemesh_app_key_update", "", blemeshcli_app_key_update},
+	{"blemesh_app_key_get", "", blemeshcli_app_key_get},
+	{"blemesh_app_key_del", "", blemeshcli_app_key_del},
 	/* Added by bouffalo */
-	{"blemesh_kr_update", "\r\n\r\n", blemeshcli_kr_update},
-	{"blemesh_mod_app_bind", "\r\n\r\n", blemeshcli_mod_app_bind},
-	{"blemesh_mod_app_unbind", "\r\n\r\n", blemeshcli_mod_app_unbind},
-	{"blemesh_mod_app_get", "\r\n\r\n", blemeshcli_mod_app_get},
-	{"blemesh_mod_sub_add", "\r\n\r\n", blemeshcli_mod_sub_add},
-	{"blemesh_mod_sub_ow", "\r\n\r\n", blemeshcli_mod_sub_ow},
-	{"blemesh_mod_sub_del", "\r\n\r\n", blemeshcli_mod_sub_del},
-	{"blemesh_mod_sub_del_all", "\r\n\r\n", blemeshcli_mod_sub_del_all},
-	{"blemesh_mod_sub_add_va", "\r\n\r\n", blemeshcli_mod_sub_add_va},
-	{"blemesh_mod_sub_ow_va", "\r\n\r\n", blemeshcli_mod_sub_ow_va},
-	{"blemesh_mod_sub_del_va", "\r\n\r\n", blemeshcli_mod_sub_del_va},
-	{"blemesh_mod_sub_get", "\r\n\r\n", blemeshcli_mod_sub_get},
-	{"blemesh_mod_pub", "\r\n\r\n", blemeshcli_mod_pub},
-	{"blemesh_mod_pub_va", "\r\n\r\n", blemeshcli_mod_pub_va},
-	{"blemesh_hb_sub", "\r\n\r\n", blemeshcli_hb_sub},
-	{"blemesh_hb_pub", "\r\n\r\n", blemeshcli_hb_pub},
-	{"blemesh_krp_get", "\r\n\r\n", blemeshcli_krp_get},
-	{"blemesh_krp_set", "\r\n\r\n", blemeshcli_krp_set},
-	{"blemesh_cfg_bcn_get", "\r\n\r\n", blemeshcli_cfg_bcn_get},
-	{"blemesh_cfg_bcn_set", "\r\n\r\n", blemeshcli_cfg_bcn_set},
-	{"blemesh_cfg_dttl_get", "\r\n\r\n", blemeshcli_cfg_dttl_get},
-	{"blemesh_cfg_dttl_set", "\r\n\r\n", blemeshcli_cfg_dttl_set},
-	{"blemesh_cfg_gpxy_get", "\r\n\r\n", blemeshcli_cfg_gpxy_get},
-	{"blemesh_cfg_gpxy_set", "\r\n\r\n", blemeshcli_cfg_gpxy_set},
-	{"blemesh_friend", "\r\n\r\n", blemeshcli_friend},
-	{"blemesh_relay", "\r\n\r\n", blemeshcli_relay},
-	{"blemesh_node_identify", "\r\n\r\n", blemeshcli_node_identify},
-	{"blemesh_node_reset", "\r\n[0]net_idx; [1]dst addr\r\n", blemeshcli_node_reset},
-	{"blemesh_network_trans", "\r\n\r\n", blemeshcli_network_trans},
-	{"blemesh_lpn_timeout_get", "\r\n\r\n", blemeshcli_lpn_timeout_get},
-	{"blemesh_clhm_fault", "\r\n\r\n", blemeshcli_clhm_fault},
-	{"blemesh_clhm_period", "\r\n\r\n", blemeshcli_clhm_period},
-	{"blemesh_clhm_ats", "\r\n\r\n", blemeshcli_clhm_ats},
+	{"blemesh_kr_update", "", blemeshcli_kr_update},
+	{"blemesh_mod_app_bind", "", blemeshcli_mod_app_bind},
+	{"blemesh_mod_app_unbind", "", blemeshcli_mod_app_unbind},
+	{"blemesh_mod_app_get", "", blemeshcli_mod_app_get},
+	{"blemesh_mod_sub_add", "", blemeshcli_mod_sub_add},
+	{"blemesh_mod_sub_ow", "", blemeshcli_mod_sub_ow},
+	{"blemesh_mod_sub_del", "", blemeshcli_mod_sub_del},
+	{"blemesh_mod_sub_del_all", "", blemeshcli_mod_sub_del_all},
+	{"blemesh_mod_sub_add_va", "", blemeshcli_mod_sub_add_va},
+	{"blemesh_mod_sub_ow_va", "", blemeshcli_mod_sub_ow_va},
+	{"blemesh_mod_sub_del_va", "", blemeshcli_mod_sub_del_va},
+	{"blemesh_mod_sub_get", "", blemeshcli_mod_sub_get},
+	{"blemesh_mod_pub", "", blemeshcli_mod_pub},
+	{"blemesh_mod_pub_va", "", blemeshcli_mod_pub_va},
+	{"blemesh_hb_sub", "", blemeshcli_hb_sub},
+	{"blemesh_hb_pub", "", blemeshcli_hb_pub},
+	{"blemesh_krp_get", "", blemeshcli_krp_get},
+	{"blemesh_krp_set", "", blemeshcli_krp_set},
+	{"blemesh_cfg_bcn_get", "", blemeshcli_cfg_bcn_get},
+	{"blemesh_cfg_bcn_set", "", blemeshcli_cfg_bcn_set},
+	{"blemesh_cfg_dttl_get", "", blemeshcli_cfg_dttl_get},
+	{"blemesh_cfg_dttl_set", "", blemeshcli_cfg_dttl_set},
+	{"blemesh_cfg_gpxy_get", "", blemeshcli_cfg_gpxy_get},
+	{"blemesh_cfg_gpxy_set", "", blemeshcli_cfg_gpxy_set},
+	{"blemesh_friend", "", blemeshcli_friend},
+	{"blemesh_relay", "", blemeshcli_relay},
+	{"blemesh_node_identify", "", blemeshcli_node_identify},
+	{"blemesh_node_reset", "[0]net_idx; [1]dst addr", blemeshcli_node_reset},
+	{"blemesh_network_trans", "", blemeshcli_network_trans},
+	{"blemesh_lpn_timeout_get", "", blemeshcli_lpn_timeout_get},
+	{"blemesh_clhm_fault", "", blemeshcli_clhm_fault},
+	{"blemesh_clhm_period", "", blemeshcli_clhm_period},
+	{"blemesh_clhm_ats", "", blemeshcli_clhm_ats},
 #endif
 #if defined(CFG_NODE_SEND_CFGCLI_MSG) && defined(CONFIG_BT_MESH_CDB)
-	{"blemesh_pvnr_devkey", "\r\n\r\n", blemeshcli_pvnr_devkey},
+	{"blemesh_pvnr_devkey", "", blemeshcli_pvnr_devkey},
 #endif
 #if defined(CONFIG_BT_MESH_SYNC)
-	{"blemesh_sync_start", "\r\nNo parameter\r\n", blemeshcli_sync_start},
-	{"blemesh_sync_stop", "\r\nNo parameter\r\n", blemeshcli_sync_stop},
+	{"blemesh_sync_start", "No parameter", blemeshcli_sync_start},
+	{"blemesh_sync_stop", "No parameter", blemeshcli_sync_stop},
 #endif
 #if defined(CONFIG_BT_MESH_TEST)
-    {"blemesh_nodelist_op", "\r\n\r\n", blemeshcli_nodelist_op},
+    {"blemesh_nodelist_op", "", blemeshcli_nodelist_op},
 #endif /* CONFIG_BT_MESH_TEST */
     #if defined(BL70X)
     {NULL, NULL, "No handler / Invalid command", NULL}

@@ -49,8 +49,10 @@
 #include "bl602_hbn.h"
 #elif defined(BL702)
 #include "bl702_hbn.h"
-#elif defined(BL606p)
+#elif defined(BL606p) || defined(BL616)
 #include "bl606p_hbn.h"
+#elif defined(BL808)
+#include "bl808_hbn.h"
 #endif
 #include "work_q.h"
 #endif
@@ -4251,8 +4253,7 @@ static void send_cmd(void)
 	if (err) {
 		BT_ERR("Unable to send to driver (err %d)", err);
 		k_sem_give(&bt_dev.ncmd_sem);
-		hci_cmd_done(cmd(buf)->opcode, BT_HCI_ERR_UNSPECIFIED,
-			     NULL);
+		hci_cmd_done(cmd(buf)->opcode, BT_HCI_ERR_UNSPECIFIED, buf);
 		net_buf_unref(bt_dev.sent_cmd);
 		bt_dev.sent_cmd = NULL;
 		net_buf_unref(buf);
@@ -4878,6 +4879,10 @@ static int br_init(void)
 {
 	struct net_buf *buf;
 	struct bt_hci_cp_write_ssp_mode *ssp_cp;
+	struct bt_hci_cp_write_class_of_device *cod_cp;
+	struct bt_hci_cp_write_inquiry_scan_activity *inq_scan_act_cp;
+	struct bt_hci_cp_write_inquiry_scan_type *inq_scan_cp;
+	struct bt_hci_cp_write_page_scan_type *page_scan_cp;
 	struct bt_hci_cp_write_inquiry_mode *inq_cp;
 	struct bt_hci_write_local_name *name_cp;
 	int err;
@@ -4911,6 +4916,60 @@ static int br_init(void)
 	ssp_cp = net_buf_add(buf, sizeof(*ssp_cp));
 	ssp_cp->mode = 0x01;
 	err = bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_SSP_MODE, buf, NULL);
+	if (err) {
+		return err;
+	}
+
+	/* Write Class of Device */
+	buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_CLASS_OF_DEVICE, sizeof(*cod_cp));
+	if (!buf) {
+		return -ENOBUFS;
+	}
+
+	cod_cp = net_buf_add(buf, sizeof(*cod_cp));
+	u8_t cd[3] = {0x14, 0x04, 0x24};
+	memcpy(cod_cp->cod, cd, 3);
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_CLASS_OF_DEVICE, buf, NULL);
+	if (err) {
+		return err;
+	}
+
+	/* Write Inquiry Scan Activity */
+	buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_INQUIRY_SCAN_ACTIVITY, sizeof(*inq_scan_act_cp));
+	if (!buf) {
+		return -ENOBUFS;
+	}
+
+	inq_scan_act_cp = net_buf_add(buf, sizeof(*inq_scan_act_cp));
+	inq_scan_act_cp->interval = 0x0400;
+	inq_scan_act_cp->window = 0x0012;
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_INQUIRY_SCAN_ACTIVITY, buf, NULL);
+	if (err) {
+		return err;
+	}
+
+	/* Write Inquiry Scan type with Interlaced */
+	buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_INQUIRY_SCAN_TYPE, sizeof(*inq_scan_cp));
+	if (!buf) {
+		return -ENOBUFS;
+	}
+
+	inq_scan_cp = net_buf_add(buf, sizeof(*inq_scan_cp));
+	inq_scan_cp->type = 0x01;
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_INQUIRY_SCAN_TYPE, buf, NULL);
+	if (err) {
+		return err;
+	}
+
+	/* Write Page Scan type with Interlaced */
+	buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_PAGE_SCAN_TYPE, sizeof(*page_scan_cp));
+	if (!buf) {
+		return -ENOBUFS;
+	}
+
+	page_scan_cp = net_buf_add(buf, sizeof(*page_scan_cp));
+	page_scan_cp->type = 0x01;
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_PAGE_SCAN_TYPE, buf, NULL);
 	if (err) {
 		return err;
 	}
@@ -5574,10 +5633,6 @@ static void hci_rx_thread(void)
 }
 #endif /* !CONFIG_BT_RECV_IS_RX_THREAD */
 
-#if defined(BFLB_DISABLE_BT)
-bool queue_inited = false;
-#endif
-
 int bt_enable(bt_ready_cb_t cb)
 {
 	int err;
@@ -5617,11 +5672,6 @@ int bt_enable(bt_ready_cb_t cb)
 #if !defined(CONFIG_BT_RECV_IS_RX_THREAD)
         k_fifo_init(&bt_dev.rx_queue, 20);
 #endif
-        if(queue_inited == false)
-        {
-            k_lifo_init(&hci_cmd_pool.free, CONFIG_BT_HCI_CMD_COUNT);
-            k_lifo_init(&hci_rx_pool.free, CONFIG_BT_RX_BUF_COUNT);
-        }
        
         k_sem_init(&g_poll_sem, 0, 1);
 #endif
@@ -5780,7 +5830,6 @@ int bt_disable_action(void)
     #endif
     k_sem_delete(&bt_dev.le.pkts);
 
-    queue_inited = true;
     atomic_clear_bit(bt_dev.flags, BT_DEV_ENABLE);
     
     #if defined(BFLB_DYNAMIC_ALLOC_MEM)
@@ -5810,9 +5859,7 @@ int bt_disable_action(void)
     #endif
     #endif//defined(BFLB_DYNAMIC_ALLOC_MEM)
 
-    #if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)
     bl_onchiphci_interface_deinit();
-    #endif
 
     extern void ble_controller_deinit(void);
     ble_controller_deinit();
@@ -6210,6 +6257,7 @@ static bool valid_adv_param(const struct bt_le_adv_param *param, bool dir_adv)
 		return false;
 	}
 
+    #if !defined(BFLB_BLE)
 	if (!(param->options & BT_LE_ADV_OPT_CONNECTABLE)) {
 		/*
 		 * BT Core 4.2 [Vol 2, Part E, 7.8.5]
@@ -6222,7 +6270,8 @@ static bool valid_adv_param(const struct bt_le_adv_param *param, bool dir_adv)
 			return false;
 		}
 	}
-
+    #endif
+    
 	if (is_wl_empty() &&
 	    ((param->options & BT_LE_ADV_OPT_FILTER_SCAN_REQ) ||
 	     (param->options & BT_LE_ADV_OPT_FILTER_CONN))) {
@@ -6232,7 +6281,9 @@ static bool valid_adv_param(const struct bt_le_adv_param *param, bool dir_adv)
 
 	if ((param->options & BT_LE_ADV_OPT_DIR_MODE_LOW_DUTY) || !dir_adv) {
 		if (param->interval_min > param->interval_max ||
+            #if !defined(BFLB_BLE)
 		    param->interval_min < 0x0020 ||
+		    #endif
 		    param->interval_max > 0x4000) {
 			return false;
 		}
@@ -6466,19 +6517,19 @@ int bt_le_adv_start_internal(const struct bt_le_adv_param *param,
             else if(param->addr_type == BT_ADDR_TYPE_NON_RPA)
                 err = le_set_non_resolv_private_addr(param->id);
             #else
-			#if !defined(CONFIG_BT_ADV_WITH_PUBLIC_ADDR)
-			err = le_set_private_addr(param->id);
-			#endif
+			//#if !defined(CONFIG_BT_ADV_WITH_PUBLIC_ADDR)
+			//err = le_set_private_addr(param->id);
+			//#endif
             #endif//CONFIG_BT_STACK_PTS
             #if defined(CONFIG_BT_STACK_PTS)
 			if(param->addr_type == BT_ADDR_LE_PUBLIC)
 				set_param.own_addr_type = BT_ADDR_LE_PUBLIC;
 			else
 			#endif
-			    set_param.own_addr_type = BT_ADDR_LE_RANDOM;
-				#if defined(CONFIG_BT_ADV_WITH_PUBLIC_ADDR)
+			    //set_param.own_addr_type = BT_ADDR_LE_RANDOM;
+				//#if defined(CONFIG_BT_ADV_WITH_PUBLIC_ADDR)
 				set_param.own_addr_type = BT_ADDR_LE_PUBLIC;
-				#endif
+				//#endif
             #endif
 		}
 
@@ -6580,7 +6631,7 @@ int bt_le_read_rssi(u16_t handle,int8_t *rssi)
 int set_adv_enable(bool enable)
 {
 	int err;
-	err = set_advertise_enable(true);
+	err = set_advertise_enable(enable);
 	if (err) {
 		return err;
 	}
@@ -7567,7 +7618,6 @@ int bt_br_write_eir(u8_t rec, u8_t *data)
 {
     struct bt_hci_cp_write_ext_inquiry_resp *ext_ir;
     struct net_buf *buf;
-    int err;
 
     buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_EXT_INQUIRY_RESP, sizeof(*ext_ir));
     if (!buf) {
@@ -7575,6 +7625,7 @@ int bt_br_write_eir(u8_t rec, u8_t *data)
     }
 
     ext_ir = net_buf_add(buf, sizeof(*ext_ir));
+    memset(ext_ir, 0, sizeof(*ext_ir));
 
     ext_ir->rec= rec;
     memcpy(ext_ir->eir, data, strlen((char *)data));

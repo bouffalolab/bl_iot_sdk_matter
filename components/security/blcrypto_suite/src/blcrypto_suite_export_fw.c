@@ -38,6 +38,12 @@ static const struct bl_crypto_api fw_api = {
     MK_MEM(crypto_ec_point_is_at_infinity),
     MK_MEM(crypto_ec_point_is_on_curve),
     MK_MEM(crypto_ec_point_cmp),
+
+    MK_MEM(crypto_aes_init),
+    MK_MEM(crypto_aes_set_key),
+    MK_MEM(crypto_aes_encrypt),
+    MK_MEM(crypto_aes_decrypt),
+    MK_MEM(crypto_aes_deinit),
 };
 
 void *blcrypto_suite_get_fw_api_table()

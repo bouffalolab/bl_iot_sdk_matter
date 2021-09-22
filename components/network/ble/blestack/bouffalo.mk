@@ -143,7 +143,9 @@ ifeq ($(CONFIG_BLE_MULTI_ADV),1)
 ble_stack_srcs   += src/host/multi_adv.c
 endif
 
+ifeq ($(CONFIG_BT_RESET),1)
 ble_stack_srcs   += src/host/bl_host_assist.c
+endif
 
 ble_audio_srcs   := src/host/iso.c
 

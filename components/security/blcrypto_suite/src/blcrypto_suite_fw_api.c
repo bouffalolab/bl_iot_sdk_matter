@@ -3,9 +3,12 @@
 #include <blcrypto_suite/blcrypto_suite_bignum.h>
 #include <blcrypto_suite/blcrypto_suite_ecp.h>
 #include <blcrypto_suite/blcrypto_suite_hacc_glue.h>
+#include <blcrypto_suite/blcrypto_suite_aes.h>
 
 #include <string.h>
+#include <assert.h>
 #include <FreeRTOS.h>
+#include <bl_crypto_api.h>
 
 #define os_mem_alloc pvPortMalloc
 #define os_mem_free vPortFree
@@ -591,4 +594,30 @@ int crypto_ec_point_cmp(const struct crypto_ec *e,
 {
     return blcrypto_suite_ecp_point_cmp((const blcrypto_suite_ecp_point *) a,
                                  (const blcrypto_suite_ecp_point *) b);
+}
+
+struct crypto_aes *crypto_aes_init(int id, enum crypto_aes_mode mode) {
+    return (struct crypto_aes *)blcrypto_suite_aes_init(id, mode);
+}
+
+int crypto_aes_set_key(struct crypto_aes *a, const uint8_t *key, int bits) {
+  assert(a != NULL);
+
+  return blcrypto_suite_aes_set_key((struct blcrypto_suite_aes *)a, key, bits);
+}
+
+int crypto_aes_encrypt(struct crypto_aes *a, const uint8_t *in, uint8_t *out, unsigned int nblk) {
+  assert(a != NULL);
+
+  return blcrypto_suite_aes_encrypt((struct blcrypto_suite_aes *)a, in, out, nblk);
+}
+
+int crypto_aes_decrypt(struct crypto_aes *a, const uint8_t *in, uint8_t *out, unsigned int nblk) {
+  assert(a != NULL);
+
+  return blcrypto_suite_aes_decrypt((struct blcrypto_suite_aes *)a, in, out, nblk);
+}
+
+void crypto_aes_deinit(struct crypto_aes **a) {
+  blcrypto_suite_aes_deinit((struct blcrypto_suite_aes **)a);
 }

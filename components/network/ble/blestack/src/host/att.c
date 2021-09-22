@@ -2225,7 +2225,14 @@ static void bt_att_disconnected(struct bt_l2cap_chan *chan)
     if(att->tx_queue._queue.hdl){
     	k_queue_free(&att->tx_queue._queue);
     	att->tx_queue._queue.hdl = NULL;
-   	}
+    }
+
+    #if CONFIG_BT_ATT_PREPARE_COUNT > 0
+    if(att->prep_queue._queue.hdl){
+    	k_queue_free(&att->prep_queue._queue);
+    	att->prep_queue._queue.hdl = NULL;
+    }
+    #endif
    	
     if(att->tx_sem.sem.hdl)
         k_sem_delete(&att->tx_sem);
@@ -2339,7 +2346,6 @@ void bt_att_init(void)
 
     #if CONFIG_BT_ATT_PREPARE_COUNT > 0
     #if defined(BFLB_DYNAMIC_ALLOC_MEM)
-    k_lifo_init(&prep_pool.free, CONFIG_BT_ATT_PREPARE_COUNT);
     net_buf_init(&prep_pool, CONFIG_BT_ATT_PREPARE_COUNT, BT_ATT_MTU, NULL);
     #endif
     #endif

@@ -354,7 +354,7 @@
 #elif defined(BL702)
 #define CONFIG_BT_DEVICE_NAME "BL702-BLE-DEV"
 #else
-#define CONFIG_BT_DEVICE_NAME "BL606P-BTBLE"
+#define CONFIG_BT_DEVICE_NAME "BTBLE-DEV"
 #endif
 #endif
 #endif
@@ -568,12 +568,15 @@
 #define BFLB_DISABLE_BT
 #define BFLB_FIXED_IRK 0
 #define BFLB_DYNAMIC_ALLOC_MEM
+#define CONFIG_BT_SCAN_WITH_IDENTITY 1
+
 #if defined(CONFIG_AUTO_PTS)
+#define CONFIG_BT_L2CAP_DYNAMIC_CHANNEL
 #define CONFIG_BT_DEVICE_NAME_GATT_WRITABLE 1
 #define CONFIG_BT_GATT_SERVICE_CHANGED 1
 #define CONFIG_BT_GATT_CACHING 1
 #define CONFIG_BT_SCAN_WITH_IDENTITY 1
-#define CONFIG_BT_ADV_WITH_PUBLIC_ADDR 1
+//#define CONFIG_BT_ADV_WITH_PUBLIC_ADDR 1
 #define CONFIG_BT_ATT_PREPARE_COUNT 64
 #endif
 #endif //BFLB_BLE
@@ -607,6 +610,16 @@ happens, which cause memory leak issue.*/
 /*Fix the issue when local auth_req is 0(no boinding), 
 BT_SMP_DIST_ENC_KEY bit is not cleared while remote ENC_KEY is received.*/
 #define BFLB_BLE_PATCH_CLEAR_REMOTE_KEY_BIT
+
+#if defined(CONFIG_BT_CENTRAL) || defined(CONFIG_BT_OBSERVER)
+#if defined(BL602) || defined(BL702)
+#define BFLB_BLE_NOTIFY_ADV_DISCARDED
+#endif
+#endif
+
+#if defined(CONFIG_BT_CENTRAL)
+#define BFLB_BLE_NOTIFY_ALL
+#endif
 
 #if defined(__cplusplus)
 }

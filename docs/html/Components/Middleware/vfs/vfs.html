@@ -1,61 +1,69 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="zh" >
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>15. AOS VFS &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-138-gb54c10f45 文档</title>
+  <title>AOS VFS &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-719-g8f849a080 文档</title>
   
 
-  
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
-
-  
-  
   
   
 
   
-  <!--[if lt IE 9]>
-    <script src="../../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+
+  
   
     
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
-        <script src="../../../_static/language_data.js"></script>
-    
-    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-    
-    <link rel="index" title="索引" href="../../../genindex.html" />
-    <link rel="search" title="搜索" href="../../../search.html" />
-    <link rel="next" title="16. yloop" href="../yloop/yloop.html" />
-    <link rel="prev" title="14. blog" href="../log/blog.html" /> 
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+  
+
+  
+        <link rel="author" title="关于这些文档"
+              href="../../../about.html"/>
+        <link rel="index" title="索引"
+              href="../../../genindex.html"/>
+        <link rel="search" title="搜索" href="../../../search.html"/>
+    <link rel="top" title="BL602 IoT SDK release_bl_iot_sdk_1.6.22-719-g8f849a080 文档" href="../../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav" role="document">
 
    
   <div class="wy-grid-for-nav">
+
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+        <div class="wy-side-nav-search">
           
 
           
-            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> BL602 IoT SDK
+            <a href="../../../index.html" class="icon icon-home"> BL602 IoT SDK
           
 
+          
+            
+            <img src="../../../_static/Bouffalolab-logo.png" class="logo" />
           
           </a>
 
@@ -63,7 +71,7 @@
             
             
               <div class="version">
-                BL602
+                release_bl_iot_sdk_1.6.22-719-g8f849a080
               </div>
             
           
@@ -80,92 +88,31 @@
           
         </div>
 
-        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
             
-              
-            
-            
-              <p class="caption"><span class="caption-text">Developer_Environment</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../Developer_Environment/Developer_Environment.html">1. Developer Environment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Developer_Environment/BLFlashEnv/BLFlashEnv.html">2. BLFlashEnv</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Developer_Environment/freedom_studio/freedom_studio.html">3. Freedom Studio</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Developer_Environment/eclipse/eclipse.html">4. Eclipse</a></li>
-</ul>
-<p class="caption"><span class="caption-text">Examples</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/helloworld/helloworld.html">1. Helloword</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_aws/aws.html">2. aws</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_peripherals_gpio/GPIO.html">3. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_peripherals_uart_echo/uart_echo.html">4. UART_echo</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_peripherals_uart_ioctl/uart_ioctl.html">5. UART_ioctl</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_protocols_http/http.html">6. Http client</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_protocols_httpc/httpc.html">7. Httpc client</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_storage_psm/psm.html">8. PSM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_storage_romfs/romfs.html">9. Romfs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_system_cli/cli.html">10. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_system_fdt/fdt.html">11. FDT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_wifi/wifi.html">12. WiFi</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_ble/ble.html">13. BLE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_mesh/mesh.html">14. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_blsync_ble/blsync_ble.html">15. BLSYNC-BLE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/sdk_app_easyflash_boottimes/easyflash_boottimes.html">16. Easyflash4 boot times</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples/demo_dac/DAC.html">17. DAC</a></li>
-</ul>
-<p class="caption"><span class="caption-text">Components</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../dts/devicetree.html">1. device tree</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../arch/arch.html">2. arch</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Command_line/helper.html">3. helper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Command_line/aos_cli.html">4. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Hal_drv/gpio.html">5. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../bloop/bloop.html">6. BLOOP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../blsync/blsync.html">7. BLSYNC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../security/security.html">8. Security</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Network/httpc/httpc.html">9. HTTPC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Network/https/https.html">10. HTTPS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Network/tls/tls.html">11. TLS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Network/wifi/wifi.html">12. WiFi</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../BLE/provision_WiFi/provision_WiFi.html">13. Provision_WiFi</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../log/blog.html">14. blog</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">15. AOS VFS</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">15.1. 概要</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#vfs">15.2. VFS提供的标准接口</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">15.3. VFS的数据结构</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#aos-open">15.4. 以aos_open为例介绍其文件打开方式</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">15.5. 将驱动文件或者文件系统加载到VFS当中</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">15.6. 示例代码</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">15.7. 总结</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../yloop/yloop.html">16. yloop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../BLE/mesh/mesh.html">17. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../BLE/ble_stack/ble_stack.html">18. BLE</a></li>
-</ul>
-<p class="caption"><span class="caption-text">API</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../API/sys/cronalarms.html">1. cronalarms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../API/wifi/wifi_mgmr.html">2. Wi-Fi Manager</a></li>
-</ul>
-<p class="caption"><span class="caption-text">QA</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../QA/flash_cache/config_flash_cache.html">1. 配置Flash频率和cache大小</a></li>
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../get-started/index.html">快速入门</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-reference/index.html">API 参考</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Examples/index.html">Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hw-reference/index.html">H/W 参考</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../versions.html">版本</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../resources.html">相关资源</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../about.html">关于</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../languages.html">Languages/语言</a></li>
 </ul>
 
             
           
         </div>
-        
       </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../../index.html">BL602 IoT SDK</a>
@@ -173,10 +120,9 @@
       </nav>
 
 
+      
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
           
 
 
@@ -197,9 +143,9 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
         
-      <li><span class="section-number">15. </span>AOS VFS</li>
+      <li>AOS VFS</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -219,7 +165,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="aos-vfs">
-<h1><span class="section-number">15. </span>AOS VFS<a class="headerlink" href="#aos-vfs" title="永久链接至标题">¶</a></h1>
+<h1>AOS VFS<a class="headerlink" href="#aos-vfs" title="永久链接至标题">¶</a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="#id1">概要</a></p></li>
 <li><p><a class="reference internal" href="#vfs">VFS提供的标准接口</a></p></li>
@@ -230,11 +176,11 @@
 <li><p><a class="reference internal" href="#id5">总结</a></p></li>
 </ul>
 <div class="section" id="id1">
-<h2><span class="section-number">15.1. </span>概要<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<h2>概要<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
 <p>VFS存在的意义，屏蔽掉底层文件系统的差异，为应用层提供标准的系统调用接口。</p>
 </div>
 <div class="section" id="vfs">
-<h2><span class="section-number">15.2. </span>VFS提供的标准接口<a class="headerlink" href="#vfs" title="永久链接至标题">¶</a></h2>
+<h2>VFS提供的标准接口<a class="headerlink" href="#vfs" title="永久链接至标题">¶</a></h2>
 <p>基本通用的UNIX接口都已经实现了。之所以具有前缀<code class="docutils literal notranslate"><span class="pre">aos_</span></code>。是因为这些都是对外的接口，在AliOS
 Things的代码命名规则中规定：所有的对外接口都需要加上前缀<code class="docutils literal notranslate"><span class="pre">aos_</span></code></p>
 <p>aos_open</p>
@@ -255,7 +201,7 @@ Things的代码命名规则中规定：所有的对外接口都需要加上前�
 <p>aos_mkdir</p>
 </div>
 <div class="section" id="id2">
-<h2><span class="section-number">15.3. </span>VFS的数据结构<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<h2>VFS的数据结构<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">inode_t</span></code>数据结构</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cm">/* this structure represents inode for driver and fs*/</span>
 <span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
@@ -324,7 +270,7 @@ Things的代码命名规则中规定：所有的对外接口都需要加上前�
 <p>上述的<code class="docutils literal notranslate"><span class="pre">file_t</span></code>数据结构用于描述一个被打开的文件，因为系统当中同一个系统当中，同一个文件可能被多个程序打开，但是打开的每一个文件都会唯一的执行特定的索引节点，即最终的物理文件只有一份。</p>
 </div>
 <div class="section" id="aos-open">
-<h2><span class="section-number">15.4. </span>以aos_open为例介绍其文件打开方式<a class="headerlink" href="#aos-open" title="永久链接至标题">¶</a></h2>
+<h2>以aos_open为例介绍其文件打开方式<a class="headerlink" href="#aos-open" title="永久链接至标题">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">aos_open</span></code>是对外的接口，外部函数可以直接使用该接口实现对于文件的打开操作，而不用去关心底层文件系统的实现细节。其代码如下所示：</p>
 <p>其输入参数为：</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">path</span><span class="p">;</span> <span class="n">即文件路径名</span>
@@ -466,7 +412,7 @@ file_t 类型。用于后续获取文件句柄</p></li>
 <p>所有的系统调用函数（类似于aos_open）都位于vfs.c文件中。</p>
 </div>
 <div class="section" id="id3">
-<h2><span class="section-number">15.5. </span>将驱动文件或者文件系统加载到VFS当中<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<h2>将驱动文件或者文件系统加载到VFS当中<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
 <p>在vfs_register.c文件中定义的函数：</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="n">aos_register_driver</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">,</span> <span class="n">file_ops_t</span> <span class="o">*</span><span class="n">ops</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span>
 <span class="kt">int</span> <span class="n">aos_register_fs</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">,</span> <span class="n">fs_ops_t</span> <span class="o">*</span><span class="n">ops</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span>
@@ -513,7 +459,7 @@ file_t 类型。用于后续获取文件句柄</p></li>
 </div>
 </div>
 <div class="section" id="id4">
-<h2><span class="section-number">15.6. </span>示例代码<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
+<h2>示例代码<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
 <p>vfs的操作类linux中操作，
 这里举例<code class="docutils literal notranslate"><span class="pre">aos_open</span></code>、<code class="docutils literal notranslate"><span class="pre">aos_close</span></code>、<code class="docutils literal notranslate"><span class="pre">aos_read</span></code>、<code class="docutils literal notranslate"><span class="pre">aos_write</span></code></p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">bl_test_uart0</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
@@ -552,7 +498,7 @@ file_t 类型。用于后续获取文件句柄</p></li>
 </div>
 </div>
 <div class="section" id="id5">
-<h2><span class="section-number">15.7. </span>总结<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
+<h2>总结<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
 <ul class="simple">
 <li><p>VFS的一把重要的互斥锁 对VFS的相关操作都需要获取该互斥锁才能够进行。
 <code class="docutils literal notranslate"><span class="pre">kmutex_t</span> <span class="pre">g_vfs_mutex;</span></code></p></li>
@@ -572,37 +518,19 @@ file_t 类型。用于后续获取文件句柄</p></li>
 
 
            </div>
-           
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../yloop/yloop.html" class="btn btn-neutral float-right" title="16. yloop" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../log/blog.html" class="btn btn-neutral float-left" title="14. blog" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> 上一页</a>
-      
-    </div>
   
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
-        &copy; 版权所有 2020, Bouffalo Lab
+        &copy; Copyright 2020, Bouffalo Lab.
 
     </p>
   </div>
-    
-    
-    
-    利用 <a href="http://sphinx-doc.org/">Sphinx</a> 构建，使用了 
-    
-    <a href="https://github.com/rtfd/sphinx_rtd_theme">主题</a>
-    
-    由 <a href="https://readthedocs.org">Read the Docs</a>开发. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> and ❤️  using a custom <a href="https://github.com/LinxiFan/Stanford-theme">theme</a> based on <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -614,15 +542,38 @@ file_t 类型。用于后续获取文件句柄</p></li>
   </div>
   
 
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'release_bl_iot_sdk_1.6.22-719-g8f849a080',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="../../../_static/language_data.js"></script>
+
+  
 
   
   
-    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
    
 
 </body>

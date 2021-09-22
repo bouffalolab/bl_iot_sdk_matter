@@ -17,6 +17,8 @@ def bl602_demo_wifi_RPI_shield_iperf_tc(env, extra_data):
     print('Starting app')
     dut.start_app()
 
+    time.sleep(2)
+
     try:
         RPI_ip = get_ip_address(bytes('eth0', encoding="utf8"))
         board_log_name = env.log_path + '/port0.log'

@@ -401,7 +401,6 @@ void bt_mesh_adv_init(void)
     net_buf_init(&adv_buf_pool, CONFIG_BT_MESH_ADV_BUF_COUNT, BT_MESH_ADV_DATA_SIZE, NULL);
 #endif
 
-    k_lifo_init(&adv_buf_pool.free, CONFIG_BT_MESH_ADV_BUF_COUNT);
     k_fifo_init(&adv_queue, 20);
     k_thread_create(&adv_thread_data, "BT Mesh adv", CONFIG_MESH_ADV_STACK_SIZE,
         adv_thread, CONFIG_BT_MESH_ADV_PRIO);

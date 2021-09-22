@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <bl_crypto_api.h>
 
 #define FW_API_HACC_ENABLE 1
 
@@ -350,5 +351,11 @@ int crypto_ec_point_is_on_curve(struct crypto_ec *e,
 int crypto_ec_point_cmp(const struct crypto_ec *e,
         const struct crypto_ec_point *a,
         const struct crypto_ec_point *b);
+
+struct crypto_aes *crypto_aes_init(int id, enum crypto_aes_mode mode);
+int crypto_aes_set_key(struct crypto_aes *a, const uint8_t *key, int bits);
+int crypto_aes_encrypt(struct crypto_aes *a, const uint8_t *in, uint8_t *out, unsigned int nblk);
+int crypto_aes_decrypt(struct crypto_aes *a, const uint8_t *in, uint8_t *out, unsigned int nblk);
+void crypto_aes_deinit(struct crypto_aes **a);
 
 #endif /* end of include guard: BLCRYPTO_SUITE_FW_API_H */

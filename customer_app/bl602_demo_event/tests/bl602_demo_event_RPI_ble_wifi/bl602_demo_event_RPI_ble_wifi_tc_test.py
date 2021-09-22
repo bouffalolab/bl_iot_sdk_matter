@@ -127,6 +127,9 @@ def bl602_demo_event_RPI_ble_wifi_tc(env, extra_data):
             print("connect success!")
         dut.halt()
     except Exception:
+        dut.write('p 0')
+        result_text = dut.read()
+        print(result_text)
         print('ENV_TEST_FAILURE: BL602 ble_wifi test failed')
         raise
 

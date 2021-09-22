@@ -237,7 +237,7 @@ int a2dp_sbc_decode_init()
                                                                                     false);
     if (!OI_SUCCESS(status))
     {
-        BT_ERR("decode init failed with error: %d\n", status);
+        BT_ERR("decode init failed with error: %d", status);
         return status;
     }
 
@@ -255,20 +255,20 @@ int a2dp_sbc_decode_process(uint8_t media_data[], uint16_t data_len)
     OI_UINT32 data_size = data_len - 12 - 1;
 
     if (data_size <= 0) {
-        BT_ERR("empty packet\n");
+        BT_ERR("empty packet");
         return -1;
     }
 
     if(data[0] != 0x9c)
     {
-        BT_ERR("sbc frame syncword error \n");
+        BT_ERR("sbc frame syncword error");
     }
 
     OI_INT16* pcm = sbc_decoder.decode_buf;
     OI_UINT32 pcm_size = sizeof(sbc_decoder.decode_buf);
 
     OI_INT16 frame_count = OI_CODEC_SBC_FrameCount((OI_BYTE *)data, data_size);
-    BT_DBG("frame_count: %d\n", frame_count);
+    BT_DBG("frame_count: %d", frame_count);
 
     for (int i = 0; i < frame_count; i++)
     {
@@ -279,7 +279,7 @@ int a2dp_sbc_decode_process(uint8_t media_data[], uint16_t data_len)
                                                                                         &pcm_size);
         if (!OI_SUCCESS(status))
         {
-            BT_ERR("decoding failure with error: %d \n", status);
+            BT_ERR("decoding failure with error: %d", status);
             return -1;
         }
 

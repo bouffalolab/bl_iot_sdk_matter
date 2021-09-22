@@ -74,6 +74,7 @@ enum {
 };
 
 static sys_slist_t br_servers;
+static uint8_t ident;
 
 
 /* Pool for outgoing BR/EDR signaling packets, min MTU is 48 */
@@ -214,8 +215,6 @@ static bool l2cap_br_chan_add(struct bt_conn *conn, struct bt_l2cap_chan *chan,
 
 static uint8_t l2cap_br_get_ident(void)
 {
-	static uint8_t ident;
-
 	ident++;
 	/* handle integer overflow (0 is not valid) */
 	if (!ident) {
@@ -475,6 +474,8 @@ void bt_l2cap_br_connected(struct bt_conn *conn)
 
 			connect_fixed_channel(ch);
 
+			/* reset l2cap signaling channel identifier */
+			ident = 0;
 			sig_ch = CONTAINER_OF(ch, struct bt_l2cap_br, chan);
 			l2cap_br_get_info(sig_ch, BT_L2CAP_INFO_FEAT_MASK);
 		}
@@ -1543,7 +1544,6 @@ BT_L2CAP_BR_CHANNEL_DEFINE(br_fixed_chan, BT_L2CAP_CID_BR_SIG, l2cap_br_accept);
 void bt_l2cap_br_init(void)
 {
 #if defined(BFLB_DYNAMIC_ALLOC_MEM)
-    k_lifo_init(&br_sig_pool.free, CONFIG_BT_MAX_CONN);
     net_buf_init(&br_sig_pool, CONFIG_BT_MAX_CONN, BT_L2CAP_BUF_SIZE(L2CAP_BR_MIN_MTU), NULL);
 #endif
 	sys_slist_init(&br_servers);

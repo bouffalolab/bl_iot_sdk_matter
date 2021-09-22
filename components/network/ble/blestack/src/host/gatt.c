@@ -38,7 +38,13 @@
 extern u8_t event_flag;
 #endif
 
+#ifdef BT_DBG_ENABLED
+#undef BT_DBG_ENABLED
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_GATT)
+#else
+#define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_DEBUG_GATT)
+#endif
+
 #define LOG_MODULE_NAME bt_gatt
 #include "log.h"
 
@@ -66,6 +72,9 @@ struct ccc_store {
 
 #if defined(CONFIG_BT_GATT_CLIENT)
 static sys_slist_t subscriptions;
+#if defined(BFLB_BLE_NOTIFY_ALL)
+bt_notification_all_cb_t gatt_notify_all_cb;
+#endif
 #endif /* CONFIG_BT_GATT_CLIENT */
 
 static const u16_t gap_appearance = CONFIG_BT_DEVICE_APPEARANCE;
@@ -2307,13 +2316,23 @@ bool bt_gatt_is_subscribed(struct bt_conn *conn,
 }
 
 #if defined(CONFIG_BT_GATT_CLIENT)
+#if defined(BFLB_BLE_NOTIFY_ALL)
+void bt_gatt_register_notification_callback(bt_notification_all_cb_t cb)
+{
+    gatt_notify_all_cb = cb;
+}
+#endif
 void bt_gatt_notification(struct bt_conn *conn, u16_t handle,
 			  const void *data, u16_t length)
 {
 	struct bt_gatt_subscribe_params *params, *tmp;
 
 	BT_DBG("handle 0x%04x length %u", handle, length);
-
+    #if defined(BFLB_BLE_NOTIFY_ALL)
+    if(gatt_notify_all_cb){
+        gatt_notify_all_cb(conn,handle,data,length);
+    }
+    #endif
 	SYS_SLIST_FOR_EACH_CONTAINER_SAFE(&subscriptions, params, tmp, node) {
 		if (bt_conn_addr_le_cmp(conn, &params->_peer) ||
 		    handle != params->value_handle) {
@@ -3618,6 +3637,7 @@ static void gatt_write_ccc_rsp(struct bt_conn *conn, u8_t err,
 	/* if write to CCC failed we remove subscription and notify app */
 	if (err) {
 		sys_snode_t *node, *tmp, *prev = NULL;
+                   UNUSED(prev);
 
 		SYS_SLIST_FOR_EACH_NODE_SAFE(&subscriptions, node, tmp) {
 			if (node == &params->node) {

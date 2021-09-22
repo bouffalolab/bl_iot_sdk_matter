@@ -31,7 +31,7 @@ static inline void btc_ble_mesh_lighting_client_cb_to_app(bfl_ble_mesh_light_cli
         btc_ble_mesh_cb(event, param);
     }
 }
-
+#if 0
 void btc_ble_mesh_lighting_client_arg_deep_copy(btc_msg_t *msg, void *p_dest, void *p_src)
 {
     btc_ble_mesh_lighting_client_args_t *dst = (btc_ble_mesh_lighting_client_args_t *)p_dest;
@@ -205,7 +205,7 @@ static void btc_ble_mesh_lighting_client_free_req_data(btc_msg_t *msg)
         break;
     }
 }
-
+#endif
 static void btc_ble_mesh_lighting_client_callback(bfl_ble_mesh_light_client_cb_param_t *cb_params, uint8_t act)
 {
     btc_msg_t msg = {0};
@@ -222,7 +222,7 @@ static void btc_ble_mesh_lighting_client_callback(bfl_ble_mesh_light_client_cb_p
     msg.act = act;
 
     btc_transfer_context(&msg, cb_params,
-                         sizeof(bfl_ble_mesh_light_client_cb_param_t), btc_ble_mesh_lighting_client_copy_req_data);
+                         sizeof(bfl_ble_mesh_light_client_cb_param_t), NULL);
 }
 
 void bt_mesh_lighting_client_cb_evt_to_btc(u32_t opcode, u8_t evt_type,
@@ -366,7 +366,7 @@ void btc_ble_mesh_lighting_client_call_handler(btc_msg_t *msg)
         break;
     }
 
-    btc_ble_mesh_lighting_client_arg_deep_free(msg);
+    //btc_ble_mesh_lighting_client_arg_deep_free(msg);
     return;
 }
 
@@ -387,7 +387,7 @@ void btc_ble_mesh_lighting_client_cb_handler(btc_msg_t *msg)
         BT_ERR("%s, Unknown msg->act = %d", __func__, msg->act);
     }
 
-    btc_ble_mesh_lighting_client_free_req_data(msg);
+    //btc_ble_mesh_lighting_client_free_req_data(msg);
     return;
 }
 
@@ -403,7 +403,7 @@ static inline void btc_ble_mesh_lighting_server_cb_to_app(
         btc_ble_mesh_cb(event, param);
     }
 }
-
+#if 0
 static void btc_ble_mesh_lighting_server_copy_req_data(btc_msg_t *msg, void *p_dest, void *p_src)
 {
     bfl_ble_mesh_lighting_server_cb_param_t *p_dest_data = (bfl_ble_mesh_lighting_server_cb_param_t *)p_dest;
@@ -501,7 +501,7 @@ static void btc_ble_mesh_lighting_server_free_req_data(btc_msg_t *msg)
         break;
     }
 }
-
+#endif
 static void btc_ble_mesh_lighting_server_callback(bfl_ble_mesh_lighting_server_cb_param_t *cb_params, uint8_t act)
 {
     btc_msg_t msg = {0};
@@ -518,7 +518,7 @@ static void btc_ble_mesh_lighting_server_callback(bfl_ble_mesh_lighting_server_c
     msg.act = act;
 
     btc_transfer_context(
-        &msg, cb_params, sizeof(bfl_ble_mesh_lighting_server_cb_param_t), btc_ble_mesh_lighting_server_copy_req_data);
+        &msg, cb_params, sizeof(bfl_ble_mesh_lighting_server_cb_param_t), NULL);
 }
 
 void bt_mesh_lighting_server_cb_evt_to_btc(u8_t evt_type,
@@ -587,6 +587,6 @@ void btc_ble_mesh_lighting_server_cb_handler(btc_msg_t *msg)
         BT_ERR("%s, Unknown msg->act = %d", __func__, msg->act);
     }
 
-    btc_ble_mesh_lighting_server_free_req_data(msg);
+    //btc_ble_mesh_lighting_server_free_req_data(msg);
     return;
 }

@@ -2654,7 +2654,8 @@ static int smp_init(struct bt_smp *smp)
 
 	sc_public_key = bt_pub_key_get();
     #if defined(BFLB_BLE)
-    k_sem_init(&sc_local_pkey_ready, 0, 1);
+    if(!sc_local_pkey_ready.sem.hdl)
+        k_sem_init(&sc_local_pkey_ready, 0, 1);
     #endif
 	return 0;
 }

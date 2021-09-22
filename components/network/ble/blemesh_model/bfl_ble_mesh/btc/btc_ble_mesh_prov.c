@@ -71,7 +71,7 @@ static inline void btc_ble_mesh_model_cb_to_app(bfl_ble_mesh_model_cb_event_t ev
         btc_ble_mesh_cb(event, param);
     }
 }
-
+#if 0
 void btc_ble_mesh_prov_arg_deep_copy(btc_msg_t *msg, void *p_dest, void *p_src)
 {
     btc_ble_mesh_prov_args_t *dst = (btc_ble_mesh_prov_args_t *)p_dest;
@@ -351,7 +351,7 @@ static void btc_ble_mesh_model_free_req_data(btc_msg_t *msg)
         break;
     }
 }
-
+#endif
 static bt_status_t btc_ble_mesh_model_callback(bfl_ble_mesh_model_cb_param_t *param, uint8_t act)
 {
     btc_msg_t msg = {0};
@@ -369,7 +369,7 @@ static bt_status_t btc_ble_mesh_model_callback(bfl_ble_mesh_model_cb_param_t *pa
     msg.act = act;
 
     ret = btc_transfer_context(&msg, param,
-                               sizeof(bfl_ble_mesh_model_cb_param_t), btc_ble_mesh_model_copy_req_data);
+                               sizeof(bfl_ble_mesh_model_cb_param_t), NULL);
     if (ret != BT_STATUS_SUCCESS) {
         BT_ERR("%s, btc_transfer_context failed", __func__);
     }
@@ -1979,9 +1979,9 @@ void btc_ble_mesh_prov_call_handler(btc_msg_t *msg)
     /* Callback operation completion events */
     btc_ble_mesh_prov_set_complete_cb(&param, act);
 
-    if (msg->arg) {
-        btc_ble_mesh_prov_arg_deep_free(msg);
-    }
+    //if (msg->arg) {
+    //    btc_ble_mesh_prov_arg_deep_free(msg);
+    //}
     return;
 }
 
@@ -2085,7 +2085,7 @@ void btc_ble_mesh_model_call_handler(btc_msg_t *msg)
         break;
     }
 
-    btc_ble_mesh_model_arg_deep_free(msg);
+    //btc_ble_mesh_model_arg_deep_free(msg);
     return;
 }
 
@@ -2106,6 +2106,6 @@ void btc_ble_mesh_model_cb_handler(btc_msg_t *msg)
         BT_ERR("%s, Unknown msg->act = %d", __func__, msg->act);
     }
 
-    btc_ble_mesh_model_free_req_data(msg);
+    //btc_ble_mesh_model_free_req_data(msg);
     return;
 }

@@ -99,7 +99,7 @@ static inline void bt_buf_set_type(struct net_buf *buf, enum bt_buf_type type)
 	*(u8_t *)net_buf_user_data(buf) = type;
 }
 
-#if defined(OPTIMIZE_DATA_EVT_FLOW_FROM_CONTROLLER)
+#if defined(BFLB_BLE)
 static inline void bt_buf_set_rx_adv(struct net_buf *buf, bool is_adv)
 {
 	u8_t *usr_data = (u8_t *)net_buf_user_data(buf);

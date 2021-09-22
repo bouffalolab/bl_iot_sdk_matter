@@ -49,7 +49,7 @@ bfl_err_t bfl_ble_mesh_light_client_get_state(bfl_ble_mesh_client_common_param_t
     arg.light_client_get_state.params = params;
     arg.light_client_get_state.get_state = get_state;
 
-    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_lighting_client_args_t), btc_ble_mesh_lighting_client_arg_deep_copy)
+    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_lighting_client_args_t), NULL)
             == BT_STATUS_SUCCESS ? BFL_OK : BFL_FAIL);
 }
 
@@ -74,7 +74,7 @@ bfl_err_t bfl_ble_mesh_light_client_set_state(bfl_ble_mesh_client_common_param_t
     arg.light_client_set_state.params = params;
     arg.light_client_set_state.set_state = set_state;
 
-    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_lighting_client_args_t), btc_ble_mesh_lighting_client_arg_deep_copy)
+    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_mesh_lighting_client_args_t), NULL)
             == BT_STATUS_SUCCESS ? BFL_OK : BFL_FAIL);
 }
 

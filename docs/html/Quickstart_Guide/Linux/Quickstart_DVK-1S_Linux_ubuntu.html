@@ -1,59 +1,69 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="zh" >
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>BL602 SDK Starter Guide &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-138-gb54c10f45 文档</title>
+  <title>BL602 SDK Starter Guide &mdash; BL602 IoT SDK release_bl_iot_sdk_1.6.22-719-g8f849a080 文档</title>
   
 
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/style.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
-
-  
-  
   
   
 
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+
+  
   
     
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/language_data.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
-    
-    <link rel="index" title="索引" href="../../genindex.html" />
-    <link rel="search" title="搜索" href="../../search.html" /> 
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../../_static/style.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+  
+
+  
+        <link rel="author" title="关于这些文档"
+              href="../../about.html"/>
+        <link rel="index" title="索引"
+              href="../../genindex.html"/>
+        <link rel="search" title="搜索" href="../../search.html"/>
+    <link rel="top" title="BL602 IoT SDK release_bl_iot_sdk_1.6.22-719-g8f849a080 文档" href="../../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav" role="document">
 
    
   <div class="wy-grid-for-nav">
+
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+        <div class="wy-side-nav-search">
           
 
           
-            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> BL602 IoT SDK
+            <a href="../../index.html" class="icon icon-home"> BL602 IoT SDK
           
 
+          
+            
+            <img src="../../_static/Bouffalolab-logo.png" class="logo" />
           
           </a>
 
@@ -61,7 +71,7 @@
             
             
               <div class="version">
-                BL602
+                release_bl_iot_sdk_1.6.22-719-g8f849a080
               </div>
             
           
@@ -78,83 +88,31 @@
           
         </div>
 
-        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
             
-              
-            
-            
-              <p class="caption"><span class="caption-text">Developer_Environment</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Developer_Environment/Developer_Environment.html">1. Developer Environment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Developer_Environment/BLFlashEnv/BLFlashEnv.html">2. BLFlashEnv</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Developer_Environment/freedom_studio/freedom_studio.html">3. Freedom Studio</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Developer_Environment/eclipse/eclipse.html">4. Eclipse</a></li>
-</ul>
-<p class="caption"><span class="caption-text">Examples</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/helloworld/helloworld.html">1. Helloword</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_aws/aws.html">2. aws</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_peripherals_gpio/GPIO.html">3. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_peripherals_uart_echo/uart_echo.html">4. UART_echo</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_peripherals_uart_ioctl/uart_ioctl.html">5. UART_ioctl</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_protocols_http/http.html">6. Http client</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_protocols_httpc/httpc.html">7. Httpc client</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_storage_psm/psm.html">8. PSM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_storage_romfs/romfs.html">9. Romfs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_system_cli/cli.html">10. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_system_fdt/fdt.html">11. FDT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_wifi/wifi.html">12. WiFi</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_ble/ble.html">13. BLE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_mesh/mesh.html">14. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_blsync_ble/blsync_ble.html">15. BLSYNC-BLE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/sdk_app_easyflash_boottimes/easyflash_boottimes.html">16. Easyflash4 boot times</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Examples/demo_dac/DAC.html">17. DAC</a></li>
-</ul>
-<p class="caption"><span class="caption-text">Components</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/dts/devicetree.html">1. device tree</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/arch/arch.html">2. arch</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/helper.html">3. helper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Command_line/aos_cli.html">4. cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Hal_drv/gpio.html">5. GPIO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/bloop/bloop.html">6. BLOOP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/blsync/blsync.html">7. BLSYNC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/security/security.html">8. Security</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/httpc/httpc.html">9. HTTPC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/https/https.html">10. HTTPS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/tls/tls.html">11. TLS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Network/wifi/wifi.html">12. WiFi</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/provision_WiFi/provision_WiFi.html">13. Provision_WiFi</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/log/blog.html">14. blog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/vfs/vfs.html">15. AOS VFS</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/Middleware/yloop/yloop.html">16. yloop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/mesh/mesh.html">17. Mesh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Components/BLE/ble_stack/ble_stack.html">18. BLE</a></li>
-</ul>
-<p class="caption"><span class="caption-text">API</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../API/sys/cronalarms.html">1. cronalarms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../API/wifi/wifi_mgmr.html">2. Wi-Fi Manager</a></li>
-</ul>
-<p class="caption"><span class="caption-text">QA</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../QA/flash_cache/config_flash_cache.html">1. 配置Flash频率和cache大小</a></li>
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/index.html">快速入门</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-reference/index.html">API 参考</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Examples/index.html">Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hw-reference/index.html">H/W 参考</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">版本</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../resources.html">相关资源</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">关于</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../languages.html">Languages/语言</a></li>
 </ul>
 
             
           
         </div>
-        
       </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">BL602 IoT SDK</a>
@@ -162,10 +120,9 @@
       </nav>
 
 
+      
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
           
 
 
@@ -186,7 +143,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
         
       <li>BL602 SDK Starter Guide</li>
     
@@ -216,10 +173,10 @@
 <li><p>打开终端，安装make，命令：<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">update</span></code>、<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">make</span></code></p></li>
 </ul>
 <div class="figure align-default">
-<img alt="" src="../../_images/image127.png" />
+<img alt="" src="../../_images/image139.png" />
 </div>
 <div class="figure align-default">
-<img alt="" src="../../_images/image223.png" />
+<img alt="" src="../../_images/image236.png" />
 </div>
 <ul class="simple">
 <li><p>安装串口工具此处选用的<code class="docutils literal notranslate"><span class="pre">Gtkterm</span></code>
@@ -227,7 +184,7 @@
 <li><p>安装解压软件，命令：<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">unzip</span></code></p></li>
 </ul>
 <div class="figure align-default">
-<img alt="" src="../../_images/image319.png" />
+<img alt="" src="../../_images/image327.png" />
 </div>
 <ul class="simple">
 <li><p>进入SDK文件所在的目录后开始解压，命令：<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">work</span></code>、<code class="docutils literal notranslate"><span class="pre">unzip</span> <span class="pre">bl_iot_sdk.zip</span></code></p></li>
@@ -241,10 +198,10 @@
 <h2>硬件连接<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
 <p>模块BL602 IoT DVK-1S如下图所示，通过Type-C数据线将模块接到PC，其中图一是模块的正面图，图二是模块的背面图。</p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image133.png" />
+<img alt="" src="../../_images/image1310.png" />
 </div>
 <div class="figure align-default">
-<img alt="" src="../../_images/image142.png" />
+<img alt="" src="../../_images/image143.png" />
 </div>
 </div>
 <div class="section" id="id3">
@@ -252,12 +209,12 @@
 <ul>
 <li><p>进入需要编译的工程目录，命令：<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">customer_app/bl602_demo_event</span></code>，进行编译，命令<code class="docutils literal notranslate"><span class="pre">./genromap</span></code></p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image47.png" />
+<img alt="" src="../../_images/image410.png" />
 </div>
 </li>
 <li><p>查看编译生成的build_out文件夹，命令：<code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">build_out</span></code></p>
 <div class="figure align-default">
-<img alt="" src="../../_images/image55.png" />
+<img alt="" src="../../_images/image56.png" />
 </div>
 </li>
 </ul>
@@ -290,7 +247,6 @@
 
 
            </div>
-           
           </div>
           <footer>
   
@@ -299,19 +255,11 @@
 
   <div role="contentinfo">
     <p>
-        
-        &copy; 版权所有 2020, Bouffalo Lab
+        &copy; Copyright 2020, Bouffalo Lab.
 
     </p>
   </div>
-    
-    
-    
-    利用 <a href="http://sphinx-doc.org/">Sphinx</a> 构建，使用了 
-    
-    <a href="https://github.com/rtfd/sphinx_rtd_theme">主题</a>
-    
-    由 <a href="https://readthedocs.org">Read the Docs</a>开发. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> and ❤️  using a custom <a href="https://github.com/LinxiFan/Stanford-theme">theme</a> based on <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -323,15 +271,38 @@
   </div>
   
 
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'release_bl_iot_sdk_1.6.22-719-g8f849a080',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="../../_static/language_data.js"></script>
+
+  
 
   
   
-    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
    
 
 </body>

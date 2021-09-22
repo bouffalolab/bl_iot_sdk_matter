@@ -1733,7 +1733,6 @@ static int rfcomm_accept(struct bt_conn *conn, struct bt_l2cap_chan **chan)
 void bt_rfcomm_init(void)
 {
 #if defined(BFLB_DYNAMIC_ALLOC_MEM)
-	k_lifo_init(&dummy_pool.free, CONFIG_BT_MAX_CONN);
 	net_buf_init(&dummy_pool, CONFIG_BT_MAX_CONN, 1, NULL);
 #endif
 	static struct bt_l2cap_server server = {

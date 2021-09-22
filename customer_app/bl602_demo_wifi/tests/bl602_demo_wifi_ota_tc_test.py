@@ -26,7 +26,7 @@ def bl602_demo_wifi_ota_tc(env, extra_data):
         print('BL602 booted')
         #dut.expect('Init CLI with event Driven', timeout=0.5)
         #print('BL602 CLI init done')
-        time.sleep(0.1)
+        time.sleep(1)
         list_all = dut.expect(re.compile(r'======= PtTable_Config([\s\S]*?)======= FlashCfg magiccode'), timeout=4)
         rst_str = 'FW  (.*)  (.*)  (.*)  (.*)  (.*)'
         dev1 = re.search(rst_str, list_all[0])
@@ -51,7 +51,7 @@ def bl602_demo_wifi_ota_tc(env, extra_data):
         path = os.getcwd()
         path = os.path.abspath('../../../../..')
         print(path)
-        ota_path = path + '/tools/flash_tool/bl602/ota'
+        ota_path = path + '/tools/flash_tool/chips/bl602/ota'
         #p = subprocess.Popen('cat FW_OTA.bin.xz.ota | nc -l 3333', shell=True, cwd=ota_path)
         p = subprocess.Popen("timeout 60 sh -c 'cat FW_OTA.bin.xz.ota | nc -l 3333'", shell=True, cwd=ota_path)
         print(p.pid)
@@ -96,6 +96,9 @@ def bl602_demo_wifi_ota_tc(env, extra_data):
             os.kill(int(cat), signal.SIGKILL)
         p.kill()
         """
+        dut.write('p 0')
+        result_text = dut.read()
+        print(result_text)
         print('ENV_TEST_FAILURE: BL602 ota test failed')
         raise
 """

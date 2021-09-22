@@ -1,0 +1,24 @@
+UART
+====
+
+概述
+--------
+
+通用异步收发传输器（Universal Asynchronous Receiver/Transmitter，通常称为UART）是一种异步收发传输器，提供了与外部设备进行全双工数据交换的灵活方式。 BL602共有2组UART口（UART0和UART1），通过配合DMA使用，可以实现高效的数据通信。
+
+.. note::
+
+    uart更多资料请参考 `BL602参考手册 <https://dev.bouffalolab.com/media/doc/602/reference_manual/zh/html/content/UART.html>`_ 。
+
+应用实例
+----------
+
+串口实例： ``customer_app/peripheral/demo_uart`` 。
+
+API参考
+----------
+
+.. include:: /_build/inc/hosal_uart.inc
+
+
+

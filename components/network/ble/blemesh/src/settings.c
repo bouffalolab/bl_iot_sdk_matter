@@ -2584,7 +2584,6 @@ void bt_mesh_settings_init(void)
 static ssize_t mesh_settings_read_cb(void *cb_arg, void *data, size_t data_len)
 {
 	env_node_obj_t env = (env_node_obj_t)cb_arg;
-	size_t tlen = 0;
 
 	if (!env->crc_is_ok || env->status != ENV_WRITE) {
 		BT_ERR("Flash status error");
@@ -2593,35 +2592,16 @@ static ssize_t mesh_settings_read_cb(void *cb_arg, void *data, size_t data_len)
 
 	BT_DBG("Env[%.*s] Data len[%d]\n", env->name_len, env->name, env->value_len);
 	if (env->value_len < EF_STR_ENV_VALUE_MAX_SIZE ) {
-		char buf[32];
-		char* pBuf;
-		size_t len, size;
-		/* check the value is string */
-		for (len = 0, size = 0; len < env->value_len; len += size) {
-			pBuf = buf;
-			if (len + sizeof(buf) < env->value_len) {
-				size = sizeof(buf);
-			} else {
-				size = env->value_len - len;
-			}
-			if(EF_NO_ERR != ef_port_read(env->addr.value + len, (uint32_t *) buf, size)){
-				BT_ERR("Flash read fail");
-				return 0;
-			};//EF_WG_ALIGN(size));
-			get_bytearray_from_string(&pBuf, (u8_t*)((u32_t)data+tlen), size/2);
-			tlen += size/2;
-		}
+        if(EF_NO_ERR != ef_port_read(env->addr.value, (uint32_t *) data, data_len)){
+			BT_ERR("Flash read fail");
+			return 0;
+		};//EF_WG_ALIGN(size));
+		BT_DBG("read data[%s]", bt_hex(data, data_len));
+        return data_len;
 	} 
-	else {
-		BT_ERR("Invalid value length");
-	}
 
-	BT_DBG("read data[%s]", bt_hex(data, data_len));
-
-	if(tlen == data_len)
-		return data_len;
-	else
-		return 0;
+	BT_ERR("Invalid value length");
+	return 0;
 }
 
 

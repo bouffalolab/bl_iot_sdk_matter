@@ -27,8 +27,8 @@ else
 COMPONENTS_BLE     := blecontroller blestack
 endif
 
-INCLUDE_COMPONENTS += freertos_riscv_ram bl602 bl602_std bl602_wifi blcrypto_suite bl602_wifidrv hal_drv lwip lwip_dhcpd mbedtls vfs yloop utils cli aws-iot httpc netutils blog blog_testc
-INCLUDE_COMPONENTS += easyflash4 lwip_altcp_tls_mbedtls
+INCLUDE_COMPONENTS += freertos_riscv_ram newlibc bl602 bl602_std newlibc wifi blcrypto_suite wifi_manager hosal lwip lwip_dhcpd mbedtls vfs yloop utils cli aws-iot httpc netutils blog blog_testc
+INCLUDE_COMPONENTS += easyflash4 lwip_altcp_tls_mbedtls coredump
 INCLUDE_COMPONENTS += $(COMPONENTS_NETWORK)
 INCLUDE_COMPONENTS += $(COMPONENTS_BLSYS)
 INCLUDE_COMPONENTS += $(COMPONENTS_VFS)
@@ -38,10 +38,11 @@ ifeq ($(CONFIG_BT),1)
 INCLUDE_COMPONENTS += $(COMPONENTS_BLE)
 ifeq ($(CONFIG_BT_MESH),1)
 INCLUDE_COMPONENTS += blemesh
-endif
 ifeq ($(CONFIG_BT_MESH_MODEL),1)
 INCLUDE_COMPONENTS += blemesh_model
 endif
+endif
+
 ifeq ($(CONFIG_BT_MESH_SYNC),1)
 INCLUDE_COMPONENTS += blsync_ble
 endif

@@ -38,6 +38,9 @@ def bl602_demo_event_RPI_wifi_ap_tc(env, extra_data):
 
         dut.halt()
     except Exception:
+        dut.write('p 0')
+        result_text = dut.read()
+        print(result_text)
         print('ENV_TEST_FAILURE: BL602 ble_wifi test failed')
         raise
 
@@ -74,11 +77,12 @@ def connect_device(ssid):
             print ('disconnect')
         elif status == const.IFACE_CONNECTED:
             print ('connected')
+            return True
         else:
             print ('error')
             return False
         iface.disconnect()
-    return True
+    return False
 
 if __name__ == '__main__':
     bl602_demo_event_RPI_wifi_ap_tc()

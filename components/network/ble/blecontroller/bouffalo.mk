@@ -1,5 +1,5 @@
 COMPONENT_LIB_ONLY := 1
-COMPONENT_ADD_INCLUDEDIRS += ble_inc
+COMPONENT_ADD_INCLUDEDIRS += ../blecontroller/ble_inc
 LIBS ?= blecontroller
 COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/lib $(addprefix -l,$(LIBS))
 ALL_LIB_FILES := $(patsubst %,$(COMPONENT_PATH)/lib/lib%.a,$(LIBS))

@@ -43,6 +43,8 @@ static struct bt_avdtp_event_cb *event_cb;
 
 static struct bt_avdtp_seid_lsep *lseps;
 
+static uint8_t tid;
+
 extern struct bt_a2dp_codec_sbc_params sbc_info;
 
 #define AVDTP_CHAN(_ch) CONTAINER_OF(_ch, struct bt_avdtp, br_chan.chan)
@@ -117,10 +119,9 @@ static struct net_buf *avdtp_create_pdu(uint8_t msg_type,
 					uint8_t sig_id)
 {
 	struct net_buf *buf;
-	static uint8_t tid;
 	struct bt_avdtp_single_sig_hdr *hdr;
 
-	BT_DBG("");
+	BT_DBG("tid = %d", tid);
 
 	buf = bt_l2cap_create_pdu(NULL, 0);
 
@@ -228,9 +229,9 @@ static void handle_avdtp_discover_cmd(struct bt_avdtp *session, struct net_buf *
     BT_DBG("rsp_buf len: %d \n", rsp_buf->len);
     for(int i = 0; i < rsp_buf->len; i++)
     {
-        printf("0x%02x, ", rsp_buf->data[i]);
+         BT_WARN("0x%02x, ", rsp_buf->data[i]);
     }
-    printf("\n");
+     BT_WARN("\n");
 #endif
 
     int result = bt_l2cap_chan_send(&session->br_chan.chan, rsp_buf);
@@ -287,9 +288,9 @@ static void handle_avdtp_get_cap_cmd(struct bt_avdtp *session, struct net_buf *b
     BT_DBG("rsp_buf len: %d \n", rsp_buf->len);
     for(int i = 0; i < rsp_buf->len; i++)
     {
-        printf("0x%02x, ", rsp_buf->data[i]);
+         BT_WARN("0x%02x, ", rsp_buf->data[i]);
     }
-    printf("\n");
+     BT_WARN("\n");
 #endif
 
     int result = bt_l2cap_chan_send(&session->br_chan.chan, rsp_buf);
@@ -528,9 +529,9 @@ int bt_avdtp_l2cap_recv(struct bt_l2cap_chan *chan, struct net_buf *buf)
 	BT_DBG("avdtp payload len: %d \n", buf->len);
 	for(int i = 0; i < buf->len; i++)
 	{
-		printf("0x%02x, ", buf->data[i]);
+		 BT_WARN("0x%02x, ", buf->data[i]);
 	}
-	printf("\n");
+	 BT_WARN("\n");
 #endif
 
 	/* validate if there is an outstanding resp expected*/
@@ -565,15 +566,15 @@ int bt_avdtp_l2cap_media_stream_recv(struct bt_l2cap_chan *chan, struct net_buf 
 	BT_DBG("avdtp payload len: %d \n", buf->len);
 	for(int i = 0; i < buf->len; i++)
 	{
-		printf("0x%02x, ", buf->data[i]);
+		 BT_WARN("0x%02x, ", buf->data[i]);
 	}
-	printf("\n");
+	 BT_WARN("\n");
 #endif
 
 	int res = a2dp_sbc_decode_process(buf->data, buf->len);
 	if(res)
 	{
-		BT_DBG("decode fail, error: %d \n", res);
+		BT_DBG("decode fail, error: %d", res);
 	}
 
 	return 0;
@@ -640,6 +641,7 @@ int bt_avdtp_l2cap_accept(struct bt_conn *conn, struct bt_l2cap_chan **chan)
 		session->br_chan.chan.ops = &ops;
 		session->br_chan.rx.mtu = BT_AVDTP_MAX_MTU;
 		*chan = &session->br_chan.chan;
+		tid = 0;
 	}
 	else
 	{

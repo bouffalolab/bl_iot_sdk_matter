@@ -143,13 +143,24 @@ static void notify_connected(struct bt_conn *conn)
 {
 	struct bt_conn_cb *cb;
 
+#if defined(CONFIG_BT_BREDR)
+	if (conn->type == BT_CONN_TYPE_BR && conn->err) {
+		if (atomic_test_bit(bt_dev.flags, BT_DEV_ISCAN)) {
+			atomic_clear_bit(bt_dev.flags, BT_DEV_ISCAN);
+		}
+		if (atomic_test_bit(bt_dev.flags, BT_DEV_PSCAN)) {
+			atomic_clear_bit(bt_dev.flags, BT_DEV_PSCAN);
+		}
+	}
+#endif
+
 	for (cb = callback_list; cb; cb = cb->_next) {
 		if (cb->connected) {
 			cb->connected(conn, conn->err);
 		}
 	}
 
-	if (!conn->err) {
+	if (conn->type == BT_CONN_TYPE_LE && !conn->err) {
 		bt_gatt_connected(conn);
 	}
 }
@@ -157,6 +168,17 @@ static void notify_connected(struct bt_conn *conn)
 static void notify_disconnected(struct bt_conn *conn)
 {
 	struct bt_conn_cb *cb;
+
+#if defined(CONFIG_BT_BREDR)
+	if (conn->type == BT_CONN_TYPE_BR) {
+		if (atomic_test_bit(bt_dev.flags, BT_DEV_ISCAN)) {
+			atomic_clear_bit(bt_dev.flags, BT_DEV_ISCAN);
+		}
+	if (atomic_test_bit(bt_dev.flags, BT_DEV_PSCAN)) {
+			atomic_clear_bit(bt_dev.flags, BT_DEV_PSCAN);
+		}
+	}
+#endif
 
 	for (cb = callback_list; cb; cb = cb->_next) {
 		if (cb->disconnected) {
@@ -2616,7 +2638,6 @@ struct bt_conn *bt_conn_lookup_id(u8_t id)
 	return bt_conn_ref(conn);
 }
 
-extern bool queue_inited;
 int bt_conn_init(void)
 {
 	#if defined(CONFIG_BT_SMP)
@@ -2637,8 +2658,6 @@ int bt_conn_init(void)
     struct net_buf_pool frag_pool;
 #endif
 #endif//BFLB_DYNAMIC_ALLOC_MEM
-    if(queue_inited == false)
-        k_lifo_init(&acl_tx_pool.free, CONFIG_BT_L2CAP_TX_BUF_COUNT);
     k_fifo_init(&free_tx, 20);
 #endif
 	for (i = 0; i < ARRAY_SIZE(conn_tx); i++) {

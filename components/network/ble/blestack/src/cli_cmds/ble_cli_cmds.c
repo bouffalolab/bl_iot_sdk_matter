@@ -28,9 +28,12 @@ bool 			ble_inited 	= false;
 struct bt_conn *default_conn = NULL;
 #endif
 
+uint8_t non_disc = BT_LE_AD_NO_BREDR;
+uint8_t gen_disc = BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL;
+uint8_t lim_disc = BT_LE_AD_NO_BREDR | BT_LE_AD_LIMITED;
 struct bt_data ad_discov[2] = {
-	BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL)),
-    BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, 13),
+    BT_DATA_BYTES(BT_DATA_FLAGS, BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL),
+    BT_DATA_BYTES(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME),
 };
 #if defined(CONFIG_BLE_MULTI_ADV)
 static int ble_adv_id;
@@ -299,6 +302,11 @@ const struct cli_command btStackCmdSet[] STATIC_CLI_CMD_ATTRIBUTE = {
 #if defined(CONFIG_BT_CONN)
 static void connected(struct bt_conn *conn, u8_t err)
 {
+    if(err || conn->type != BT_CONN_TYPE_LE)
+    {
+        return;
+    }
+
     char addr[BT_ADDR_LE_STR_LEN];
 
     bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -333,6 +341,11 @@ static void connected(struct bt_conn *conn, u8_t err)
 
 static void disconnected(struct bt_conn *conn, u8_t reason)
 {
+    if(conn->type != BT_CONN_TYPE_LE)
+    {
+        return;
+    }
+
     char addr[BT_ADDR_LE_STR_LEN];
 
     bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -657,35 +670,24 @@ static void blecli_start_advertise(char *pcWriteBuffer, int xWriteBufferLen, int
         return;
     }
     
-    /*Get mode, 0:General discoverable,  1:non discoverable, 2:limit discoverable*/
+    /*Get mode, 0:General discoverable,  1:limit discoverable, 2:non discoverable*/
     get_uint8_from_string(&argv[2], &mode);
     vOutputString("mode 0x%x\r\n",mode);
-    if(mode == 0 || mode == 1 || mode == 2){
     
-        if(mode == 0){
-            struct bt_data gen_disc_data = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL));
-            ad_discov[0] = gen_disc_data;
-        }else if(mode == 1){
-			struct bt_data non_disc_data = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,BT_LE_AD_NO_BREDR);
-            ad_discov[0] = non_disc_data;
-        }else if(mode == 2){
-			struct bt_data limt_disc_data = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_LIMITED));
-			ad_discov[0] = limt_disc_data;
-        }else{
-			vOutputString("Invalied AD Mode 0x%x\r\n",mode);
-        }
-        
-        const char *name = bt_get_name();
-        struct bt_data data = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE,name, strlen(name));
-        ad_discov[1] = data;
-       	
-        ad = ad_discov;
-        ad_len = ARRAY_SIZE(ad_discov);
-
-    }else{
-        vOutputString("Arg2 is invalid\r\n");
+    if (mode == 0) {
+        ad_discov[0].data = &gen_disc;
+    } else if (mode == 1) {
+        ad_discov[0].data = &lim_disc;
+    } else if (mode == 2) {
+        ad_discov[0].data = &non_disc;
+    } else {
+        vOutputString("Invalied AD Mode 0x%x\r\n",mode);
         return;
     }
+
+    ad = ad_discov;
+    ad_len = ARRAY_SIZE(ad_discov);
+
 
     if(argc == 5){
         get_uint16_from_string(&argv[3], &param.interval_min);
@@ -740,6 +742,8 @@ static void blecli_stop_advertise(char *pcWriteBuffer, int xWriteBufferLen, int 
 }
 
 #if defined(CONFIG_BLE_MULTI_ADV)
+struct bt_data data_1 = (struct bt_data)BT_DATA_BYTES(BT_DATA_NAME_COMPLETE, "multi_adv_connect_01");
+struct bt_data data_2 = (struct bt_data)BT_DATA_BYTES(BT_DATA_NAME_COMPLETE, "multi_adv_nonconn_02");
 static void blecli_start_multi_advertise(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     struct bt_le_adv_param param_1, param_2;
@@ -753,11 +757,7 @@ static void blecli_start_multi_advertise(char *pcWriteBuffer, int xWriteBufferLe
     param_1.interval_max = 0x00A0;
     param_1.options = BT_LE_ADV_OPT_CONNECTABLE;
 
-    const char *name_1 = "multi_adv_connect_0x0001";
-    struct bt_data flag_1 = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL));
-    struct bt_data data_1 = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE, name_1, strlen(name_1));
-    ad_discov[0] = flag_1;
-    ad_discov[0] = data_1;
+    ad_discov[1] = data_1;
     ad_1 = ad_discov;
     ad_len_1 = ARRAY_SIZE(ad_discov);
 
@@ -773,11 +773,7 @@ static void blecli_start_multi_advertise(char *pcWriteBuffer, int xWriteBufferLe
     param_2.interval_max = 0x0140;
     param_2.options = 0;
 
-    const char *name_2 = "multi_adv_nonconn_0x0002";
-    struct bt_data flag_2 = (struct bt_data)BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_NO_BREDR | BT_LE_AD_GENERAL));
-    struct bt_data data_2 = (struct bt_data)BT_DATA(BT_DATA_NAME_COMPLETE, name_2, strlen(name_2));
-    ad_discov[0] = flag_2;
-    ad_discov[0] = data_2;
+    ad_discov[1] = data_2;
     ad_2 = ad_discov;
     ad_len_2 = ARRAY_SIZE(ad_discov);
 
@@ -1406,7 +1402,7 @@ static void blecli_write(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
     }
     get_bytearray_from_string(&argv[4], gatt_write_buf,data_len);
     
-	write_params.data = k_malloc(data_len);;
+	write_params.data = gatt_write_buf;
 	write_params.length = data_len;
 	write_params.func = write_func;
 	

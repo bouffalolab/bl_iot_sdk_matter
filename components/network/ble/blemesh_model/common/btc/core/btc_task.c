@@ -65,8 +65,8 @@
 //#include "btc_ble_mesh_config_model.h"
 #include "btc_ble_mesh_generic_model.h"
 #include "btc_ble_mesh_lighting_model.h"
-//#include "btc_ble_mesh_sensor_model.h"
-//#include "btc_ble_mesh_time_scene_model.h"
+#include "btc_ble_mesh_sensor_model.h"
+#include "btc_ble_mesh_time_scene_model.h"
 #endif /* #if CONFIG_BLE_MESH */
 
 
@@ -141,12 +141,12 @@ static const btc_func_t profile_tab[BTC_PID_NUM] = {
     //[BTC_PID_CONFIG_SERVER]     = {NULL,                                        btc_ble_mesh_config_server_cb_handler    },
     [BTC_PID_GENERIC_CLIENT]    = {btc_ble_mesh_generic_client_call_handler,    btc_ble_mesh_generic_client_cb_handler   },
     [BTC_PID_LIGHTING_CLIENT]   = {btc_ble_mesh_lighting_client_call_handler,   btc_ble_mesh_lighting_client_cb_handler  },
-    //[BTC_PID_SENSOR_CLIENT]     = {btc_ble_mesh_sensor_client_call_handler,     btc_ble_mesh_sensor_client_cb_handler    },
-    //[BTC_PID_TIME_SCENE_CLIENT] = {btc_ble_mesh_time_scene_client_call_handler, btc_ble_mesh_time_scene_client_cb_handler},
+    [BTC_PID_SENSOR_CLIENT]     = {btc_ble_mesh_sensor_client_call_handler,     btc_ble_mesh_sensor_client_cb_handler    },
+    [BTC_PID_TIME_SCENE_CLIENT] = {btc_ble_mesh_time_scene_client_call_handler, btc_ble_mesh_time_scene_client_cb_handler},
     [BTC_PID_GENERIC_SERVER]    = {NULL,                                        btc_ble_mesh_generic_server_cb_handler   },
     [BTC_PID_LIGHTING_SERVER]   = {NULL,                                        btc_ble_mesh_lighting_server_cb_handler  },
-    //[BTC_PID_SENSOR_SERVER]     = {NULL,                                        btc_ble_mesh_sensor_server_cb_handler    },
-    //[BTC_PID_TIME_SCENE_SERVER] = {NULL,                                        btc_ble_mesh_time_scene_server_cb_handler},
+    [BTC_PID_SENSOR_SERVER]     = {NULL,                                        btc_ble_mesh_sensor_server_cb_handler    },
+    [BTC_PID_TIME_SCENE_SERVER] = {NULL,                                        btc_ble_mesh_time_scene_server_cb_handler},
 #endif /* #if CONFIG_BLE_MESH */
 };
 
@@ -201,55 +201,25 @@ static bt_status_t btc_task_post(btc_msg_t *msg, uint32_t timeout)
 
 bt_status_t btc_transfer_context(btc_msg_t *msg, void *arg, int arg_len, btc_arg_deep_copy_t copy_func)
 {
-    btc_msg_t lmsg;
-
     if (msg == NULL) {
         return BT_STATUS_PARM_INVALID;
     }
 
-    //BTC_TRACE_DEBUG("%s msg %u %u %u %p\n", __func__, msg->sig, msg->pid, msg->act, arg);
+    msg->arg = arg;
 
-    memcpy(&lmsg, msg, sizeof(btc_msg_t));
-    if (arg) {
-        //lmsg.arg = (void *)osi_malloc(arg_len);
-        lmsg.arg = (void *)bt_mesh_malloc(arg_len);
-        if (lmsg.arg == NULL) {
-            return BT_STATUS_NOMEM;
-        }
-        memset(lmsg.arg, 0x00, arg_len);    //important, avoid arg which have no length
-        memcpy(lmsg.arg, arg, arg_len);
-        if (copy_func) {
-            copy_func(&lmsg, lmsg.arg, arg);
-        }
-    } else {
-        lmsg.arg = NULL;
-    }
-
-#ifdef DIRECT_TO_APP
-    btc_msg_t *msg_tmp = &lmsg;
-
-    //BTC_TRACE_DEBUG("%s msg %u %u %u %p\n", __func__, msg->sig, msg->pid, msg->act, msg->arg);
-    switch (msg_tmp->sig) {
+    switch (msg->sig) {
     case BTC_SIG_API_CALL:
-        profile_tab[msg_tmp->pid].btc_call(msg_tmp);
+        profile_tab[msg->pid].btc_call(msg);
         break;
     case BTC_SIG_API_CB:
-        profile_tab[msg_tmp->pid].btc_cb(msg_tmp);
+        profile_tab[msg->pid].btc_cb(msg);
         break;
     default:
         break;
     }
 
-    if (msg_tmp->arg) {
-        //osi_free(msg->arg);
-		bt_mesh_free(msg_tmp->arg);
-    }
     //osi_free(msg);
     return BT_STATUS_SUCCESS;
-#else
-    return btc_task_post(&lmsg, OSI_THREAD_MAX_TIMEOUT);
-#endif
-
 }
 
 #if 0

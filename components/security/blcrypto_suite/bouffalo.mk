@@ -13,6 +13,7 @@ COMPONENT_SRCS := src/blcrypto_suite_bignum.c             \
                   src/blcrypto_suite_platform_util.c      \
                   src/blcrypto_suite_porting.c            \
                   src/blcrypto_suite_hacc.c               \
+                  src/blcrypto_suite_aes.c                \
                   src/blcrypto_suite_hacc_glue.c          \
                   src/blcrypto_suite_hacc_secp256r1_mul.c \
                   src/blcrypto_suite_fw_api.c             \

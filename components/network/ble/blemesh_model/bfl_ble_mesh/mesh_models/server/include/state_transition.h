@@ -12,9 +12,9 @@
 
 #include "server_common.h"
 #include "generic_server.h"
-//#include "sensor_server.h"
+#include "sensor_server.h"
 #include "lighting_server.h"
-//#include "time_scene_server.h"
+#include "time_scene_server.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,9 +60,7 @@ void light_xyl_tt_values(struct bt_mesh_light_xyl_srv *srv,
 void light_lc_tt_values(struct bt_mesh_light_lc_srv *srv,
                         u8_t trans_time, u8_t delay);
 
-#if 0
 void scene_tt_values(struct bt_mesh_scene_srv *srv, u8_t trans_time, u8_t delay);
-#endif
 /* Server model transition timer handlers */
 
 void generic_onoff_work_handler(struct k_work *work);
@@ -89,9 +87,8 @@ void light_xyl_work_handler(struct k_work *work);
 
 void light_lc_work_handler(struct k_work *work);
 
-#if 0
 void scene_recall_work_handler(struct k_work *work);
-#endif
+
 void bt_mesh_server_stop_transition(struct bt_mesh_state_transition *transition);
 
 void bt_mesh_server_start_transition(struct bt_mesh_state_transition *transition);
