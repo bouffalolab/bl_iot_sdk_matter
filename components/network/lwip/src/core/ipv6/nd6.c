@@ -482,7 +482,7 @@ nd6_input(struct pbuf *p, struct netif *inp)
     }
 
     /* NS not for us? */
-    if (!accepted) {
+    if (1) {
       pbuf_free(p);
       return;
     }

@@ -31,6 +31,7 @@
 #include <ethernetif.h>
 #include <netif/etharp.h>
 #include <lwip/dns.h>
+#include <lwip/ethip6.h>
 #include <bl_efuse.h>
 #include <bl_wifi.h>
 
@@ -151,8 +152,9 @@ err_t bl606a0_wifi_netif_init(struct netif *netif)
     /* set netif maximum transfer unit */
     netif->mtu = 1500;
     /* Accept broadcast address and ARP traffic */
-    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
+    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6;
     netif->output = etharp_output;
+    netif->output_ip6 = ethip6_output;
     netif->linkoutput = wifi_tx;
     netif_set_status_callback(netif, netif_status_callback);
 

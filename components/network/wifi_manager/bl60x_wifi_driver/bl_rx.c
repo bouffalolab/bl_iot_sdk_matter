@@ -34,6 +34,7 @@
 
 #include <lwip/inet.h>
 #include <lwip/netifapi.h>
+#include <lwip/dhcp6.h>
 #include <aos/yloop.h>
 #include "bl_main.h"
 #include "bl_defs.h"
@@ -661,6 +662,8 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
         if (bl_vif && bl_vif->dev) {
             netifapi_netif_set_link_up(bl_vif->dev);
             netifapi_netif_set_default(bl_vif->dev);
+            netif_create_ip6_linklocal_address(bl_vif->dev, 1);
+            bl_vif->dev->ip6_autoconfig_enabled = 1;
         } else {
             os_printf("[RX]  -------- CRITICAL when check netif. ptr is %p:%p\r\n",
                     bl_vif,

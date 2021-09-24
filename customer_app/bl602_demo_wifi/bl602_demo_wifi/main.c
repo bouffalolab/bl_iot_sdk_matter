@@ -460,6 +460,12 @@ void mm_sec_keydump(void);
     mm_sec_keydump();
 }
 
+static void cmd_ipv6(char *buf, int len, int argc, char **argv)
+{
+    void user_task();
+    user_task();
+}
+
 static void cmd_sha(char *buf, int len, int argc, char **argv)
 {
     bl_sec_sha_test();
@@ -682,6 +688,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "aws", "aws iot demo", cmd_aws},
         { "pka", "pka iot demo", cmd_pka},
         { "wifi", "wifi", cmd_wifi},
+        { "ipv6", "ipv6", cmd_ipv6},
         { "sha", "sha iot demo", cmd_sha},
         { "trng", "trng test", cmd_trng},
         { "aes", "trng test", cmd_aes},

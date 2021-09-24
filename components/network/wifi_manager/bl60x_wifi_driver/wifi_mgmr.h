@@ -38,7 +38,7 @@
 #define WIFI_MGMR_SCAN_ITEMS_MAX (50)
 #define WIFI_MGMR_PROFILES_MAX (1)
 #define WIFI_MGMR_MQ_MSG_SIZE (128 + 64 + 32)
-#define WIFI_MGMR_MQ_MSG_COUNT (1)
+#define WIFI_MGMR_MQ_MSG_COUNT (6)
 
 /**
  ****************************************************************************************

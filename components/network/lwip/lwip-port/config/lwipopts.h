@@ -298,6 +298,17 @@ a lot of data that needs to be copied, this should be set high. */
 
 #define LWIP_RAW                        1
 
+#define LWIP_IPV6               1
+#define LWIP_IPV6_DHCP6         1
+//#define DHCP6_DEBUG             LWIP_DBG_ON
+//#define DHCP_DEBUG              LWIP_DBG_ON
+//#define SOCKETS_DEBUG           LWIP_DBG_ON
+//#define NETIF_DEBUG             LWIP_DBG_ON
+//#define ETHARP_DEBUG            LWIP_DBG_ON
+//#define ICMP_DEBUG              LWIP_DBG_ON
+//#define LWIP_IPV6_SCOPES_DEBUG  1
+//#define LWIP_IPV6_AUTOCONFIG    1
+
 /*
    ---------------------------------
    ---------- MISC. options ----------
