@@ -302,6 +302,13 @@ static void system_early_init(void)
     hal_board_cfg(0);
 }
 
+
+void setup_heap()
+{
+    // Invoked during system boot via start.S
+    vPortDefineHeapRegions(xHeapRegions);
+}
+
 void bfl_main()
 {
     TaskHandle_t aos_loop_proc_task;
@@ -313,7 +320,7 @@ void bfl_main()
 
     _dump_boot_info();
 
-    vPortDefineHeapRegions(xHeapRegions);
+    //vPortDefineHeapRegions(xHeapRegions);
 
     system_early_init();
 

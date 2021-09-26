@@ -119,7 +119,9 @@ bl602_start:
 	sd ra, 8(sp)
 #endif
 
-#if 0
+	call setup_heap
+
+#if 1
 // call global obj constructors
     la s1, __preinit_array_start
     la s2, __preinit_array_end
@@ -146,7 +148,7 @@ bl602_start:
 	li a0, 0
 	li a1, 0
 	call bfl_main
-#if 0
+#if 1
 	tail exit
 #endif
 1:
