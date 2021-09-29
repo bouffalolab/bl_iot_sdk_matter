@@ -1547,6 +1547,7 @@ int bt_l2cap_chan_recv_complete(struct bt_l2cap_chan *chan, struct net_buf *buf)
 
 	if (conn->type != BT_CONN_TYPE_LE) {
 		return -ENOTSUP;
+        return 0;
 	}
 
 	BT_DBG("chan %p buf %p", chan, buf);

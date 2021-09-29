@@ -62,12 +62,14 @@
 #define BLCRYPTO_SUITE_ECP_H
 
 #if !defined(BLCRYPTO_SUITE_CONFIG_FILE)
-#include "blcrypto_suite/blcrypto_suite_config.h"
+//#include "blcrypto_suite/blcrypto_suite_config.h"
+#include "blcrypto_suite_config.h"
 #else
 #include BLCRYPTO_SUITE_CONFIG_FILE
 #endif
 
-#include "blcrypto_suite/blcrypto_suite_bignum.h"
+//#include "blcrypto_suite/blcrypto_suite_bignum.h"
+#include "blcrypto_suite_bignum.h"
 
 /*
  * ECP error codes

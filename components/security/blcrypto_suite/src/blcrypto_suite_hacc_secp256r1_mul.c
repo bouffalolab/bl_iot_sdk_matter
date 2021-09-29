@@ -1,4 +1,4 @@
-#include <blcrypto_suite/blcrypto_suite_hacc.h>
+#include <blcrypto_suite_hacc.h>
 #include <bl602_sec_eng.h>
 
 #define ECP_SECP256R1_REG_TYPE                      SEC_ENG_PKA_REG_SIZE_32

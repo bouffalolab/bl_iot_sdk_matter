@@ -67,7 +67,7 @@
  */
 
 #if !defined(BLCRYPTO_SUITE_CONFIG_FILE)
-#include "blcrypto_suite/blcrypto_suite_config.h"
+#include "blcrypto_suite_config.h"
 #else
 #include BLCRYPTO_SUITE_CONFIG_FILE
 #endif
@@ -103,9 +103,9 @@
 
 #if defined(BLCRYPTO_SUITE_ECP_C)
 
-#include "blcrypto_suite/blcrypto_suite_ecp.h"
-#include "blcrypto_suite/blcrypto_suite_threading.h"
-#include "blcrypto_suite/blcrypto_suite_platform_util.h"
+#include "blcrypto_suite_ecp.h"
+#include "blcrypto_suite_threading.h"
+#include "blcrypto_suite_platform_util.h"
 
 #include <string.h>
 
@@ -118,7 +118,7 @@
     BLCRYPTO_SUITE_INTERNAL_VALIDATE( cond )
 
 #if defined(BLCRYPTO_SUITE_PLATFORM_C)
-#include "blcrypto_suite/blcrypto_suite_platform.h"
+#include "blcrypto_suite_platform.h"
 #else
 #include <stdlib.h>
 #include <stdio.h>
@@ -127,7 +127,7 @@
 #define blcrypto_suite_free       free
 #endif
 
-#include "blcrypto_suite/blcrypto_suite_ecp_internal.h"
+#include "blcrypto_suite_ecp_internal.h"
 
 #if !defined(BLCRYPTO_SUITE_ECP_NO_INTERNAL_RNG)
 #if defined(BLCRYPTO_SUITE_HMAC_DRBG_C)

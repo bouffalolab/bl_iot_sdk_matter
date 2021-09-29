@@ -61,21 +61,21 @@
  */
 
 #if !defined(BLCRYPTO_SUITE_CONFIG_FILE)
-#include "blcrypto_suite/blcrypto_suite_config.h"
+#include "blcrypto_suite_config.h"
 #else
 #include BLCRYPTO_SUITE_CONFIG_FILE
 #endif
 
 #if defined(BLCRYPTO_SUITE_BIGNUM_C)
 
-#include "blcrypto_suite/blcrypto_suite_bignum.h"
-#include "blcrypto_suite/blcrypto_suite_bn_mul.h"
-#include "blcrypto_suite/blcrypto_suite_platform_util.h"
+#include "blcrypto_suite_bignum.h"
+#include "blcrypto_suite_bn_mul.h"
+#include "blcrypto_suite_platform_util.h"
 
 #include <string.h>
 
 #if defined(BLCRYPTO_SUITE_PLATFORM_C)
-#include "blcrypto_suite/blcrypto_suite_platform.h"
+#include "blcrypto_suite_platform.h"
 #else
 #include <stdio.h>
 #include <stdlib.h>

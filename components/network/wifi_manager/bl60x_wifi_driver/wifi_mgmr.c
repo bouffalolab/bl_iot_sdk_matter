@@ -461,7 +461,7 @@ static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
         bl_main_raw_send(pkt, len);
     }
     dhcp6_set_struct(&(wifiMgmr.wlan_sta.netif), &bl_dhcp6);
-    netifapi_netif_common(&(wifiMgmr.wlan_sta.netif), dhcp6_enable_stateless, NULL);
+    //netifapi_netif_common(&(wifiMgmr.wlan_sta.netif), dhcp6_enable_stateless, NULL);
 
     return false;
 }

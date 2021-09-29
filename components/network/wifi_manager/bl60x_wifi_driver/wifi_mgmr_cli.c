@@ -1,3 +1,4 @@
+#if 0
 /*
  * Copyright (c) 2020 Bouffalolab.
  *
@@ -297,7 +298,9 @@ int wifi_mgmr_cli_scanlist(void)
     printf("----------------------------------------------------------------------------------------------------\r\n");
     return 0;
 }
-
+#endif
+int wifi_mgmr_cli_scanlist(void) {return 0;}
+#if 0
 static void cmd_rf_dump(char *buf, int len, int argc, char **argv)
 {
     //bl60x_fw_dump_data();
@@ -928,6 +931,7 @@ static void cmd_wifi_cfg(char *buf, int len, int argc, char **argv)
         break;
     }
 }
+#endif
 
 static int pkt_counter = 0;
 int wifi_mgmr_ext_dump_needed()
@@ -939,6 +943,7 @@ int wifi_mgmr_ext_dump_needed()
     return 0;
 }
 
+#if 0
 static void cmd_dump_reset(char *buf, int len, int argc, char **argv)
 {
     pkt_counter = 10;
@@ -1089,6 +1094,7 @@ const static struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
         { "wifi_update_power", "Power table test command", cmd_wifi_power_table_update},
 };                                                                                   
 
+#endif
 int wifi_mgmr_cli_init(void)
 {
     // static command(s) do NOT need to call aos_cli_register_command(s) to register.

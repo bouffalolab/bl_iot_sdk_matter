@@ -41,6 +41,7 @@
 #define BLCRYPTO_SUITE_ECP_NO_INTERNAL_RNG
 #define BLCRYPTO_SUITE_BIGNUM_C
 
-#include "blcrypto_suite/blcrypto_suite_check_config.h"
+//#include "blcrypto_suite/blcrypto_suite_check_config.h"
+#include "blcrypto_suite_check_config.h"
 
 #endif /* BLCRYPTO_SUITE_CONFIG_H */

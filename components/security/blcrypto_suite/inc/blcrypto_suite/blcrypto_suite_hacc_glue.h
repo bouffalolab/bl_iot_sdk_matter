@@ -3,9 +3,12 @@
 
 #include <stdio.h>
 
-#include <blcrypto_suite/blcrypto_suite_bignum.h>
-#include <blcrypto_suite/blcrypto_suite_ecp.h>
-#include <blcrypto_suite/blcrypto_suite_hacc.h>
+//#include <blcrypto_suite/blcrypto_suite_bignum.h>
+//#include <blcrypto_suite/blcrypto_suite_ecp.h>
+//#include <blcrypto_suite/blcrypto_suite_hacc.h>
+#include <blcrypto_suite_bignum.h>
+#include <blcrypto_suite_ecp.h>
+#include <blcrypto_suite_hacc.h>
 
 #define GLUE_DBG(fmt, ...) \
     do { printf("BLCRYPTO_SUITE_PKA_HACC: %s:%d " fmt, __func__, __LINE__, ##__VA_ARGS__); } while (0)

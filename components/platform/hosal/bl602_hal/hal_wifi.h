@@ -29,5 +29,13 @@
  */
 #ifndef __HAL_WIFI_H__
 #define __HAL_WIFI_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int hal_wifi_start_firmware_task(void);
+#ifdef __cplusplus
+}
+#endif
+
 #endif

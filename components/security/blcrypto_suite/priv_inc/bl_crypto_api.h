@@ -3,7 +3,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "blcrypto_suite/blcrypto_suite_aes.h"
+//#include "blcrypto_suite/blcrypto_suite_aes.h"
+#include <blcrypto_suite_aes.h>
 
 /**
  * struct crypto_bignum - bignum

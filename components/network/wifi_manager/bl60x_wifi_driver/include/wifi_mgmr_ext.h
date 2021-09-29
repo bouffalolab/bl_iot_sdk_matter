@@ -29,6 +29,11 @@
  */
 #ifndef __WIFI_MGMR_EXT_H__
 #define __WIFI_MGMR_EXT_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <lwip/netif.h>
 #include <bl_pm.h>
 
@@ -241,4 +246,9 @@ int wifi_mgmr_set_wifi_active_time(uint32_t ms);
 int wifi_mgmr_set_listen_interval(uint16_t itv);
 int wifi_mgmr_pm_ops_register(void);
 int wifi_mgmr_fw_affair_ops(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
