@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include "bl_irq.h"
-#include "blcrypto_suite/blcrypto_suite_aes.h"
+#include "blcrypto_suite_aes.h"
 #include <bl602_sec_eng.h>
 #include <FreeRTOS.h>
 

@@ -1,4 +1,4 @@
-#include <blcrypto_suite/blcrypto_suite_hacc_glue.h>
+#include <blcrypto_suite_hacc_glue.h>
 
 /*
  * Multiplication R = m * P

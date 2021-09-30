@@ -597,7 +597,7 @@ int bl_main_rtthread_start(struct bl_hw **bl_hw)
 
     /*start the bl606 wifi service*/
     bl_main_lowlevel_init();
-
+    
     /*startup wifi firmware*/
     *bl_hw = &wifi_hw;
     ret = cfg80211_init(&wifi_hw);

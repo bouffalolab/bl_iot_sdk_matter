@@ -64,12 +64,12 @@
 #define BLCRYPTO_SUITE_BN_MUL_H
 
 #if !defined(BLCRYPTO_SUITE_CONFIG_FILE)
-#include "blcrypto_suite/blcrypto_suite_config.h"
+#include "blcrypto_suite_config.h"
 #else
 #include BLCRYPTO_SUITE_CONFIG_FILE
 #endif
 
-#include "blcrypto_suite/blcrypto_suite_bignum.h"
+#include "blcrypto_suite_bignum.h"
 
 #if defined(BLCRYPTO_SUITE_HAVE_ASM)
 

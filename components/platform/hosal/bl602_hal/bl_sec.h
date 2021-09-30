@@ -29,6 +29,11 @@
  */
 #ifndef __BL_SEC_H__
 #define __BL_SEC_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -81,4 +86,8 @@ int bl_sec_ccm_auth_decrypt(const uint8_t *key, unsigned int key_bytelen, size_t
 							 size_t add_len, const unsigned char *input, unsigned char *output, const unsigned char *tag, size_t tag_len);
 int bl_sec_aes_ecb_encrypt(const uint8_t *key, unsigned int key_bytelen, size_t length, const unsigned char *input, unsigned char *output);
 int bl_sec_aes_ecb_decrypt(const uint8_t *key, unsigned int key_bytelen, size_t length, const unsigned char *input, unsigned char *output);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

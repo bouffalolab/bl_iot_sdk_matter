@@ -1,9 +1,15 @@
 #include <blcrypto_suite_fw_api.h>
 
-#include <blcrypto_suite/blcrypto_suite_bignum.h>
-#include <blcrypto_suite/blcrypto_suite_ecp.h>
-#include <blcrypto_suite/blcrypto_suite_hacc_glue.h>
-#include <blcrypto_suite/blcrypto_suite_aes.h>
+//#include <blcrypto_suite/blcrypto_suite_bignum.h>
+//#include <blcrypto_suite/blcrypto_suite_ecp.h>
+//#include <blcrypto_suite/blcrypto_suite_hacc_glue.h>
+//#include <blcrypto_suite/blcrypto_suite_aes.h>
+//
+
+#include <blcrypto_suite_bignum.h>
+#include <blcrypto_suite_ecp.h>
+#include <blcrypto_suite_hacc_glue.h>
+#include <blcrypto_suite_aes.h>
 
 #include <string.h>
 #include <assert.h>

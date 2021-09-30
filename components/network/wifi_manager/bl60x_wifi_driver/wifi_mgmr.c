@@ -461,7 +461,7 @@ static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
         bl_main_raw_send(pkt, len);
     }
     dhcp6_set_struct(&(wifiMgmr.wlan_sta.netif), &bl_dhcp6);
-    netifapi_netif_common(&(wifiMgmr.wlan_sta.netif), dhcp6_enable_stateless, NULL);
+    //netifapi_netif_common(&(wifiMgmr.wlan_sta.netif), dhcp6_enable_stateless, NULL);
 
     return false;
 }
@@ -491,6 +491,7 @@ static bool stateGlobalGuard_AP(void *ev, struct event *event )
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_ap_msg_t *ap;
 
+    ef_print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm guard start ap.\r\n");
     if (wifiMgmr.inf_ap_enabled) {
         os_printf(DEBUG_HEADER "%s: AP iface has started!\r\n", __func__);
         return false;
@@ -529,6 +530,7 @@ static bool stateGlobalGuard_stop(void *ev, struct event *event )
     if (WIFI_MGMR_EVENT_APP_AP_STOP != msg->ev) {
         return false;
     }
+    ef_print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm guard stop ap.\r\n");
 
     os_printf(DEBUG_HEADER "Stoping AP interface...\r\n");
     bl_main_apm_stop(wifiMgmr.wlan_ap.vif_index);

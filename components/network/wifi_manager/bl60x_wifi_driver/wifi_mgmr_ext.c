@@ -168,6 +168,7 @@ static void wifi_eth_sta_enable(struct netif *netif, uint8_t mac[6])
     * your ethernet netif interface. The following code illustrates it's use.*/
 
     netifapi_netif_add(netif, &ipaddr, &netmask, &gw, NULL, &bl606a0_wifi_netif_init, &tcpip_input);
+
     netif->name[0] = 's';
     netif->name[1] = 't';
     netif->flags |=  NETIF_FLAG_LINK_UP | NETIF_FLAG_IGMP;
@@ -213,7 +214,6 @@ wifi_interface_t wifi_mgmr_sta_enable(void)
     }
     done = 1;
 
-    os_printf("---------STA enable\r\n");
     wifiMgmr.wlan_sta.mode = 0;//sta mode
     //TODO check wifiMgmr.wlan_sta status
     wifi_eth_sta_enable(&(wifiMgmr.wlan_sta.netif), wifiMgmr.wlan_sta.mac);
