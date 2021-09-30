@@ -181,7 +181,9 @@ int bl606a0_wifi_init(wifi_conf_t *conf)
     os_printf("     hostname: %s\r\n", wifiMgmr.hostname);
     bl_msg_update_channel_cfg(conf->country_code);
     os_printf("-----------------------------------------------------\r\n");
+    //return 0;
     bl_wifi_clock_enable();//Enable wifi clock
+    //return 0;
     memset(&bl606a0_sta, 0, sizeof(bl606a0_sta));
     ret = bl_main_rtthread_start(&(bl606a0_sta.bl_hw));
 

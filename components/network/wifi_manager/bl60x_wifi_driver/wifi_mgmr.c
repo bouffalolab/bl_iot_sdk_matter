@@ -491,6 +491,7 @@ static bool stateGlobalGuard_AP(void *ev, struct event *event )
     wifi_mgmr_msg_t *msg;
     wifi_mgmr_ap_msg_t *ap;
 
+    ef_print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm guard start ap.\r\n");
     if (wifiMgmr.inf_ap_enabled) {
         os_printf(DEBUG_HEADER "%s: AP iface has started!\r\n", __func__);
         return false;
@@ -529,6 +530,7 @@ static bool stateGlobalGuard_stop(void *ev, struct event *event )
     if (WIFI_MGMR_EVENT_APP_AP_STOP != msg->ev) {
         return false;
     }
+    ef_print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm guard stop ap.\r\n");
 
     os_printf(DEBUG_HEADER "Stoping AP interface...\r\n");
     bl_main_apm_stop(wifiMgmr.wlan_ap.vif_index);
@@ -1396,13 +1398,17 @@ static void _wifi_mgmr_entry(void *pvParameters)
 
 void wifi_mgmr_start_background(wifi_conf_t *conf)
 {
+    ef_print("00000000.\r\n");
     wifi_mgmr_drv_init(conf);
+    ef_print("****mgmr init.\r\n");
     os_thread_create("wifi_mgmr",
             _wifi_mgmr_entry,
             mgmr_TASK_PRIORITY,
             1024 * 3,
             NULL
     );
+
+    ef_print("PPPPPPPPPPPPPPPPP wifi mgmr startup.\r\n");
 }
 
 int wifi_mgmr_init(void)

@@ -597,10 +597,13 @@ int bl_main_rtthread_start(struct bl_hw **bl_hw)
 
     /*start the bl606 wifi service*/
     bl_main_lowlevel_init();
-
+    
+    //return 0;
     /*startup wifi firmware*/
     *bl_hw = &wifi_hw;
     ret = cfg80211_init(&wifi_hw);
+    os_printf("######## 802.11 init success.\r\n");
+    return 0;
     //TODO check ret from cfg80211_init
     ret = bl_open(*bl_hw);
     return ret;
