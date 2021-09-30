@@ -126,8 +126,6 @@ static void wifi_eth_sta_enable(struct netif *netif, uint8_t mac[6])
     ip4_addr_t netmask;
     ip4_addr_t gw;
 
-    ef_print("############################ enter wifi_eth_sta_enable.\r\n");
-
 #if 0
     IP4_ADDR(&ipaddr, 192, 168, 11, 111);
     IP4_ADDR(&netmask, 255, 255, 255, 0);
@@ -194,12 +192,9 @@ int wifi_mgmr_psk_cal(char *password, char *ssid, int ssid_len, char *output)
 int wifi_mgmr_drv_init(wifi_conf_t *conf)
 {
     bl606a0_wifi_init(conf);
-    ef_print("after bl606a0_wifi_init.\r\n");
     wifi_mgmr_api_set_country_code(conf->country_code);
-    ef_print("set contury code.\r\n");
     wifi_mgmr_init();
     wifi_mgmr_api_ifaceup();
-    ef_print("****wifi_mgmr_api_ifaceup.\r\n");
     return 0;
 }
 
@@ -219,11 +214,9 @@ wifi_interface_t wifi_mgmr_sta_enable(void)
     }
     done = 1;
 
-    //os_printf("---------STA enable\r\n");
     wifiMgmr.wlan_sta.mode = 0;//sta mode
     //TODO check wifiMgmr.wlan_sta status
     wifi_eth_sta_enable(&(wifiMgmr.wlan_sta.netif), wifiMgmr.wlan_sta.mac);
-    ef_print("********** sta enable.\r\n");
     return &(wifiMgmr.wlan_sta);
 }
 

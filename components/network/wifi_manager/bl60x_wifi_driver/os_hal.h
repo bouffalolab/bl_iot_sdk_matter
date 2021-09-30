@@ -46,6 +46,7 @@
 
 #define os_free rt_free
 #define os_malloc rt_malloc
+
 /*event definition*/
 typedef struct rt_event os_event_t;
 #define os_event_init(ev) rt_event_init(ev, "wifi_" #ev, RT_IPC_FLAG_FIFO);
@@ -117,6 +118,7 @@ typedef void* timer_cb_arg_t;
 #include <message_buffer.h>
 #include <timers.h>
 #include <stdio.h>
+
 #if 0
 int os_printf(const char* format, ...);
 #else

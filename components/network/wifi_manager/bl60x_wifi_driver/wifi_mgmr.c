@@ -1398,17 +1398,13 @@ static void _wifi_mgmr_entry(void *pvParameters)
 
 void wifi_mgmr_start_background(wifi_conf_t *conf)
 {
-    ef_print("00000000.\r\n");
     wifi_mgmr_drv_init(conf);
-    ef_print("****mgmr init.\r\n");
     os_thread_create("wifi_mgmr",
             _wifi_mgmr_entry,
             mgmr_TASK_PRIORITY,
             1024 * 3,
             NULL
     );
-
-    ef_print("PPPPPPPPPPPPPPPPP wifi mgmr startup.\r\n");
 }
 
 int wifi_mgmr_init(void)

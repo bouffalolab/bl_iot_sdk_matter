@@ -43,11 +43,8 @@ int hal_wifi_start_firmware_task(void)
     static StackType_t wifi_fw_stack[WIFI_STACK_SIZE];
     static StaticTask_t wifi_fw_task;
 
-    ef_print("############## task.\r\n");
     bl_pm_init();
-    ef_print("pl init success.\r\n");
     xTaskCreateStatic(wifi_main, (char*)"fw", WIFI_STACK_SIZE, NULL, TASK_PRIORITY_FW, wifi_fw_stack, &wifi_fw_task);
-    ef_print("create task success.\r\n");
 
     return 0;
 }
