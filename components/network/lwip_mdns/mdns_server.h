@@ -41,6 +41,9 @@
 #include <lwip/apps/mdns_opts.h>
 #include <lwip/netif.h>
 
+///add jczhang
+#include <mdns.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
