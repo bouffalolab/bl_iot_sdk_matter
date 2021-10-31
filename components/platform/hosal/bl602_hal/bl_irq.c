@@ -385,7 +385,7 @@ void exception_entry(uint32_t mcause, uint32_t mepc, uint32_t mtval, uintptr_t *
     } else {
         registerdump(tasksp);
         puts("Exception Entry--->>>\r\n");
-        blog_info("mcause %08lx, mepc %08lx, mtval %08lx\r\n",
+        printf("mcause %08lx, mepc %08lx, mtval %08lx\r\n",
             mcause,
             mepc,
             mtval

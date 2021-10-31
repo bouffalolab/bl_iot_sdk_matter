@@ -77,7 +77,9 @@ static HeapRegion_t xHeapRegions[] =
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName )
 {
-    puts("Stack Overflow checked\r\n");
+    puts("Stack Overflow checked, task: ");
+    puts(pcTaskName);
+    puts("\r\n");
     while (1) {
         /*empty here*/
     }
