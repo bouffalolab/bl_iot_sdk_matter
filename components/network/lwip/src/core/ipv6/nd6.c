@@ -489,8 +489,15 @@ nd6_input(struct pbuf *p, struct netif *inp)
       }
     }
 
+    if (ip6_current_src_addr()->addr[0] == 0 && ip6_current_src_addr()->addr[1] == 0
+            && ip6_current_src_addr()->addr[2] == 0 && ip6_current_src_addr()->addr[3] == 0) {
+        pbuf_free(p);
+        return;
+    }
+
     /* NS not for us? */
-    if (1) {
+    //if (1) {
+    if (!accepted) {
       pbuf_free(p);
       return;
     }
