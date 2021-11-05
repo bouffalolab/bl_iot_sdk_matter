@@ -187,6 +187,7 @@ netif_init(void)
 #define LOOPIF_ADDRINIT
 #endif /* LWIP_IPV4 */
 
+  return;
 #if NO_SYS
   netif_add(&loop_netif, LOOPIF_ADDRINIT NULL, netif_loopif_init, ip_input);
 #else  /* NO_SYS */
