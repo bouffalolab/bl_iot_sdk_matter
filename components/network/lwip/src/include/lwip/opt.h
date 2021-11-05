@@ -2673,7 +2673,7 @@
  * LWIP_IPV6_DHCP6==1: enable DHCPv6 stateful/stateless address autoconfiguration.
  */
 #if !defined LWIP_IPV6_DHCP6 || defined __DOXYGEN__
-#define LWIP_IPV6_DHCP6                 0
+#define LWIP_IPV6_DHCP6                 1
 #endif
 
 /**
