@@ -280,6 +280,20 @@ static void dump_pkt_infor(struct hw_rxhdr *hw_rxhdr)
     }
 }
 
+static int tcpip_src_addr_cmp(struct ethhdr *hdr, uint8_t addr[])
+{
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        //ef_print("%x %x |  ", hdr->h_dest[i], addr[i]);
+        if ((uint8_t)(hdr->h_source[i]) != addr[i]) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int tcpip_stack_input(void *swdesc, uint8_t status, void *hwhdr, unsigned int msdu_offset, struct wifi_pkt *pkt)
 {
     struct hw_rxhdr *hw_rxhdr = (struct hw_rxhdr*)hwhdr;
@@ -379,7 +393,8 @@ int tcpip_stack_input(void *swdesc, uint8_t status, void *hwhdr, unsigned int ms
 #endif
                     i++;
                 }
-                if (bl_vif->dev && ERR_OK == bl_vif->dev->input(h, bl_vif->dev)) {
+                //if (bl_vif->dev && (src.addr is NOT bl_vif->dev) && ERR_OK == bl_vif->dev->input(h, bl_vif->dev)) {
+                if (bl_vif->dev && tcpip_src_addr_cmp(hdr, (bl_vif->dev)->hwaddr) && ERR_OK == bl_vif->dev->input(h, bl_vif->dev)) {
                     return 0;
                 }
             } else {
