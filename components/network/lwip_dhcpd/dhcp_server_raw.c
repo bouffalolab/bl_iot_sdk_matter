@@ -740,6 +740,7 @@ _exit:
 
 void dhcpd_stop(const char *netif_name)
 {
+#if 0
     struct netif *netif = netif_list;
 
     DEBUG_PRINTF("%s: %s\r\n", __func__, netif_name);
@@ -771,4 +772,5 @@ void dhcpd_stop(const char *netif_name)
 _exit:
     LWIP_NETIF_UNLOCK();
     return;
+#endif
 }
