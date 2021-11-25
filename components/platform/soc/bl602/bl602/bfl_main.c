@@ -155,8 +155,8 @@ void __attribute__((weak)) vAssertCalled(void)
     abort();
 }
 
-#ifdef SYS_VFS_UART_ENABLE
-static int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
+#ifdef SYS_VFS_ENABLE
+int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
 {
     uint32_t addr = hal_board_get_factory_addr();
     const void *fdt = (const void *)addr;
@@ -177,7 +177,7 @@ static int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
 
     return 0;
 }
-#endif
+#endif /* SYS_VFS_ENABLE */
 
 static void app_main_entry(void *pvParameters)
 {
