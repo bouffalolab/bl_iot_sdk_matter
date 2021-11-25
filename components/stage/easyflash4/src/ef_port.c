@@ -125,6 +125,18 @@ EfErrCode ef_port_erase(uint32_t addr, size_t size) {
 
     return result;
 }
+
+EfErrCode ef_port_erase_all() {
+    EfErrCode result = EF_NO_ERR;
+
+    /* You can add your code under here. */
+    if (bl_mtd_erase_all(handle) < 0) {
+        result = EF_ERASE_ERR;
+    }
+
+    return result;
+}
+
 /**
  * Write data to flash.
  * @note This operation's units is word.

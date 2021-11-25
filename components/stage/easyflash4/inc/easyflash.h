@@ -102,6 +102,7 @@ uint32_t ef_calc_crc32(uint32_t crc, const void *buf, size_t size);
 /* ef_port.c */
 EfErrCode ef_port_read(uint32_t addr, uint32_t *buf, size_t size);
 EfErrCode ef_port_erase(uint32_t addr, size_t size);
+EfErrCode ef_port_erase_all();
 EfErrCode ef_port_write(uint32_t addr, const uint32_t *buf, size_t size);
 void ef_port_env_lock(void);
 void ef_port_env_unlock(void);
