@@ -36,6 +36,7 @@
 #define LWIP_TIMEVAL_PRIVATE    0
 
 #define LWIP_HAVE_LOOPIF           1
+#define LWIP_SINGLE_NETIF          1
 
 /**
  * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
@@ -85,7 +86,7 @@ a lot of data that needs to be copied, this should be set high. */
 #ifdef CFG_ETHERNET_ENABLE
 #define PBUF_POOL_SIZE          12
 #else
-#define PBUF_POOL_SIZE          8
+#define PBUF_POOL_SIZE          12
 #endif /*CFG_ETHERNET_ENABLE*/
 #endif
 
@@ -93,7 +94,7 @@ a lot of data that needs to be copied, this should be set high. */
 #ifdef CFG_ETHERNET_ENABLE
 #define PBUF_POOL_BUFSIZE       1600
 #else
-#define PBUF_POOL_BUFSIZE       1280
+#define PBUF_POOL_BUFSIZE       (1280 + 150)
 #endif /* CFG_ETHERNET_ENABLE */
 
 
