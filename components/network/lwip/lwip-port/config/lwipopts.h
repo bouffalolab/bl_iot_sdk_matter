@@ -19,9 +19,11 @@
 
 #define LWIP_MDNS_RESPONDER     1
 #define LWIP_IGMP               1
-//#define LWIP_AUTOIP             1
-////#define LWIP_IPV6_MLD           1
+#define LWIP_AUTOIP             1
+#define LWIP_IPV6_MLD           1
 #define LWIP_NUM_NETIF_CLIENT_DATA      1
+
+#define LWIP_ND6_RDNSS_MAX_DNS_SERVERS  1
 
 #define LWIP_ALTCP                      1
 #define LWIP_ALTCP_TLS                  1
