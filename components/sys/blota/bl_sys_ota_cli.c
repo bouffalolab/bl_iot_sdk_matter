@@ -230,6 +230,125 @@ static void ota_tcp_api_cmd(char *buf, int len, int argc, char **argv)
     vPortFree(recv_buffer);
 }
 
+static void ota_tcp_cmd(char *buf, int len, int argc, char **argv);
+
+//#define OTA_BIN_SIZE    450848
+#define OTA_BIN_SIZE      463428 
+void test_ota_tcp_api(void)
+{
+    ota_tcp_cmd(NULL, 0, 0, NULL);
+
+    return;
+
+    int sockfd;
+    struct hostent *hostinfo;
+    struct sockaddr_in dest;
+    uint8_t *recv_buffer;
+    uint8_t hostname[] = {"192.168.111.171"};
+    
+    hostinfo = gethostbyname(hostname);
+    if (!hostinfo) {
+        ef_print("gethostbyname Failed\r\n");
+        return;
+    }
+   
+    /* Create a socket */
+    /*---Open socket for streaming---*/
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        ef_print("Error in socket\r\n");
+        return;
+    }
+
+    /*---Initialize server address/port struct---*/
+    memset(&dest, 0, sizeof(dest));
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(3333);
+    dest.sin_addr = *((struct in_addr *) hostinfo->h_addr);
+    uint32_t address = dest.sin_addr.s_addr;
+    char *ip = inet_ntoa(address);
+
+    int total = 0;
+    int file_size = OTA_BIN_SIZE;
+    int ret;
+    ret = hosal_ota_start(file_size);
+    if (ret) {
+        printf("start ota failed\r\n");
+        return;
+    }
+    
+    recv_buffer = pvPortMalloc(OTA_PROGRAM_SIZE);
+
+    unsigned int buffer_offset = 0, flash_offset = 0;
+    
+    printf("Server ip Address : %s\r\n", ip); 
+    /*---Connect to server---*/
+    if (connect(sockfd, (struct sockaddr *)&dest, sizeof(dest)) != 0) {
+        ef_print("Error in connect\r\n");
+        close(sockfd);
+        vPortFree(recv_buffer);
+        return;
+    }
+    
+    bl_wdt_disable();
+    
+    while (1) {
+        /*first 512 bytes of TCP stream is OTA header*/
+        ret = read(sockfd, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset);
+        if (ret < 0) {
+            printf("ret = %d, err = %d\n\r", ret, errno);
+            break;
+        } else {
+            total += ret;
+            if (0 == ret) {
+                printf("[OTA] [TEST] seems ota file ends unexpectedly, already transfer %u\r\n", total);
+                break;
+            }
+            printf("total = %d, ret = %d\n\r", total, ret);
+            buffer_offset += ret;
+
+            if (file_size != total) {
+                if (buffer_offset < OTA_PROGRAM_SIZE) {
+                    continue;
+                } else if (buffer_offset > OTA_PROGRAM_SIZE) {
+                    printf("[OTA] [TCP] Assert for unexpected error %d\r\n", buffer_offset);
+                    while (1) {
+                        /*empty*/
+                    }
+                }
+            } else if (total > file_size) {
+                printf("[OTA] [TCP] Server has bug?\r\n");
+                while (1) {
+                }
+            }
+
+            printf("Will Write %u to %08X from %p\r\n", buffer_offset, flash_offset, recv_buffer);
+            ret = hosal_ota_update(file_size, flash_offset, recv_buffer, buffer_offset);        
+            if (ret) {
+                printf("update error\r\n");
+                close(sockfd);
+                vPortFree(recv_buffer);
+                return;
+            }
+            flash_offset += buffer_offset;
+            buffer_offset = 0;
+            if (file_size == total) {
+                close(sockfd);
+                vPortFree(recv_buffer);
+                ret = hosal_ota_finish(1, 1);    
+                if (ret) {
+                    ef_print("finish error\r\n");
+                    close(sockfd);
+                    vPortFree(recv_buffer);
+                    return;
+                }
+            }
+        }
+    }
+    close(sockfd);
+    vPortFree(recv_buffer);
+}
+
+#define OTA_TCP_PORT     3333
 #define OTA_PROGRAM_SIZE (512)
 static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
 {
@@ -242,16 +361,22 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     uint8_t sha256_result[32];
     uint8_t sha256_img[32];
     bl_mtd_handle_t handle;
+    uint8_t hostname[] = {"192.168.111.210"};
+    struct sockaddr_in server_addr, client_addr;
+    int connected;
+    uint32_t sin_size;
 
-    if (2 != argc) {
-        printf("Usage: %s IP\r\n", argv[0]);
-        return;
-    }
-    hostinfo = gethostbyname(argv[1]);
+    //if (2 != argc) {
+    //    printf("Usage: %s IP\r\n", argv[0]);
+    //    return;
+    //}
+#if 0
+    hostinfo = gethostbyname(hostname);
     if (!hostinfo) {
         puts("gethostbyname Failed\r\n");
         return;
     }
+#endif
 
     ret = bl_mtd_open(BL_MTD_PARTITION_NAME_FW_DEFAULT, &handle, BL_MTD_OPEN_FLAG_BACKUP);
     if (ret) {
@@ -267,6 +392,7 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
         return;
     }
 
+#if 0
     /*---Initialize server address/port struct---*/
     memset(&dest, 0, sizeof(dest));
     dest.sin_family = AF_INET;
@@ -274,6 +400,20 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     dest.sin_addr = *((struct in_addr *) hostinfo->h_addr);
     uint32_t address = dest.sin_addr.s_addr;
     char *ip = inet_ntoa(address);
+#endif
+
+#if 1
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(OTA_TCP_PORT);
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(&(server_addr.sin_zero), 0x0, sizeof(server_addr.sin_zero));
+    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
+        printf("Unable to bind\r\n");
+        return;
+    }
+
+    ef_print("bind success.\r\n");
+#endif
 
     int total = 0;
     int ota_header_found, use_xz;
@@ -315,6 +455,7 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     bl_mtd_erase_all(handle);
     printf("Done\r\n");
 
+#if 0
     printf("Server ip Address : %s\r\n", ip);
     /*---Connect to server---*/
     if (connect(sockfd, (struct sockaddr *)&dest, sizeof(dest)) != 0) {
@@ -324,6 +465,25 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
         bl_mtd_close(handle);
         return;
     }
+#endif
+
+#if 1
+    if (listen(sockfd, 5) == -1) {
+        printf("Listen error\r\n");
+        return;
+    }
+
+    ef_print("listen success.\r\n");
+    sin_size = sizeof(struct sockaddr_in);
+    connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
+    ef_print("new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+    int flag = 1;
+    setsockopt(connected,
+            IPPROTO_TCP,     /* set option at TCP level */
+            TCP_NODELAY,     /* name of option */
+            (void *) &flag,  /* the cast is historical cruft */
+            sizeof(int));    /* length of option value */
+#endif
             
     buffer_offset = 0;
     flash_offset = 0;
@@ -335,7 +495,9 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     memset(sha256_result, 0, sizeof(sha256_result));
     while (1) {
         /*first 512 bytes of TCP stream is OTA header*/
-        ret = read(sockfd, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset);
+        //ret = read(sockfd, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset);
+        ret = recv(connected, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset, 0);
+        
         if (ret < 0) {
             printf("ret = %d, err = %d\n\r", ret, errno);
             break;

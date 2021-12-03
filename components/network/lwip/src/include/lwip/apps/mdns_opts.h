@@ -56,7 +56,7 @@
 
 /** The maximum number of services per netif */
 #ifndef MDNS_MAX_SERVICES
-#define MDNS_MAX_SERVICES               1
+#define MDNS_MAX_SERVICES               3
 #endif
 
 /** MDNS_RESP_USENETIF_EXTCALLBACK==1: register an ext_callback on the netif
