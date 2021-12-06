@@ -30,6 +30,16 @@
 #ifndef __BL_SYS_OTA_H__
 #define __BL_SYS_OTA_H__
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int bl_sys_ota_cli_init(void);
+void ota_tcp_server(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

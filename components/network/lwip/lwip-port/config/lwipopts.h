@@ -24,6 +24,7 @@
 #define LWIP_NUM_NETIF_CLIENT_DATA      1
 
 #define LWIP_ND6_RDNSS_MAX_DNS_SERVERS  1
+#define MDNS_MAX_SERVICES               3
 
 #define LWIP_ALTCP                      1
 #define LWIP_ALTCP_TLS                  1
@@ -274,7 +275,7 @@ a lot of data that needs to be copied, this should be set high. */
 #ifdef CFG_ETHERNET_ENABLE
 #define TCPIP_THREAD_STACKSIZE          1536
 #else
-#define TCPIP_THREAD_STACKSIZE          4000
+#define TCPIP_THREAD_STACKSIZE          1536 
 #endif /* CFG_ETHERNET_ENABLE */
 #define TCPIP_MBOX_SIZE                 50
 #define DEFAULT_UDP_RECVMBOX_SIZE       2000
