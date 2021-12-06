@@ -554,9 +554,11 @@ void ota_tcp_server(void)
         printf("Listen error\r\n");
         return;
     }
-
     ef_print("listen success.\r\n");
     sin_size = sizeof(struct sockaddr_in);
+#endif
+
+#if 0
     connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
     ef_print("new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
     int flag = 1;
@@ -575,6 +577,20 @@ void ota_tcp_server(void)
     utils_sha256_init(&ctx);
     utils_sha256_starts(&ctx);
     memset(sha256_result, 0, sizeof(sha256_result));
+
+    while (1) {
+
+#if 1
+    connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
+    ef_print("new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+    int flag = 1;
+    setsockopt(connected,
+            IPPROTO_TCP,     /* set option at TCP level */
+            TCP_NODELAY,     /* name of option */
+            (void *) &flag,  /* the cast is historical cruft */
+            sizeof(int));    /* length of option value */
+#endif
+
     while (1) {
         /*first 512 bytes of TCP stream is OTA header*/
         //ret = read(sockfd, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset);
@@ -663,6 +679,8 @@ void ota_tcp_server(void)
                 hal_reboot();
             }
         }
+    }
+
     }
 
 
