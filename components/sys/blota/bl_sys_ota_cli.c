@@ -49,6 +49,8 @@
 #include <bl_mtd.h>
 #include <bl_wdt.h>
 
+#include <InetPlatformConfig.h>
+
 typedef struct ota_header {
     union {
         struct {
@@ -436,29 +438,19 @@ void ota_tcp_server(void)
 {
     int sockfd, i;
     int ret;
-    struct hostent *hostinfo;
     uint8_t *recv_buffer;
-    struct sockaddr_in dest;
     iot_sha256_context ctx;
     uint8_t sha256_result[32];
     uint8_t sha256_img[32];
     bl_mtd_handle_t handle;
-    uint8_t hostname[] = {"192.168.111.210"};
+    
+#if !INET_CONFIG_ENABLE_IPV4
+    struct sockaddr_in6 server_addr, client_addr;
+#else 
     struct sockaddr_in server_addr, client_addr;
+#endif
     int connected;
     uint32_t sin_size;
-
-    //if (2 != argc) {
-    //    printf("Usage: %s IP\r\n", argv[0]);
-    //    return;
-    //}
-#if 0
-    hostinfo = gethostbyname(hostname);
-    if (!hostinfo) {
-        puts("gethostbyname Failed\r\n");
-        return;
-    }
-#endif
 
     ret = bl_mtd_open(BL_MTD_PARTITION_NAME_FW_DEFAULT, &handle, BL_MTD_OPEN_FLAG_BACKUP);
     if (ret) {
@@ -466,6 +458,13 @@ void ota_tcp_server(void)
         return;
     }
 
+#if !INET_CONFIG_ENABLE_IPV4 
+    if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
+        printf("Error in socket\r\n");
+        bl_mtd_close(handle);
+        return;
+    }
+#else
     /* Create a socket */
     /*---Open socket for streaming---*/
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -473,29 +472,25 @@ void ota_tcp_server(void)
         bl_mtd_close(handle);
         return;
     }
-
-#if 0
-    /*---Initialize server address/port struct---*/
-    memset(&dest, 0, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(3333);
-    dest.sin_addr = *((struct in_addr *) hostinfo->h_addr);
-    uint32_t address = dest.sin_addr.s_addr;
-    char *ip = inet_ntoa(address);
 #endif
 
-#if 1
+#if !INET_CONFIG_ENABLE_IPV4 
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin6_family = AF_INET6;
+    server_addr.sin6_port   = htons(OTA_TCP_PORT);
+#else
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(OTA_TCP_PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
     memset(&(server_addr.sin_zero), 0x0, sizeof(server_addr.sin_zero));
+#endif
+
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1) {
         printf("Unable to bind\r\n");
         return;
     }
 
-    ef_print("bind success.\r\n");
-#endif
+    printf("bind success.\r\n");
 
     int total = 0;
     int ota_header_found, use_xz;
@@ -537,38 +532,13 @@ void ota_tcp_server(void)
     bl_mtd_erase_all(handle);
     printf("Done\r\n");
 
-#if 0
-    printf("Server ip Address : %s\r\n", ip);
-    /*---Connect to server---*/
-    if (connect(sockfd, (struct sockaddr *)&dest, sizeof(dest)) != 0) {
-        printf("Error in connect\r\n");
-        close(sockfd);
-        vPortFree(recv_buffer);
-        bl_mtd_close(handle);
-        return;
-    }
-#endif
-
-#if 1
     if (listen(sockfd, 5) == -1) {
         printf("Listen error\r\n");
         return;
     }
-    ef_print("listen success.\r\n");
+    printf("listen success.\r\n");
     sin_size = sizeof(struct sockaddr_in);
-#endif
 
-#if 0
-    connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
-    ef_print("new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
-    int flag = 1;
-    setsockopt(connected,
-            IPPROTO_TCP,     /* set option at TCP level */
-            TCP_NODELAY,     /* name of option */
-            (void *) &flag,  /* the cast is historical cruft */
-            sizeof(int));    /* length of option value */
-#endif
-            
     buffer_offset = 0;
     flash_offset = 0;
     ota_header_found = 0;
@@ -579,17 +549,18 @@ void ota_tcp_server(void)
     memset(sha256_result, 0, sizeof(sha256_result));
 
     while (1) {
-
-#if 1
     connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
-    ef_print("new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+#if !INET_CONFIG_ENABLE_IPV4 
+    printf("IPV6 new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin6_addr),ntohs(client_addr.sin6_port));
+#else
+    printf("IPV4 new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+#endif
     int flag = 1;
     setsockopt(connected,
             IPPROTO_TCP,     /* set option at TCP level */
             TCP_NODELAY,     /* name of option */
             (void *) &flag,  /* the cast is historical cruft */
             sizeof(int));    /* length of option value */
-#endif
 
     while (1) {
         /*first 512 bytes of TCP stream is OTA header*/
