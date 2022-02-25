@@ -37,7 +37,6 @@
 #define LWIP_TIMEVAL_PRIVATE    0
 
 #define LWIP_HAVE_LOOPIF           1
-#define LWIP_SINGLE_NETIF          1
 
 /**
  * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
