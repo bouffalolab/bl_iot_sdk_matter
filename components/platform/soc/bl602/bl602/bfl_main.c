@@ -61,6 +61,8 @@
 #include <bl_romfs.h>
 #endif
 
+#include <utils_log.h>
+
 HOSAL_UART_DEV_DECL(uart_stdio, 0, 16, 7, 2000000);
 
 extern uint8_t _heap_start;
@@ -188,7 +190,6 @@ static void app_main_entry(void *pvParameters)
 
 static void aos_loop_proc(void *pvParameters)
 {
-    static StackType_t app_stack[SYS_APP_TASK_STACK_SIZE];
     static StaticTask_t app_task;
     
 #ifdef SYS_LOOPRT_ENABLE
@@ -235,12 +236,11 @@ static void aos_loop_proc(void *pvParameters)
     }
 #endif
 
-    xTaskCreateStatic(app_main_entry,
+    xTaskCreate(app_main_entry,
             (char*)"main",
             SYS_APP_TASK_STACK_SIZE,
             NULL,
             SYS_APP_TASK_PRIORITY,
-            app_stack,
             &app_task);
 
     aos_loop_run();
