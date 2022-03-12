@@ -299,7 +299,8 @@ a lot of data that needs to be copied, this should be set high. */
 #define MEMP_MEM_MALLOC                 0
 #define LWIP_SUPPORT_CUSTOM_PBUF        1
 
-#define PBUF_LINK_ENCAPSULATION_HLEN    128u
+//#define PBUF_LINK_ENCAPSULATION_HLEN    128u
+#define PBUF_LINK_ENCAPSULATION_HLEN    94
 
 #define LWIP_RAW                        1
 

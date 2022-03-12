@@ -36,8 +36,10 @@
 #endif
 
 #if ((PSM_USER_BUF_SIZE != 4096) && (PSM_USER_BUF_SIZE != (4096 * 2)) &&\
-     (PSM_USER_BUF_SIZE != (4096 * 3)) && (PSM_USER_BUF_SIZE != (4096 * 4)))
-#error "cfg error, please set PSM_USER_BUF_SIZE 4096、4096*2、4096*3、4096*4."
+     (PSM_USER_BUF_SIZE != (4096 * 3)) && (PSM_USER_BUF_SIZE != (4096 * 4)) && \
+     (PSM_USER_BUF_SIZE != (4096 * 5)) && (PSM_USER_BUF_SIZE != (4096 * 6)) && \
+     (PSM_USER_BUF_SIZE != (4096 * 7)) && (PSM_USER_BUF_SIZE != (4096 * 8)))
+#error "cfg error, please set PSM_USER_BUF_SIZE 4096、4096*2、4096*3、4096*4, 4096*5, 4096*6 4096*7, 4096*8."
 #endif
 
 
