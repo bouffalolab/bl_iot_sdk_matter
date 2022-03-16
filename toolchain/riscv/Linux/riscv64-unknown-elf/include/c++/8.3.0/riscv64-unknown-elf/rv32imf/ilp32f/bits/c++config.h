@@ -1443,7 +1443,7 @@ namespace std
 #define _GLIBCXX_MANGLE_SIZE_T j
 
 /* Define if C99 llrint and llround functions are missing from <math.h>. */
-/* #undef _GLIBCXX_NO_C99_ROUNDING_FUNCS */
+#define  _GLIBCXX_NO_C99_ROUNDING_FUNCS
 
 /* Define if ptrdiff_t is int. */
 #define _GLIBCXX_PTRDIFF_T_IS_INT 1
@@ -1509,7 +1509,7 @@ namespace std
 
 /* Define if C99 functions or macros in <math.h> should be imported in
    <tr1/cmath> in namespace std::tr1. */
-/* #undef _GLIBCXX_USE_C99_MATH_TR1 */
+#define _GLIBCXX_USE_C99_MATH_TR1  1  
 
 /* Define if C99 types in <stdint.h> should be imported in <tr1/cstdint> in
    namespace std::tr1. */
