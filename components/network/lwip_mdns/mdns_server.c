@@ -71,8 +71,6 @@
 #include <lwip/opt.h>
 #include "mdns_server.h"
 
-#include "InetPlatformConfig.h"
-
 #if LWIP_MDNS_RESPONDER
 
 #if (LWIP_IPV4 && !LWIP_IGMP)

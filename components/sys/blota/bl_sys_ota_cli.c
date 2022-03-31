@@ -49,8 +49,6 @@
 #include <bl_mtd.h>
 #include <bl_wdt.h>
 
-#include <InetPlatformConfig.h>
-
 typedef struct ota_header {
     union {
         struct {
