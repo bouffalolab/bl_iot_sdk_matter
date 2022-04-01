@@ -28,6 +28,8 @@
 
 #define LWIP_ALTCP                      1
 #define LWIP_ALTCP_TLS                  1
+
+#define LWIP_CONFIG_ENABLE_IPV4         1
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
  * use lwIP facilities.

@@ -39,6 +39,7 @@
 #include <lwip/ip_addr.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
+#include <lwipopts.h>
 
 #include <cli.h>
 #include <hal_boot2.h>
@@ -442,7 +443,7 @@ void ota_tcp_server(void)
     uint8_t sha256_img[32];
     bl_mtd_handle_t handle;
     
-#if !INET_CONFIG_ENABLE_IPV4
+#if !LWIP_CONFIG_ENABLE_IPV4
     struct sockaddr_in6 server_addr, client_addr;
 #else 
     struct sockaddr_in server_addr, client_addr;
@@ -456,7 +457,7 @@ void ota_tcp_server(void)
         return;
     }
 
-#if !INET_CONFIG_ENABLE_IPV4 
+#if !LWIP_CONFIG_ENABLE_IPV4 
     if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
         printf("Error in socket\r\n");
         bl_mtd_close(handle);
@@ -472,7 +473,7 @@ void ota_tcp_server(void)
     }
 #endif
 
-#if !INET_CONFIG_ENABLE_IPV4 
+#if !LWIP_CONFIG_ENABLE_IPV4 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin6_family = AF_INET6;
     server_addr.sin6_port   = htons(OTA_TCP_PORT);
@@ -548,7 +549,7 @@ void ota_tcp_server(void)
 
     while (1) {
     connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
-#if !INET_CONFIG_ENABLE_IPV4 
+#if !LWIP_CONFIG_ENABLE_IPV4 
     printf("IPV6 new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin6_addr),ntohs(client_addr.sin6_port));
 #else
     printf("IPV4 new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
