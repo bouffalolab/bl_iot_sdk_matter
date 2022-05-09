@@ -236,9 +236,9 @@ int     tcsetpgrp (int __fildes, pid_t __pgrp_id);
 char *  ttyname (int __fildes);
 int     ttyname_r (int, char *, size_t);
 int     unlink (const char *__path);
-#if __XSI_VISIBLE >= 500 && __POSIX_VISIBLE < 200809 || __BSD_VISIBLE
+//#if __XSI_VISIBLE >= 500 && __POSIX_VISIBLE < 200809 || __BSD_VISIBLE
 int 	usleep (useconds_t __useconds);
-#endif
+//#endif
 #if __BSD_VISIBLE
 int     vhangup (void);
 #endif
