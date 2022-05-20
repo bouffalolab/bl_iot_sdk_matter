@@ -29,7 +29,7 @@
 #define LWIP_ALTCP                      1
 #define LWIP_ALTCP_TLS                  1
 
-#define LWIP_CONFIG_ENABLE_IPV4         1
+#define LWIP_CONFIG_ENABLE_IPV4         0
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
  * use lwIP facilities.
@@ -301,8 +301,7 @@ a lot of data that needs to be copied, this should be set high. */
 #define MEMP_MEM_MALLOC                 0
 #define LWIP_SUPPORT_CUSTOM_PBUF        1
 
-//#define PBUF_LINK_ENCAPSULATION_HLEN    128u
-#define PBUF_LINK_ENCAPSULATION_HLEN    94
+#define PBUF_LINK_ENCAPSULATION_HLEN    128u
 
 #define LWIP_RAW                        1
 
