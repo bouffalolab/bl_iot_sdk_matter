@@ -1,4 +1,3 @@
-#if 0
 /*
  * Copyright (c) 2020 Bouffalolab.
  *
@@ -45,6 +44,8 @@
 #include <utils_string.h>
 #include <utils_getopt.h>
 #include <wifi_mgmr_ext.h>
+
+#if 0
 
 #define WIFI_AP_DATA_RATE_1Mbps      0x00
 #define WIFI_AP_DATA_RATE_2Mbps      0x01
@@ -266,6 +267,27 @@ int wifi_mgmr_cli_powersaving_on()
     wifi_mgmr_api_fw_powersaving(2);
     return 0;
 }
+#endif
+
+int wifi_mgmr_get_scan_ap_num(void)
+{
+    return (sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]));
+}
+
+void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num)
+{
+    int i = 0;
+    
+    for (i = 0; i < num; i ++) {
+        memcpy(result[i].ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len);        
+        result[i].ssid_tail[0] = 0;        
+        result[i].ssid_len = wifiMgmr.scan_items[i].ssid_len;        
+        memcpy(&(result->bssid[i]), &(wifiMgmr.scan_items[i].bssid[i]), 6);
+        result[i].channel = wifiMgmr.scan_items[i].channel;        
+        result[i].auth = wifiMgmr.scan_items[i].auth;        
+        result[i].rssi = wifiMgmr.scan_items[i].rssi;        
+    }
+}
 
 int wifi_mgmr_cli_scanlist(void)
 {
@@ -298,8 +320,7 @@ int wifi_mgmr_cli_scanlist(void)
     printf("----------------------------------------------------------------------------------------------------\r\n");
     return 0;
 }
-#endif
-int wifi_mgmr_cli_scanlist(void) {return 0;}
+
 #if 0
 static void cmd_rf_dump(char *buf, int len, int argc, char **argv)
 {

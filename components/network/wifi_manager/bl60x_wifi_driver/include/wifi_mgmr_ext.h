@@ -37,6 +37,7 @@ extern "C" {
 #include <lwip/netif.h>
 #include <bl_pm.h>
 
+
 enum ap_info_type {
   /* The current AP information is advisory. When the AP fails to connect
    * through its specified parameters, the information is no longer used
@@ -233,6 +234,8 @@ int wifi_mgmr_scan_adv(void *data, scan_complete_cb_t cb, uint16_t *channels, ui
 int wifi_mgmr_cfg_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t type, uint32_t length, uint32_t *buf);
 int wifi_mgmr_scan_complete_callback();
 int wifi_mgmr_cli_scanlist(void);
+int wifi_mgmr_get_scan_ap_num(void);
+void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num);
 int wifi_mgmr_cli_init(void);
 int wifi_mgmr_scan_ap(char *ssid, wifi_mgmr_ap_item_t *item);
 int wifi_mgmr_scan_ap_all(wifi_mgmr_ap_item_t *env, uint32_t *param1, scan_item_cb_t cb);
