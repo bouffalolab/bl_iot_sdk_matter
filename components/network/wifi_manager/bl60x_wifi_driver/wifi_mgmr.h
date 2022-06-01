@@ -29,6 +29,11 @@
  */
 #ifndef __WIFI_MGMR_H__
 #define __WIFI_MGMR_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #include "include/wifi_mgmr_ext.h"
@@ -329,9 +334,15 @@ extern wifi_mgmr_t wifiMgmr;
 char *wifi_mgmr_auth_to_str(uint8_t auth);
 char *wifi_mgmr_cipher_to_str(uint8_t cipher);
 int wifi_mgmr_api_fw_tsen_reload(void);
+int wifi_mgmr_profile_ssid_get(uint8_t *ssid);
 
 static inline int wifi_mgmr_scan_item_is_timeout(wifi_mgmr_t *mgmr, wifi_mgmr_scan_item_t *item)
 {
     return ((unsigned int)os_tick_get() - (unsigned int)item->timestamp_lastseen) >= mgmr->scan_item_timeout ? 1 : 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

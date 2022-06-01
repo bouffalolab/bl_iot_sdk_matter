@@ -1570,3 +1570,17 @@ int wifi_mgmr_scan_complete_notify()
     return 0;
 }
 
+int wifi_mgmr_profile_ssid_get(uint8_t *ssid)
+{
+    wifi_mgmr_profile_msg_t profile_msg;
+
+    if (wifi_mgmr_profile_get(&wifiMgmr, &profile_msg)) {
+        os_printf(DEBUG_HEADER "Retry Again --->>> retry Abort, since profile copy failed\r\n");
+
+        return 0;
+    }
+    
+   memcpy(ssid, profile_msg.ssid, profile_msg.ssid_len); 
+
+   return profile_msg.ssid_len;
+}
