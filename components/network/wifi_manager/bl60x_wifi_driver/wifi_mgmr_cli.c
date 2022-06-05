@@ -271,21 +271,39 @@ int wifi_mgmr_cli_powersaving_on()
 
 int wifi_mgmr_get_scan_ap_num(void)
 {
-    return (sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]));
+    int num, count;
+
+    num = sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]);
+    count  = 0;
+
+    for (int i = 0; i < num; i ++) {
+        if (wifiMgmr.scan_items[i].is_used && (!wifi_mgmr_scan_item_is_timeout(&wifiMgmr, &wifiMgmr.scan_items[i]))) {
+            count++;
+        }
+    }
+    
+    return count;
 }
 
 void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num)
 {
-    int i = 0;
-    
-    for (i = 0; i < num; i ++) {
-        memcpy(result[i].ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len);        
-        result[i].ssid_tail[0] = 0;        
-        result[i].ssid_len = wifiMgmr.scan_items[i].ssid_len;        
-        memcpy(&(result->bssid[i]), &(wifiMgmr.scan_items[i].bssid[i]), 6);
-        result[i].channel = wifiMgmr.scan_items[i].channel;        
-        result[i].auth = wifiMgmr.scan_items[i].auth;        
-        result[i].rssi = wifiMgmr.scan_items[i].rssi;        
+    int i, count, iter;
+
+    count = sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]);
+    iter = 0;
+
+    for (i = 0; i < count; i ++) {
+        if (wifiMgmr.scan_items[i].is_used && (!wifi_mgmr_scan_item_is_timeout(&wifiMgmr, &wifiMgmr.scan_items[i]))) {
+            memcpy(result[iter].ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len);        
+            result[iter].ssid[wifiMgmr.scan_items[i].ssid_len] = 0;
+            result[iter].ssid_tail[0] = 0;        
+            result[iter].ssid_len = wifiMgmr.scan_items[i].ssid_len;        
+            memcpy(&(result->bssid[iter]), &(wifiMgmr.scan_items[i].bssid[i]), 6);
+            result[iter].channel = wifiMgmr.scan_items[i].channel;        
+            result[iter].auth = wifiMgmr.scan_items[i].auth;        
+            result[iter].rssi = wifiMgmr.scan_items[i].rssi;
+            iter++;
+        }
     }
 }
 
@@ -293,7 +311,6 @@ int wifi_mgmr_cli_scanlist(void)
 {
     int i;
 
-    printf("cached scan list\r\n");
     printf("****************************************************************************************************\r\n");
     for (i = 0; i < sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]); i++) {
         if (wifiMgmr.scan_items[i].is_used && (!wifi_mgmr_scan_item_is_timeout(&wifiMgmr, &wifiMgmr.scan_items[i]))) {
