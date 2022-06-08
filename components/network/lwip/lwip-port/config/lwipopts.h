@@ -24,7 +24,7 @@
 #define LWIP_NUM_NETIF_CLIENT_DATA      1
 
 #define LWIP_ND6_RDNSS_MAX_DNS_SERVERS  1
-#define MDNS_MAX_SERVICES               3
+#define MDNS_MAX_SERVICES               10
 
 #define LWIP_ALTCP                      1
 #define LWIP_ALTCP_TLS                  1
