@@ -117,6 +117,7 @@ static int _check_ota_header(ota_header_t *ota_header, uint32_t *ota_len, int *u
     return 0;
 }
 
+#if 0
 #define OTA_PROGRAM_SIZE (512)
 static void ota_tcp_api_cmd(char *buf, int len, int argc, char **argv)
 {
@@ -230,6 +231,7 @@ static void ota_tcp_api_cmd(char *buf, int len, int argc, char **argv)
     close(sockfd);
     vPortFree(recv_buffer);
 }
+#endif
 
 #define OTA_PROGRAM_SIZE (512)
 static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
@@ -670,7 +672,7 @@ static void ota_dump_cmd(char *buf, int len, int argc, char **argv)
 
 // STATIC_CLI_CMD_ATTRIBUTE makes this(these) command(s) static
 static const struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
-    {"ota_tcp_api", "OTA from TCP server port 3333", ota_tcp_api_cmd},
+    //{"ota_tcp_api", "OTA from TCP server port 3333", ota_tcp_api_cmd},
     {"ota_tcp", "OTA from TCP server port 3333", ota_tcp_cmd},
     {"ota_dump", "dump partitions for ota related", ota_dump_cmd},
 };
