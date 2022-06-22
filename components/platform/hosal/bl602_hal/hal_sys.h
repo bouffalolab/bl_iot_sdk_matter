@@ -29,6 +29,11 @@
  */
 #ifndef __HAL_SYS_H__
 #define __HAL_SYS_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void hal_reboot();
 void hal_sys_reset();
 void hal_poweroff();
@@ -56,5 +61,9 @@ void hal_sys_romapi_update(struct romapi_freertos_map *romapi);
 
 void hal_sys_capcode_update(uint8_t capin, uint8_t capout);
 uint8_t hal_sys_capcode_get(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
