@@ -115,9 +115,9 @@ char *	_strerror_r (struct _reent *, int, int, int *);
 size_t	strlcat (char *, const char *, size_t);
 size_t	strlcpy (char *, const char *, size_t);
 #endif
-//#if __POSIX_VISIBLE >= 200809
+#if __POSIX_VISIBLE >= 200809
 size_t	 strnlen (const char *, size_t);
-//#endif
+#endif
 #if __BSD_VISIBLE
 char 	*strsep (char **, const char *);
 #endif
