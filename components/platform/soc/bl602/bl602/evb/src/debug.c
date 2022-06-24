@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <async_log.h>
 
 //#define CHAR_BIT	8
 //FIXME no ugly declare
@@ -854,11 +855,16 @@ void vprint(const char *fmt, va_list argp)
     if (sys_log_all_enable) {
         str = string;
         if (0 < vsprintf(string, fmt, argp)) {
+        if (!async_log()) {
             while ('\0' != (ch = *(str++))) {
 #if !defined(DISABLE_PRINT)
                 bl_uart_data_send(0, ch);
 #endif
             }
+        }
+        else {
+            async_log_push(str, strlen(str) + 1);
+        }
         }
     }
 }

@@ -109,9 +109,9 @@ typedef enum LOG_BUF_OUT_DATA_TYPE {
                                     } while(0==1)
 #else
 #define custom_log(N, M, ...) do {  LOG_LOCK_LOCK;\
-                                    __utils_printf("[%10u][%s: %s:%4d] " M,\
+                                    __utils_printf("[%10u][:%4d] " M,\
                                     (xPortIsInsideInterrupt())?(xTaskGetTickCountFromISR()):(xTaskGetTickCount()),\
-                                    N, SHORT_FILE, __LINE__,\
+                                    N,\
                                     ##__VA_ARGS__);\
                                     LOG_LOCK_UNLOCK;\
                                     } while(0==1)

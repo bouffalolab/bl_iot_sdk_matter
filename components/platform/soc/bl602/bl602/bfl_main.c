@@ -62,6 +62,7 @@
 #endif
 
 #include <utils_log.h>
+#include <async_log.h>
 
 HOSAL_UART_DEV_DECL(uart_stdio, 0, 16, 7, 2000000);
 
@@ -324,6 +325,7 @@ void bfl_main()
 
     //vPortDefineHeapRegions(xHeapRegions);
 
+    log_async_init();
     system_early_init();
 
     puts("[OS] Starting aos_loop_proc task...\r\n");
