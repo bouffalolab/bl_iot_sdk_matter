@@ -64,7 +64,7 @@
 #include <utils_log.h>
 #include <async_log.h>
 
-HOSAL_UART_DEV_DECL(uart_stdio, 0, 16, 7, 2000000);
+HOSAL_UART_DEV_DECL(uart_stdio, 0, 16, 7, 115200);
 
 extern uint8_t _heap_start;
 extern uint8_t _heap_size; // @suppress("Type cannot be resolved")
