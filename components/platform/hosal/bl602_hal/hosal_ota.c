@@ -68,7 +68,7 @@ static int hosal_ota_erase(uint32_t offset, uint32_t len)
     return 0;
 }
 
-int hosal_ota_start(void)
+int hosal_ota_start(uint32_t file_size)
 {
     int ret;
     uint32_t bin_size, ota_addr;
@@ -86,8 +86,7 @@ int hosal_ota_start(void)
     }
     memset(ota_parm, 0, sizeof(hosal_ota_parm_t));
 
-    //ota_parm->file_size = file_size;
-    ota_parm->file_size = 0;
+    ota_parm->file_size = file_size;
 
     ret = bl_mtd_open(BL_MTD_PARTITION_NAME_FW_DEFAULT, &ota_parm->mtd_handle, BL_MTD_OPEN_FLAG_BACKUP);
     if (ret) {
@@ -108,7 +107,6 @@ int hosal_ota_start(void)
     ota_addr = ptEntry.Address[!ptEntry.activeIndex];
     bin_size = ptEntry.maxLen[!ptEntry.activeIndex];
     
-#if 0
     if (file_size > bin_size) {
         blog_error("file size is more than partition size\r\n");
         bl_mtd_close(ota_parm->mtd_handle);
@@ -116,7 +114,6 @@ int hosal_ota_start(void)
         ota_parm = NULL;
         return -1;
     }
-#endif
 
     blog_info("Starting OTA test. OTA size is %lu\r\n", bin_size);
     blog_info("[OTA] [TEST] activeIndex is %u, use OTA address=%08x\r\n", ptEntry.activeIndex, (unsigned int)ota_addr);
@@ -137,23 +134,20 @@ int hosal_ota_start(void)
     return ret;
 }
 
-int hosal_ota_update(uint32_t offset, uint8_t *buf, uint32_t buf_len)
+int hosal_ota_update(uint32_t filesize, uint32_t offset, uint8_t *buf, uint32_t buf_len)
 {
-    uint32_t ret;
+    uint32_t file_size, ret;
     if (ota_parm == NULL) {
         blog_error("please start ota first\r\n");
         return -1;
     }
     
-#if 0
     file_size = ota_parm->file_size;
     if ((filesize > file_size) || (NULL == buf) || ((offset + buf_len) > file_size) || (buf_len == 0)) {
         blog_error("parm is error!\r\n");
         return -1;
     }
-#endif
-   
-    ota_parm->file_size = offset;
+    
     ret = hosal_ota_erase(offset, buf_len);
     if (ret) {
         blog_error("erase failed\r\n");
@@ -165,9 +159,6 @@ int hosal_ota_update(uint32_t offset, uint8_t *buf, uint32_t buf_len)
         blog_error("mtd write failed\r\n");
         return -1;
     }
-
-    log_info("================================================\r\n");
-    log_info("update file size :%ld \r\n", ota_parm->file_size);
     
     return ret;
 }
@@ -191,13 +182,13 @@ int hosal_ota_finish(uint8_t check_hash, uint8_t auto_reset)
     bin_size = ota_parm->file_size - 32;
 
     if (hal_boot2_get_active_entries(BOOT2_PARTITION_TYPE_FW, &ptEntry)) {
-        log_error("PtTable_Get_Active_Entries fail\r\n");
+        blog_error("PtTable_Get_Active_Entries fail\r\n");
         bl_mtd_close(ota_parm->mtd_handle);
         aos_free(ota_parm);
         ota_parm = NULL;
         return -1;
     }
-    log_info("[OTA] prepare OTA partition info\r\n");
+    blog_info("[OTA] prepare OTA partition info\r\n");
 
     if (check_hash) {
 #define CHECK_IMG_BUF_SIZE   512
@@ -213,7 +204,7 @@ int hosal_ota_finish(uint8_t check_hash, uint8_t auto_reset)
             bl_mtd_close(ota_parm->mtd_handle);
             aos_free(ota_parm);
             ota_parm = NULL;
-            log_info("malloc error\r\n");
+            blog_error("malloc error\r\n");
             return -1;
         }
 
@@ -226,7 +217,7 @@ int hosal_ota_finish(uint8_t check_hash, uint8_t auto_reset)
         while (offset < bin_size) {
             (bin_size - offset >= CHECK_IMG_BUF_SIZE) ? (read_size = CHECK_IMG_BUF_SIZE):(read_size = bin_size - offset);
             if (bl_mtd_read(ota_parm->mtd_handle, offset, read_size, r_buf)) {
-                log_info("mtd read failed\r\n");
+                blog_error("mtd read failed\r\n");
                 bl_mtd_close(ota_parm->mtd_handle);
                 aos_free(ota_parm);
                 ota_parm = NULL;
@@ -247,11 +238,11 @@ int hosal_ota_finish(uint8_t check_hash, uint8_t auto_reset)
         }
         puts("\r\nHeader SET SHA256 Checksum:");
         for (i = 0; i < 32; i++) {
-            log_info("%02X \r\n", sha_check[i]);
+            blog_info("%02X", sha_check[i]);
         }
 
         if (memcmp(sha_check, (const void *)dst_sha, 32) != 0) {
-            log_info("sha256 check error\r\n");
+            blog_error("sha256 check error\r\n");
             bl_mtd_close(ota_parm->mtd_handle);
             aos_free(ota_parm);
             ota_parm = NULL;
@@ -263,16 +254,31 @@ int hosal_ota_finish(uint8_t check_hash, uint8_t auto_reset)
     } 
     
     ptEntry.len = bin_size;
-    log_info("[OTA] [TCP] Update PARTITION, partition len is %lu\r\n", ptEntry.len);
+    blog_info("[OTA] [TCP] Update PARTITION, partition len is %lu\r\n", ptEntry.len);
     hal_boot2_update_ptable(&ptEntry);
     bl_mtd_close(ota_parm->mtd_handle);
     aos_free(ota_parm);
     ota_parm = NULL;
     
     if (auto_reset) {
-        log_info("reboot.\r\n");
         hal_reboot();
     }
     
     return 0;
 }
+
+int hosal_ota_read(uint32_t offset, uint8_t *buf, uint32_t buf_len)
+{
+    if (ota_parm == NULL) {
+        printf("please start ota first\r\n");
+        return -1;
+    }
+
+    if ((NULL == buf) || ((offset + buf_len) > ota_parm->file_size) || (buf_len == 0)) {
+        printf("parm is error!\r\n");
+        return -1;
+    }
+
+    return bl_mtd_read(ota_parm->mtd_handle, offset, buf_len, buf);
+}
+
