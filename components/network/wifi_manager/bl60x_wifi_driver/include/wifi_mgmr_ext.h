@@ -201,6 +201,7 @@ int wifi_mgmr_sta_ps_exit();
 int wifi_mgmr_sta_autoconnect_enable(void);
 int wifi_mgmr_sta_autoconnect_disable(void);
 void wifi_mgmr_sta_ssid_set(char *ssid);
+void wifi_mgmr_sta_ssid_get(char *ssid);
 void wifi_mgmr_sta_passphr_set(char *passphr);
 void wifi_mgmr_sta_psk_set(char *psk) __attribute__ ((deprecated ("use wifi_mgmr_sta_passphr_set instead")));
 void wifi_mgmr_sta_connect_ind_stat_get(wifi_mgmr_sta_connect_ind_stat_info_t *wifi_mgmr_ind_stat);
@@ -249,6 +250,9 @@ int wifi_mgmr_set_wifi_active_time(uint32_t ms);
 int wifi_mgmr_set_listen_interval(uint16_t itv);
 int wifi_mgmr_pm_ops_register(void);
 int wifi_mgmr_fw_affair_ops(void);
+wifi_mgmr_ap_item_t *mgmr_get_ap_info_handle(void);
+int mgmr_get_security_type(void);
+int wifi_mgmr_get_scan_result_filter(wifi_mgmr_ap_item_t *result, char *ssid);
 
 #ifdef __cplusplus
 }

@@ -298,13 +298,36 @@ void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num)
             result[iter].ssid[wifiMgmr.scan_items[i].ssid_len] = 0;
             result[iter].ssid_tail[0] = 0;        
             result[iter].ssid_len = wifiMgmr.scan_items[i].ssid_len;        
-            memcpy(&(result->bssid[iter]), &(wifiMgmr.scan_items[i].bssid[i]), 6);
+            memcpy((&(result[iter]))->bssid, wifiMgmr.scan_items[i].bssid, 6);
             result[iter].channel = wifiMgmr.scan_items[i].channel;        
             result[iter].auth = wifiMgmr.scan_items[i].auth;        
             result[iter].rssi = wifiMgmr.scan_items[i].rssi;
             iter++;
         }
     }
+}
+
+int wifi_mgmr_get_scan_result_filter(wifi_mgmr_ap_item_t *result, char *ssid)
+{
+    int i, count;
+
+    count = sizeof(wifiMgmr.scan_items)/sizeof(wifiMgmr.scan_items[0]);
+    for (i = 0; i < count; i ++) {
+        if (wifiMgmr.scan_items[i].is_used && (!wifi_mgmr_scan_item_is_timeout(&wifiMgmr, &wifiMgmr.scan_items[i])) && 
+                !strncmp(ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len)) {
+            memcpy(result->ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len);        
+            result->ssid[wifiMgmr.scan_items[i].ssid_len] = 0;
+            result->ssid_tail[0] = 0;        
+            result->ssid_len = wifiMgmr.scan_items[i].ssid_len;        
+            memcpy(result->bssid, wifiMgmr.scan_items[i].bssid, 6);
+            result->channel = wifiMgmr.scan_items[i].channel;        
+            result->auth = wifiMgmr.scan_items[i].auth;        
+            result->rssi = wifiMgmr.scan_items[i].rssi;
+            return 0;
+        }
+    }
+
+    return -1;
 }
 
 int wifi_mgmr_cli_scanlist(void)
