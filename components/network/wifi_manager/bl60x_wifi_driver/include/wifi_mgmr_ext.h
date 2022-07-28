@@ -253,6 +253,13 @@ int wifi_mgmr_fw_affair_ops(void);
 wifi_mgmr_ap_item_t *mgmr_get_ap_info_handle(void);
 int mgmr_get_security_type(void);
 int wifi_mgmr_get_scan_result_filter(wifi_mgmr_ap_item_t *result, char *ssid);
+uint32_t wifi_mgmr_tx_multicast_cnt_get(void);
+uint32_t wifi_mgmr_rx_multicast_cnt_get(void);
+uint32_t wifi_mgmr_tx_unicast_cnt_get(void);
+uint32_t wifi_mgmr_rx_unicast_cnt_get(void);
+uint32_t wifi_mgmr_beacon_recv_cnt(void);
+uint32_t wifi_mgmr_beacon_loss_cnt(void);
+
 
 #ifdef __cplusplus
 }

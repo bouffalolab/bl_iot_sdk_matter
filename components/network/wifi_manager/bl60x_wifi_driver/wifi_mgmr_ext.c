@@ -891,3 +891,39 @@ int mgmr_get_rssi(void)
 {
     return ap_info.rssi;     
 }
+
+uint32_t wifi_mgmr_tx_multicast_cnt_get(void)
+{
+    extern uint32_t tx_multicast_cnt;
+    return tx_multicast_cnt;
+}
+
+uint32_t wifi_mgmr_rx_multicast_cnt_get(void)
+{
+    extern uint32_t rx_multicast_cnt;
+    return rx_multicast_cnt;
+}
+
+uint32_t wifi_mgmr_tx_unicast_cnt_get(void)
+{
+    extern uint32_t tx_unicast_cnt;
+    return tx_unicast_cnt;
+}
+
+uint32_t wifi_mgmr_rx_unicast_cnt_get(void)
+{
+    extern uint32_t rx_unicast_cnt;
+    return rx_unicast_cnt;
+}
+
+uint32_t wifi_mgmr_beacon_recv_cnt(void)
+{
+    extern uint32_t vif_beacon_recv_cnt(void);
+    return vif_beacon_recv_cnt();
+}
+
+uint32_t wifi_mgmr_beacon_loss_cnt(void)
+{
+    extern uint32_t vif_beacon_loss_cnt(void);
+    return vif_beacon_loss_cnt();
+}
