@@ -60,6 +60,7 @@ extern int bl606a0_wifi_init(wifi_conf_t *conf);
 err_t bl606a0_wifi_netif_init(struct netif *netif);
 static scan_complete_cb_t scan_cb;
 static void* scan_data;
+static wifi_mgmr_ap_item_t ap_info;
 
 static void cb_scan_complete(void *data, void *param)
 {
@@ -438,6 +439,13 @@ void wifi_mgmr_sta_ssid_set(char *ssid)
     memcpy(wifiMgmr.wifi_mgmr_stat_info.ssid, ssid, len);
     wifiMgmr.wifi_mgmr_stat_info.ssid[len] = 0;
   }
+}
+
+void wifi_mgmr_sta_ssid_get(char *ssid)
+{
+    memcpy(ssid, wifiMgmr.wifi_mgmr_stat_info.ssid, strlen(wifiMgmr.wifi_mgmr_stat_info.ssid));
+
+    return;
 }
 
 void wifi_mgmr_sta_passphr_set(char *passphr)
@@ -864,4 +872,58 @@ void wifi_mgmr_conn_result_get(uint16_t *status_code, uint16_t *reason_code)
 	}
     (*status_code) = wifiMgmr.wifi_mgmr_stat_info.status_code;
     (*reason_code) = wifiMgmr.wifi_mgmr_stat_info.reason_code;
+}
+
+wifi_mgmr_ap_item_t *mgmr_get_ap_info_handle(void)
+{
+    return &ap_info;
+}
+int mgmr_get_security_type(void)
+{
+    return ap_info.auth;     
+}
+
+int mgmr_get_current_channel_num(void)
+{
+    return ap_info.channel;     
+}
+int mgmr_get_rssi(void)
+{
+    return ap_info.rssi;     
+}
+
+uint32_t wifi_mgmr_tx_multicast_cnt_get(void)
+{
+    extern uint32_t tx_multicast_cnt;
+    return tx_multicast_cnt;
+}
+
+uint32_t wifi_mgmr_rx_multicast_cnt_get(void)
+{
+    extern uint32_t rx_multicast_cnt;
+    return rx_multicast_cnt;
+}
+
+uint32_t wifi_mgmr_tx_unicast_cnt_get(void)
+{
+    extern uint32_t tx_unicast_cnt;
+    return tx_unicast_cnt;
+}
+
+uint32_t wifi_mgmr_rx_unicast_cnt_get(void)
+{
+    extern uint32_t rx_unicast_cnt;
+    return rx_unicast_cnt;
+}
+
+uint32_t wifi_mgmr_beacon_recv_cnt(void)
+{
+    extern uint32_t vif_beacon_recv_cnt(void);
+    return vif_beacon_recv_cnt();
+}
+
+uint32_t wifi_mgmr_beacon_loss_cnt(void)
+{
+    extern uint32_t vif_beacon_loss_cnt(void);
+    return vif_beacon_loss_cnt();
 }

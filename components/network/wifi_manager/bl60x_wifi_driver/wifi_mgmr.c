@@ -1526,6 +1526,17 @@ void wifi_mgmr_set_connect_stat_info(struct wifi_event_sm_connect_ind *ind, uint
     blog_info("[RX]   type_ind %u\r\n", wifiMgmr.wifi_mgmr_stat_info.type_ind);
 }
 
+int wifi_mgmr_get_bssid(uint8_t *bssid)
+{
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        bssid[i] = wifiMgmr.wifi_mgmr_stat_info.bssid[i];
+    }
+
+    return;
+}
+
 int wifi_mgmr_set_country_code_internal(char *country_code)
 {
     bl_main_set_country_code(country_code);

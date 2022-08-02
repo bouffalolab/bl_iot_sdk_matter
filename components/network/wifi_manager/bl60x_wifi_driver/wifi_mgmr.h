@@ -335,6 +335,9 @@ char *wifi_mgmr_auth_to_str(uint8_t auth);
 char *wifi_mgmr_cipher_to_str(uint8_t cipher);
 int wifi_mgmr_api_fw_tsen_reload(void);
 int wifi_mgmr_profile_ssid_get(uint8_t *ssid);
+int wifi_mgmr_get_bssid(uint8_t *bssid);
+int mgmr_get_current_channel_num(void);
+int mgmr_get_rssi(void);
 
 static inline int wifi_mgmr_scan_item_is_timeout(wifi_mgmr_t *mgmr, wifi_mgmr_scan_item_t *item)
 {
