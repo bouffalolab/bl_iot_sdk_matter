@@ -1,32 +1,11 @@
 
-/*
- * Copyright (c) 2020 Bouffalolab.
+/**
+ ****************************************************************************************
  *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
+ * @file lmac_msg.h
+ * Copyright (C) Bouffalo Lab 2016-2018
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ****************************************************************************************
  */
 
 
@@ -46,18 +25,6 @@
 /*
  ****************************************************************************************
  */
-/// For MAC HW States copied from "hal_machw.h"
-enum
-{
-    /// MAC HW IDLE State.
-    HW_IDLE = 0,
-    /// MAC HW RESERVED State.
-    HW_RESERVED,
-    /// MAC HW DOZE State.
-    HW_DOZE,
-    /// MAC HW ACTIVE State.
-    HW_ACTIVE
-};
 
 /// Power Save mode setting
 enum mm_ps_mode_state
@@ -81,6 +48,24 @@ enum
     CO_BUSY,
     CO_OP_IN_PROGRESS,
 };
+
+/// WiFi Mode
+typedef enum {
+    /// 802.ll b
+    WIFI_MODE_802_11B       = 0x01,
+    /// 802.11 a
+    WIFI_MODE_802_11A       = 0x02,
+    /// 802.11 g
+    WIFI_MODE_802_11G       = 0x04,
+    /// 802.11n at 2.4GHz
+    WIFI_MODE_802_11N_2_4   = 0x08,
+    /// 802.11n at 5GHz
+    WIFI_MODE_802_11N_5     = 0x10,
+    /// 802.11ac at 5GHz
+    WIFI_MODE_802_11AC_5    = 0x20,
+    /// Reserved for future use
+    WIFI_MODE_RESERVED      = 0x40,
+} WiFi_Mode_t;
 
 /// Remain on channel operation codes
 enum mm_remain_on_channel_op
@@ -803,6 +788,10 @@ struct scanu_start_req
     u8_l ssid_cnt;
     /// no CCK - For P2P frames not being sent at CCK rate in 2GHz band.
     bool no_cck;
+    /// MISC flags
+    uint32_t flags;
+    /// channel scan time
+    uint32_t duration_scan;
 };
 
 struct scanu_raw_send_req
@@ -822,43 +811,6 @@ struct scanu_start_cfm
     /// Status of the request
     u8_l status;
 };
-
-typedef struct
-{
-    uint8_t  wep;
-    uint8_t  wpa;
-    uint8_t  wpa2;
-} Security_mode_t;
-
-typedef struct
-{
-    uint8_t   wep40      : 1;
-    uint8_t   wep104     : 1;
-    uint8_t   tkip       : 1;
-    uint8_t   ccmp       : 1;
-    uint8_t   rsvd       : 4;
-} Cipher_t;
-
-typedef enum
-{
-    AKM_NONE        = 0,
-
-    AKM_1X          = 1,
-    AKM_PSK         = 2,
-    AKM_FT_1X       = 3,
-    AKM_FT_PSK      = 4,
-    AKM_SHA256_1X   = 5,
-    AKM_SHA256_PSK  = 6,
-    AKM_TDLS        = 7,
-
-    AKM_CCKM        = 99,
-
-    AKM_WPA_MAX   = 2,
-    AKM_RSN_MAX   = 6,
-
-    AKM_SUITE_MAX = 5
-
-} AkmType_e;
 
 /// Parameters of the @SCANU_RESULT_IND message
 struct scanu_result_ind
@@ -1075,6 +1027,8 @@ struct me_rc_set_rate_req
     u8_l sta_idx;
     /// Rate configuration to be set
     u16_l fixed_rate_cfg;
+    /// Force power table update
+    u16_l power_table_req;
 };
 
 
@@ -1091,8 +1045,10 @@ struct sm_connect_req
     u32_l flags;
     /// Control port Ethertype
     u16_l ctrl_port_ethertype;
+#if 0
     /// Length of the association request IEs
     u16_l ie_len;
+#endif
     /// Listen interval to be used for this connection
     u16_l listen_interval;
     /// Flag indicating if the we have to wait for the BC/MC traffic after beacon or not
@@ -1105,9 +1061,11 @@ struct sm_connect_req
     u8_l vif_idx;
     /// retry counter for auth/aossoc
     u8_l counter_retry_auth_assoc;
+#if 0
     /// Buffer containing the additional information elements to be put in the
     /// association request
     u32_l ie_buf[64];
+#endif
     /// Enable embedded supplicant
     bool is_supplicant_enabled;
     //// Passphrase
@@ -1192,7 +1150,6 @@ struct sm_disconnect_ind
     bool_l ft_over_ds;
 };
 
-#if 0
 struct
 {
     /// TASK 
@@ -1204,7 +1161,6 @@ struct
     /// buffer
     uint32_t buf[];
 } cfg_start_req_u_tlv_t;
-#endif
 
 struct cfg_start_req
 {
@@ -1296,6 +1252,9 @@ struct apm_start_req
     /// AP Passphrase
     uint8_t phrase[MAX_PSK_PASS_PHRASE_LEN];
     uint8_t phrase_tail[1];
+    // Buf for storing IE
+    uint8_t bcn_buf_len;
+    uint8_t bcn_buf[64];
 };
 
 /// Structure containing the parameters of the @ref APM_START_CFM message.
@@ -1364,6 +1323,10 @@ struct apm_sta_add_ind
 /// Structure containing the parameters of the @ref APM_STA_DEL_IND message.
 struct apm_sta_del_ind
 {
+    /// status of the apm_sta disconnection.
+    uint16_t status_code;
+    /// Reason of the apm_sta disconnection.
+    uint16_t reason_code;
     /// Station index
     uint8_t sta_idx;
 };

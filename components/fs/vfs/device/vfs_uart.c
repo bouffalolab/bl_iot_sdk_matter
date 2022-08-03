@@ -204,6 +204,8 @@ ssize_t vfs_uart_read(file_t *fp, void *buf, size_t nbytes)
 ssize_t vfs_uart_write(file_t *fp, const void *buf, size_t nbytes)
 {
     int ret = -1;                /* return value */
+    size_t total_bytes;          /* need to write */
+    size_t written_bytes;         /* written bytes */
     vfs_uart_dev_t *uart_dev = NULL; /* device pointer */
 
     /* check empty pointer. */
@@ -221,12 +223,19 @@ ssize_t vfs_uart_write(file_t *fp, const void *buf, size_t nbytes)
             }
 #endif
 
-            ret = xStreamBufferSend(uart_dev->tx_ringbuf_handle, buf, nbytes, 0);
-
-            /*Trigger UART Write Now*/
-            if (ret > 0) {
-                hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_TX_TRIGGER_ON, NULL);
+            total_bytes = nbytes;
+            written_bytes = 0;
+            while(total_bytes > 0)
+            {
+                ret = xStreamBufferSend(uart_dev->tx_ringbuf_handle, buf+written_bytes, total_bytes, 0);
+                /*Trigger UART Write Now*/
+                if (ret > 0) {
+                    hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_TX_TRIGGER_ON, NULL);
+                    written_bytes+=ret;
+                    total_bytes-=ret;
+                }
             }
+            ret = written_bytes;
         } else {
             ret = -EINVAL;
         }
@@ -308,31 +317,9 @@ int uart_ioctl_cmd_waimode(vfs_uart_dev_t *uart_dev, int cmd, unsigned long arg)
     return ret;
 }
 
-int uart_ioctl_cmd_setconfig(vfs_uart_dev_t *uart_dev, unsigned long arg)
-{
-    uart_ioc_config_t *config = (uart_ioc_config_t *)arg;
-    hosal_uart_parity_t parity;
-
-    if (NULL == config) {
-        return -EINVAL;
-    }
-
-    if (config->parity == IO_UART_PARITY_ODD) {
-        parity = HOSAL_ODD_PARITY;
-    } else if (config->parity == IO_UART_PARITY_EVEN) {
-        parity = HOSAL_EVEN_PARITY;
-    } else {
-        parity = HOSAL_NO_PARITY;
-    }
-
-    hosal_uart_ioctl(&uart_dev->uart, config->baud, (void *)parity);
-
-    return 0;
-}
-
 int vfs_uart_ioctl(file_t *fp, int cmd, unsigned long arg)
 {
-    int ret = -1;
+    int ret = 0;
     vfs_uart_dev_t *uart_dev = NULL;
 
     /* check empty pointer. */
@@ -365,11 +352,6 @@ int vfs_uart_ioctl(file_t *fp, int cmd, unsigned long arg)
             hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_BAUD_SET, (void *)arg);
         }
         break;
-        case IOCTL_UART_IOC_CONFIG_MODE:
-        {
-            ret = uart_ioctl_cmd_setconfig(uart_dev, arg);
-        }
-        break;
         case IOCTL_UART_IOC_READ_BLOCK:
         {
             uart_dev->read_block_flag = UART_READ_CFG_BLOCK;
@@ -378,6 +360,29 @@ int vfs_uart_ioctl(file_t *fp, int cmd, unsigned long arg)
         case IOCTL_UART_IOC_READ_NOBLOCK:
         {
             uart_dev->read_block_flag = UART_READ_CFG_NOBLOCK;
+        }
+        break;
+        case IOCTL_UART_IOC_STOPBITS_SET:
+        {
+            hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_STOP_BITS_SET, (void *)arg);
+        }
+        break;
+
+        case IOCTL_UART_IOC_PARITY_SET:
+        {
+            hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_PARITY_SET, (void *)arg);
+        }
+        break;
+
+        case IOCTL_UART_IOC_HWFC_SET:
+        {
+            hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_FLOWMODE_SET, (void *)arg);
+        }
+        break;
+
+        case IOCTL_UART_IOC_DATABITS_SET:
+        {
+            hosal_uart_ioctl(&uart_dev->uart, HOSAL_UART_DATA_WIDTH_SET, (void *)arg);
         }
         break;
         default:

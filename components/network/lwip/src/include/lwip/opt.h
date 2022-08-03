@@ -2528,7 +2528,11 @@
  * applicable, plus any number of groups to be joined on UDP sockets.
  */
 #if !defined MEMP_NUM_MLD6_GROUP || defined __DOXYGEN__
+#ifdef LWIP_IPV6_FOR_BORDER_ROUTER
+#define MEMP_NUM_MLD6_GROUP             (4+10)
+#else
 #define MEMP_NUM_MLD6_GROUP             4
+#endif /* LWIP_IPV6_FOR_BORDER_ROUTER */
 #endif
 /**
  * @}
@@ -2673,7 +2677,7 @@
  * LWIP_IPV6_DHCP6==1: enable DHCPv6 stateful/stateless address autoconfiguration.
  */
 #if !defined LWIP_IPV6_DHCP6 || defined __DOXYGEN__
-#define LWIP_IPV6_DHCP6                 1
+#define LWIP_IPV6_DHCP6                 0
 #endif
 
 /**

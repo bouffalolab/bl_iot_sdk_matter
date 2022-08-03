@@ -50,7 +50,7 @@
 #define BLCRYPTO_SUITE_THREADING_H
 
 #if !defined(BLCRYPTO_SUITE_CONFIG_FILE)
-#include "blcrypto_suite_config.h"
+#include "blcrypto_suite/blcrypto_suite_config.h"
 #else
 #include BLCRYPTO_SUITE_CONFIG_FILE
 #endif
@@ -73,6 +73,9 @@ extern "C" {
 typedef struct blcrypto_suite_threading_mutex_t
 {
     pthread_mutex_t mutex;
+    /* is_valid is 0 after a failed init or a free, and nonzero after a
+     * successful init. This field is not considered part of the public
+     * API of Mbed TLS and may change without notice. */
     char is_valid;
 } blcrypto_suite_threading_mutex_t;
 #endif

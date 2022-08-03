@@ -1,32 +1,3 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <FreeRTOS.h>
 #include <task.h>
 #include <timers.h>
@@ -80,6 +51,7 @@
 #include <bl_romfs.h>
 #include <fdt.h>
 #include <device/vfs_uart.h>
+#include <wifi_bt_coex.h>
 
 //#include <easyflash.h>
 #include <bl60x_fw_api.h>
@@ -1150,6 +1122,7 @@ int codex_debug_cli_init(void);
     bl_wdt_cli_init();
     bl_gpio_cli_init();
     looprt_test_cli_init();
+    wifi_bt_coex_cli_init();
 }
 
 static void event_cb_key_event(input_event_t *event, void *private_data)
@@ -1274,11 +1247,6 @@ void rijndael_aes_test(void);
 
 void main()
 {
-    static StackType_t proc_main_stack[1024];
-    static StaticTask_t proc_main_task;
-    static StackType_t proc_hellow_stack[512];
-    static StaticTask_t proc_hellow_task;
-
     bl_sys_init();
 
     system_thread_init();
@@ -1288,9 +1256,9 @@ void main()
 #endif
 
     puts("[OS] Starting proc_hellow_entry task...\r\n");
-    xTaskCreateStatic(proc_hellow_entry, (char*)"hellow", 512, NULL, 15, proc_hellow_stack, &proc_hellow_task);
+    xTaskCreate(proc_hellow_entry, (char*)"hellow", 512, NULL, 15, NULL);
     puts("[OS] Starting aos_loop_proc task...\r\n");
-    xTaskCreateStatic(proc_main_entry, (char*)"main_entry", 1024, NULL, 15, proc_main_stack, &proc_main_task);
+    xTaskCreate(proc_main_entry, (char*)"main_entry", 1024, NULL, 15, NULL);
     puts("[OS] Starting TCP/IP Stack...\r\n");
     tcpip_init(NULL, NULL);
 

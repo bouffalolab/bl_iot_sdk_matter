@@ -1,31 +1,10 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
+/**
+ ****************************************************************************************
  *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
+ * @file wifi_mgmr_profile.c
+ * Copyright (C) Bouffalo Lab 2016-2018
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ****************************************************************************************
  */
 
 #include <string.h>
@@ -50,7 +29,7 @@ int wifi_mgmr_profile_add(wifi_mgmr_t *mgmr, wifi_mgmr_profile_msg_t *profile_ms
                 profile = &(mgmr->profiles[i]);
                 
                 mgmr->profile_active_index = i;
-                os_printf("[WF][PF] Using free profile, idx is @%d\r\n", i);
+                bl_os_printf("[WF][PF] Using free profile, idx is @%d\r\n", i);
                 break;
             }
         }
@@ -73,6 +52,7 @@ int wifi_mgmr_profile_add(wifi_mgmr_t *mgmr, wifi_mgmr_profile_msg_t *profile_ms
     memcpy(profile->passphr, profile_msg->passphr, sizeof(profile->passphr));
     memcpy(profile->bssid, profile_msg->bssid, sizeof(profile->bssid));
     profile->dhcp_use = profile_msg->dhcp_use;
+    profile->flags = profile_msg->flags;
 
     return 0;
 }
@@ -91,7 +71,7 @@ int wifi_mgmr_profile_del(wifi_mgmr_t *mgmr, char *ssid, int len)
             if (i == mgmr->profile_active_index) {
                 mgmr->profile_active_index = -1;
             }
-            os_printf("[WF][PF] Free profile, idx is @%d\r\n", i);
+            bl_os_printf("[WF][PF] Free profile, idx is @%d\r\n", i);
             break;
         }
     }
@@ -112,7 +92,7 @@ int wifi_mgmr_profile_get(wifi_mgmr_t *mgmr, wifi_mgmr_profile_msg_t *profile_ms
     for (i = 0; i < sizeof(mgmr->profiles)/sizeof(mgmr->profiles[0]); i++) {
         if (1 == mgmr->profiles[i].isUsed) {
             profile = &(mgmr->profiles[i]);
-            os_printf("[WF][PF] Using profile, idx is @%d\r\n", i);
+            bl_os_printf("[WF][PF] Using profile, idx is @%d\r\n", i);
             break;
         }
     }
@@ -128,6 +108,7 @@ int wifi_mgmr_profile_get(wifi_mgmr_t *mgmr, wifi_mgmr_profile_msg_t *profile_ms
     profile_msg->freq = profile->freq;
     profile_msg->ap_info_ttl = profile->ap_info_ttl;
     profile_msg->dhcp_use = profile->dhcp_use;
+    profile_msg->flags = profile->flags;
     memcpy(profile_msg->ssid, profile->ssid, sizeof(profile->ssid));
     memcpy(profile_msg->psk, profile->psk, sizeof(profile->psk));
     memcpy(profile_msg->passphr, profile->passphr, sizeof(profile->passphr));

@@ -28,8 +28,6 @@
 #ifndef BLCRYPTO_SUITE_CONFIG_H
 #define BLCRYPTO_SUITE_CONFIG_H
 
-#define BLCRYPTO_SUITE_NO_UDBL_DIVISION
-#define BLCRYPTO_SUITE_NO_64BIT_MULTIPLICATION
 #define BLCRYPTO_SUITE_PLATFORM_C
 #define BLCRYPTO_SUITE_PLATFORM_MEMORY
 
@@ -41,7 +39,6 @@
 #define BLCRYPTO_SUITE_ECP_NO_INTERNAL_RNG
 #define BLCRYPTO_SUITE_BIGNUM_C
 
-//#include "blcrypto_suite/blcrypto_suite_check_config.h"
-#include "blcrypto_suite_check_config.h"
+#include "blcrypto_suite/blcrypto_suite_check_config.h"
 
 #endif /* BLCRYPTO_SUITE_CONFIG_H */

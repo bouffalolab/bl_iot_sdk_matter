@@ -749,5 +749,7 @@ BaseType_t xWaitConditionMet = pdFALSE;
 
 #endif /* configUSE_TRACE_FACILITY */
 /*-----------------------------------------------------------*/
-
-
+#ifdef CFG_COMPONENT_BUGKILLER_ENABLE
+#define  FREERTOS_EVENTGROUP_DUMP
+#include <bugkiller_freertos.inc>
+#endif

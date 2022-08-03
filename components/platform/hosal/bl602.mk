@@ -27,7 +27,6 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/hal_button.c \
                   bl602_hal/bl_pwm.c \
                   bl602_hal/bl_sec_aes.c \
-                  bl602_hal/bl_sec_sha.c \
                   bl602_hal/bl_wifi.c \
                   bl602_hal/bl_wdt.c \
                   bl602_hal/bl_wdt_cli.c \
@@ -62,8 +61,12 @@ COMPONENT_SRCS := bl602_hal/bl_uart.c \
                   bl602_hal/hosal_i2c.c \
                   bl602_hal/hosal_ota.c \
                   bl602_hal/hosal_timer.c \
+                  bl602_hal/hosal_efuse.c \
+                  sec_common/bl_sec_sha.c \
+                  sec_common/bl_sec_pka.c \
+                  sec_common/bl_sec_aes.c \
 
-COMPONENT_SRCDIRS := bl602_hal platform_hal
+COMPONENT_SRCDIRS := bl602_hal platform_hal sec_common
 
 COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 COMPONENT_OBJS := $(patsubst %.cpp,%.o, $(COMPONENT_OBJS))
@@ -85,4 +88,8 @@ endif
 
 ifeq ($(CONF_ENABLE_COREDUMP),1)
 CPPFLAGS += -DSYS_ENABLE_COREDUMP
+endif
+
+ifeq ($(CONFIG_BL602_USE_1M_FLASH),1)
+CPPFLAGS += -DCONF_BL602_USE_1M_FLASH
 endif

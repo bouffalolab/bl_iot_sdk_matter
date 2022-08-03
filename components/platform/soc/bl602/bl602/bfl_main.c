@@ -1,32 +1,3 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <FreeRTOS.h>
 #include <task.h>
 #include <timers.h>
@@ -53,6 +24,9 @@
 #include <libfdt.h>
 #include <device/vfs_uart.h>
 #include <blog.h>
+#ifdef EASYFLASH_ENABLE
+#include <easyflash.h>
+#endif
 #ifdef SYS_LOOPRT_ENABLE
 #include <looprt.h>
 #include <loopset.h>
@@ -61,10 +35,7 @@
 #include <bl_romfs.h>
 #endif
 
-#include <utils_log.h>
-#include <async_log.h>
-
-HOSAL_UART_DEV_DECL(uart_stdio, 0, 16, 7, 115200);
+HOSAL_UART_DEV_DECL(uart_stdio, 0, 16, 7, 2000000);
 
 extern uint8_t _heap_start;
 extern uint8_t _heap_size; // @suppress("Type cannot be resolved")
@@ -80,9 +51,7 @@ static HeapRegion_t xHeapRegions[] =
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName )
 {
-    puts("Stack Overflow checked, task: ");
-    puts(pcTaskName);
-    puts("\r\n");
+    puts("Stack Overflow checked\r\n");
     while (1) {
         /*empty here*/
     }
@@ -158,8 +127,8 @@ void __attribute__((weak)) vAssertCalled(void)
     abort();
 }
 
-#ifdef SYS_VFS_ENABLE
-int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
+#ifdef SYS_VFS_UART_ENABLE
+static int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
 {
     uint32_t addr = hal_board_get_factory_addr();
     const void *fdt = (const void *)addr;
@@ -180,7 +149,7 @@ int get_dts_addr(const char *name, uint32_t *start, uint32_t *off)
 
     return 0;
 }
-#endif /* SYS_VFS_ENABLE */
+#endif
 
 static void app_main_entry(void *pvParameters)
 {
@@ -191,8 +160,6 @@ static void app_main_entry(void *pvParameters)
 
 static void aos_loop_proc(void *pvParameters)
 {
-    static StaticTask_t app_task;
-    
 #ifdef SYS_LOOPRT_ENABLE
     static StackType_t proc_stack_looprt[512];
     static StaticTask_t proc_task_looprt;
@@ -200,6 +167,9 @@ static void aos_loop_proc(void *pvParameters)
     /*Init bloop stuff*/
     looprt_start(proc_stack_looprt, 512, &proc_task_looprt);
     loopset_led_hook_on_looprt();
+#endif
+#ifdef EASYFLASH_ENABLE
+    easyflash_init();
 #endif
 
 #ifdef SYS_VFS_ENABLE
@@ -239,13 +209,14 @@ static void aos_loop_proc(void *pvParameters)
 
     xTaskCreate(app_main_entry,
             (char*)"main",
-            SYS_APP_TASK_STACK_SIZE,
+            SYS_APP_TASK_STACK_SIZE / sizeof(StackType_t),
             NULL,
             SYS_APP_TASK_PRIORITY,
-            &app_task);
+            NULL);
 
+#ifdef SYS_AOS_LOOP_ENABLE
     aos_loop_run();
-
+#endif
     puts("------------------------------------------\r\n");
     puts("+++++++++Critical Exit From AOS LOOP entry++++++++++\r\n");
     puts("******************************************\r\n");
@@ -305,13 +276,6 @@ static void system_early_init(void)
     hal_board_cfg(0);
 }
 
-
-void setup_heap()
-{
-    // Invoked during system boot via start.S
-    vPortDefineHeapRegions(xHeapRegions);
-}
-
 void bfl_main()
 {
     TaskHandle_t aos_loop_proc_task;
@@ -323,9 +287,8 @@ void bfl_main()
 
     _dump_boot_info();
 
-    //vPortDefineHeapRegions(xHeapRegions);
+    vPortDefineHeapRegions(xHeapRegions);
 
-    log_async_init();
     system_early_init();
 
     puts("[OS] Starting aos_loop_proc task...\r\n");

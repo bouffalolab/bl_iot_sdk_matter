@@ -1,32 +1,11 @@
 
-/*
- * Copyright (c) 2020 Bouffalolab.
+/**
+ ****************************************************************************************
  *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
+ * @file utils_list.h
+ * Copyright (C) Bouffalo Lab 2016-2018
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ****************************************************************************************
  */
 
 
@@ -478,6 +457,18 @@ static inline void utils_slist_add_tail(utils_slist_t *node, utils_slist_t *head
     utils_slist_add(node, head);
 }
 
+static inline void utils_slist_append(utils_slist_t *l, utils_slist_t *n)
+{
+    utils_slist_t *node;
+
+    node = l;
+    while (node->next) node = node->next;
+
+    /* append the node to the tail */
+    node->next = n;
+    n->next = NULL;
+}
+
 static inline void utils_slist_del(utils_slist_t *node, utils_slist_t *head)
 {
     while (head->next) {
@@ -498,6 +489,23 @@ static inline int utils_slist_empty(const utils_slist_t *head)
 static inline void utils_slist_init(utils_slist_t *head)
 {
     head->next = 0;
+}
+
+static inline utils_slist_t* utils_slist_first(utils_slist_t *l)
+{
+    return l->next;
+}
+
+static inline utils_slist_t* utils_slist_tail(utils_slist_t *l)
+{
+    while (l->next) l = l->next;
+
+    return l;
+}
+
+static inline utils_slist_t* utils_slist_next(utils_slist_t *l)
+{
+    return l->next;
 }
 
 /*
@@ -561,7 +569,19 @@ static inline void utils_slist_init(utils_slist_t *head)
 * @param[in]   member  the name of the utils_slist_t within the struct.
 */
 #define utils_slist_first_entry(ptr, type, member) \
-    utils_slist_entry((ptr)->next, type, member)
+    utils_slist_entry(utils_slist_next(ptr), type, member)
+
+
+/*
+* Get the last element from a list.
+*
+* @param[in]   ptr     the list head to take the element from.
+* @param[in]   type    the type of the struct this is embedded in.
+* @param[in]   member  the name of the utils_slist_t within the struct.
+*/
+#define utils_slist_tail_entry(ptr, type, member) \
+    utils_slist_entry(utils_slist_tail(ptr), type, member)
+
 
 /*
  * Get the list length.

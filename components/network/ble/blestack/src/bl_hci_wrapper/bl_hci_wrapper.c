@@ -15,7 +15,7 @@
 #include "hci_host.h"
 #include "bl_hci_wrapper.h"
 #include "hci_driver.h"
-#include "../common/include/errno.h"
+#include "errno.h"
 #include "byteorder.h"
 #include "hci_onchip.h"
 
@@ -206,6 +206,7 @@ void bl_packet_to_host(uint8_t pkt_type, uint16_t src_id, uint8_t *param, uint8_
             memcpy(buf_data, param, param_len);
             break;
         }
+       #if defined(CONFIG_BT_CONN)
         case BT_HCI_ACL_DATA:
         {
             prio = false;
@@ -213,6 +214,7 @@ void bl_packet_to_host(uint8_t pkt_type, uint16_t src_id, uint8_t *param, uint8_
             tlt_len = bt_onchiphci_hanlde_rx_acl(param, buf_data);
             break;
         }
+        #endif
         default:
         {
             net_buf_unref(buf);
@@ -291,6 +293,7 @@ static void bl_onchiphci_rx_packet_handler(uint8_t pkt_type, uint16_t src_id, ui
         bl_packet_to_host(pkt_type, src_id, param, param_len, buf);
         return;
     }
+    #if defined(CONFIG_BT_OBSERVER) || defined(CONFIG_BT_CENTRAL) || defined(CONFIG_BT_ALLROLES)
     else if(pkt_type == BT_HCI_LE_EVT && param[0] == BT_HCI_EVT_LE_ADVERTISING_REPORT)
     {
         if(bt_buf_get_rx_avail_cnt() <= CONFIG_BT_RX_BUF_RSV_COUNT){
@@ -305,6 +308,7 @@ static void bl_onchiphci_rx_packet_handler(uint8_t pkt_type, uint16_t src_id, ui
             bl_packet_to_host(pkt_type, src_id, param, param_len, buf);
         return;
     }
+    #endif /*(CONFIG_BT_OBSERVER || CONFIG_BT_CENTRAL || CONFIG_BT_ALLROLES)*/
     else
     {
         if(pkt_type != BT_HCI_ACL_DATA){

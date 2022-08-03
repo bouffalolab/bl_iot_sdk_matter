@@ -3,10 +3,6 @@
 
 #include "FreeRTOSConfig.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * CONFIG_BLUETOOTH: Enable the bluetooh stack
  */
@@ -57,11 +53,29 @@ extern "C" {
 #define CONFIG_BT_HCI_RX_STACK_SIZE  512
 #endif
 
+/**
+ * BL_BLE_CO_THREAD: combine tx rx thread
+ */
+#define BFLB_BT_CO_THREAD 1
+
+#if (BFLB_BT_CO_THREAD)
+#define CONFIG_BT_CO_TASK_PRIO (configMAX_PRIORITIES - 3)
+#if defined(CONFIG_BT_MESH)
+#define CONFIG_BT_CO_STACK_SIZE  3072//2048//1536//1024
+#else
+#define CONFIG_BT_CO_STACK_SIZE  2048//2048//1536//1024
+#endif
+#endif
+
 #ifndef CONFIG_BT_RX_STACK_SIZE
 #if defined(CONFIG_BT_MESH)
 #define CONFIG_BT_RX_STACK_SIZE  3072//2048//1536//1024
 #else
+#if !defined(CONFIG_BT_CONN)
+#define CONFIG_BT_RX_STACK_SIZE  1024
+#else
 #define CONFIG_BT_RX_STACK_SIZE  2048//1536//1024
+#endif
 #endif
 #endif
 
@@ -79,7 +93,11 @@ extern "C" {
  */
 
 #ifndef CONFIG_BT_HCI_TX_STACK_SIZE
+#if !defined(CONFIG_BT_CONN)
+#define CONFIG_BT_HCI_TX_STACK_SIZE  1024
+#else
 #define CONFIG_BT_HCI_TX_STACK_SIZE 1536//1024//200
+#endif
 #endif
 
 /**
@@ -91,14 +109,6 @@ extern "C" {
 
 #ifndef CONFIG_BT_CTLR_RX_PRIO
 #define CONFIG_BT_CTLR_RX_PRIO (configMAX_PRIORITIES - 4)
-#endif
-
-
-/**
- * BL_BLE_CO_THREAD: combine tx rx thread
- */
- #ifndef BFLB_BLE_CO_THREAD
- #define BFLB_BLE_CO_THREAD 0
 #endif
 
 /**
@@ -294,7 +304,11 @@ extern "C" {
 * range 1 to 65535,seconds
 */
 #ifndef CONFIG_BT_RPA_TIMEOUT
+#if defined(CONFIG_AUTO_PTS)
+#define CONFIG_BT_RPA_TIMEOUT 60
+#else
 #define CONFIG_BT_RPA_TIMEOUT 900
+#endif
 #endif
 #endif
 
@@ -357,6 +371,8 @@ extern "C" {
 #define CONFIG_BT_DEVICE_NAME "BL602-BLE-DEV"
 #elif defined(BL702)
 #define CONFIG_BT_DEVICE_NAME "BL702-BLE-DEV"
+#elif defined(BL702L)
+#define CONFIG_BT_DEVICE_NAME "BL702L-BLE-DEV"
 #else
 #define CONFIG_BT_DEVICE_NAME "BTBLE-DEV"
 #endif
@@ -387,8 +403,12 @@ extern "C" {
 #ifndef CONFIG_BT_MESH
 #define CONFIG_BT_WORK_QUEUE_STACK_SIZE 1536//1280//512
 #else
+#if !defined(CONFIG_BT_CONN)
+#define CONFIG_BT_WORK_QUEUE_STACK_SIZE 1024
+#else
 #define CONFIG_BT_WORK_QUEUE_STACK_SIZE 2048
 #endif /* CONFIG_BT_MESH */
+#endif
 #endif
 
 /**
@@ -546,6 +566,10 @@ extern "C" {
 #define CONFIG_BT_PERIPHERAL_PREF_TIMEOUT 400
 #endif
 
+#ifndef CONFIG_BT_PHY_UPDATE
+#define CONFIG_BT_PHY_UPDATE 1
+#endif
+
 #if defined(CONFIG_BT_BREDR)
 #define CONFIG_BT_PAGE_TIMEOUT 0x2000 //5.12s
 #define CONFIG_BT_L2CAP_RX_MTU 672
@@ -572,6 +596,11 @@ extern "C" {
 #define BFLB_DISABLE_BT
 #define BFLB_FIXED_IRK 0
 #define BFLB_DYNAMIC_ALLOC_MEM
+#if defined(CFG_BLE_PDS) && defined(BL702) && defined(BFLB_BLE) && defined(BFLB_DYNAMIC_ALLOC_MEM)
+#define BFLB_STATIC_ALLOC_MEM   1
+#else
+#define BFLB_STATIC_ALLOC_MEM   0
+#endif
 #define CONFIG_BT_SCAN_WITH_IDENTITY 1
 
 #if defined(CONFIG_AUTO_PTS)
@@ -595,10 +624,13 @@ happens, which cause memory leak issue.*/
 #define BFLB_BLE_PATCH_FREE_ALLOCATED_BUFFER_IN_OS
 /*To avoid duplicated pubkey callback.*/
 #define BFLB_BLE_PATCH_AVOID_DUPLI_PUBKEY_CB
+#define BFLB_BLE_DYNAMIC_SERVICE
 /*The flag @conn_ref is not clean up after disconnect*/
-#define BFLB_BLE_PATCH_CLEAN_UP_CONNECT_REF 
+//#define BFLB_BLE_PATCH_CLEAN_UP_CONNECT_REF
+#if !defined(CONFIG_AUTO_PTS)
 /*To avoid sevice changed indication sent at the very beginning, without any new service added.*/
 #define BFLB_BLE_PATCH_SET_SCRANGE_CHAGD_ONLY_IN_CONNECTED_STATE
+#endif
 #ifdef CONFIG_BT_SETTINGS
 /*Semaphore is used during flash operation. Make sure that freertos has already run up when it
   intends to write information to flash.*/
@@ -623,10 +655,8 @@ BT_SMP_DIST_ENC_KEY bit is not cleared while remote ENC_KEY is received.*/
 
 #if defined(CONFIG_BT_CENTRAL)
 #define BFLB_BLE_NOTIFY_ALL
+#define BFLB_BLE_DISCOVER_ONGOING
 #endif
 
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* BLE_CONFIG_H */

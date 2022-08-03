@@ -1,37 +1,9 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #ifndef __BL60x_FW_API_H__
 #define __BL60x_FW_API_H__
 
 //#include <bl_ro_params_mgt.h>
 #include <stdint.h>
+#include "bl_os_private.h"
 
 /// Tasks types.
 typedef enum wifi_fw_task_id
@@ -64,6 +36,34 @@ typedef enum wifi_fw_task_id
     TASK_API,
     TASK_MAX,
 } ke_task_id_t;
+
+/// For MAC HW States.
+typedef enum hw_state_tag
+{
+    /// MAC HW IDLE State.
+    HW_IDLE = 0,
+    /// MAC HW RESERVED State.
+    HW_RESERVED,
+    /// MAC HW DOZE State.
+    HW_DOZE,
+    /// MAC HW ACTIVE State.
+    HW_ACTIVE
+} hw_state_tag_t;
+
+/// Possible States of the MM STA Task.
+typedef enum mm_state_tag
+{
+    /// MAC IDLE State.
+    MM_IDLE,
+    /// MAC ACTIVE State.
+    MM_ACTIVE,
+    /// MAC is going to IDLE
+    MM_GOING_TO_IDLE,
+    /// IDLE state internally controlled
+    MM_HOST_BYPASSED,
+    /// MAC Max Number of states.
+    MM_STATE_MAX
+} mm_state_tag_t;
 
 /**
  ****************************************************************************************
@@ -237,6 +237,8 @@ typedef enum wifi_fw_event_id
     MM_FORCE_IDLE_REQ,
     /// Message indicating that the switch to the scan channel is done
     MM_SCAN_CHANNEL_START_IND,
+    /// Message indicating that the scan can end early
+    MM_SCAN_CHANNEL_END_EARLY,
     /// Message indicating that the scan on the channel is finished
     MM_SCAN_CHANNEL_END_IND,
 
@@ -408,7 +410,22 @@ typedef enum wifi_fw_event_id
 #define WLAN_FW_DISCONNECT_BY_USER_WITH_DEAUTH                   19
 #define WLAN_FW_DISCONNECT_BY_USER_NO_DEAUTH                     20
 #define WLAN_FW_DISCONNECT_BY_FW_PS_TX_NULLFRAME_FAILURE         21
+#define WLAN_FW_TRAFFIC_LOSS                                     22
 
+
+/*--------------------------------------------------------------------*/
+/* AP Mode Status Codes - these codes are used in bouffalolab fw actions      */
+/* when an error action is taking place the status code can indicate  */
+/* what the status code.                                              */
+/* It is defined by bouffaloalb                                       */
+/*--------------------------------------------------------------------*/
+#define WLAN_FW_APM_SUCCESSFUL                                        0 
+#define WLAN_FW_APM_DELETESTA_BY_USER                                 1
+#define WLAN_FW_APM_DEATUH_BY_STA                                     2
+#define WLAN_FW_APM_DISASSOCIATE_BY_STA                               3
+#define WLAN_FW_APM_DELETECONNECTION_TIMEOUT                          4
+#define WLAN_FW_APM_DELETESTA_FOR_NEW_CONNECTION                      5
+#define WLAN_FW_APM_DEAUTH_BY_AUTHENTICATOR                           6
 
 void bl60x_fw_xtal_capcode_set(uint8_t cap_in, uint8_t cap_out, uint8_t enable, uint8_t cap_in_max, uint8_t cap_out_max);
 void bl60x_fw_xtal_capcode_update(uint8_t cap_in, uint8_t cap_out);

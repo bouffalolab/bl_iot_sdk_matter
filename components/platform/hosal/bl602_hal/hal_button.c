@@ -1,32 +1,3 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <stdio.h>
 #include <fdt.h>
 #include <libfdt.h>
@@ -502,36 +473,4 @@ void fdt_button_module_init(const void *fdt, int button_offset)
     blog_buf(pinbuf, pinbuf_size);
     hal_hbn_init(pinbuf, pinbuf_size);
     vPortFree(pinbuf);
-}
-
-void hal_button_module_init(int pin, int short_press_end_ms, int long_press_end_ms, int longlong_press_ms)
-{
-    gpio_ctx_t stgpio;
-    button_ctx_t stbutton;
-
-    stgpio.arg = &stbutton;
-
-    stgpio.gpioPin = pin;
-
-    ((button_ctx_t *) (stgpio.arg))->debounce = 10;
-
-    ((button_ctx_t *) (stgpio.arg))->short_press_start_ms = 100;
-
-    ((button_ctx_t *) (stgpio.arg))->short_press_end_ms = short_press_end_ms;
-
-    ((button_ctx_t *) (stgpio.arg))->short_kevent = 2;
-
-    ((button_ctx_t *) (stgpio.arg))->long_press_start_ms = 1000;
-
-    ((button_ctx_t *) (stgpio.arg))->long_press_end_ms = long_press_end_ms;
-
-    ((button_ctx_t *) (stgpio.arg))->long_kevent = 3;
-
-    ((button_ctx_t *) (stgpio.arg))->longlong_press_ms = longlong_press_ms;
-
-    ((button_ctx_t *) (stgpio.arg))->longlong_kevent = 4;
-
-    ((button_ctx_t *) (stgpio.arg))->trig_level = 1;
-
-    hal_button_register_handler_with_dts(&stgpio);
 }

@@ -49,7 +49,6 @@ netif_status_callback(struct netif *netif)
 static err_t 
 netif_init(struct netif *netif)
 {
-    return ERR_OK;
   netif->linkoutput = netif_output;
   netif->output     = etharp_output;
   netif->output_ip6 = ethip6_output;
@@ -57,8 +56,8 @@ netif_init(struct netif *netif)
   netif->flags      = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6;
   MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, 100000000);
 
-  SMEMCPY(netif->hwaddr, your_mac_address_goes_here, sizeof(netif->hwaddr));
-  netif->hwaddr_len = sizeof(netif->hwaddr);
+  SMEMCPY(netif->hwaddr, your_mac_address_goes_here, ETH_HWADDR_LEN);
+  netif->hwaddr_len = ETH_HWADDR_LEN;
 
   return ERR_OK;
 }

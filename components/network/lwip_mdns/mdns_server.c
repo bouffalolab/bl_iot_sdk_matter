@@ -1319,7 +1319,6 @@ mdns_send_outpacket(struct mdns_outpacket *outpkt, u8_t flags)
   u16_t answers = 0;
 
   /* Write answers to host questions */
-#if LWIP_CONFIG_ENABLE_IPV4
 #if LWIP_IPV4
   if (outpkt->host_replies & REPLY_HOST_A) {
     res = mdns_add_a_answer(outpkt, outpkt->cache_flush, outpkt->netif);
@@ -1335,7 +1334,6 @@ mdns_send_outpacket(struct mdns_outpacket *outpkt, u8_t flags)
     }
     answers++;
   }
-#endif
 #endif
 #if LWIP_IPV6
   if (outpkt->host_replies & REPLY_HOST_AAAA) {
@@ -1460,7 +1458,6 @@ mdns_send_outpacket(struct mdns_outpacket *outpkt, u8_t flags)
         }
       }
 #endif
-#if LWIP_CONFIG_ENABLE_IPV4
 #if LWIP_IPV4
       if (!(outpkt->host_replies & REPLY_HOST_A) &&
           !ip4_addr_isany_val(*netif_ip4_addr(outpkt->netif))) {
@@ -1470,7 +1467,6 @@ mdns_send_outpacket(struct mdns_outpacket *outpkt, u8_t flags)
         }
         outpkt->additional++;
       }
-#endif
 #endif
     }
   }
@@ -1497,10 +1493,8 @@ mdns_send_outpacket(struct mdns_outpacket *outpkt, u8_t flags)
       mcast_destaddr = &v6group;
 #endif
     } else {
-#if LWIP_CONFIG_ENABLE_IPV4
 #if LWIP_IPV4
       mcast_destaddr = &v4group;
-#endif
 #endif
     }
     /* Send created packet */
@@ -1662,13 +1656,11 @@ mdns_handle_question(struct mdns_packet *pkt)
         len = mdns_readname(pkt->pbuf, ans.rd_offset, &known_ans);
         res = mdns_build_host_domain(&my_ans, mdns);
         if (len != MDNS_READNAME_ERROR && res == ERR_OK && mdns_domain_eq(&known_ans, &my_ans)) {
-#if LWIP_CONFIG_ENABLE_IPV4
 #if LWIP_IPV4
           if (match & REPLY_HOST_PTR_V4) {
             LWIP_DEBUGF(MDNS_DEBUG, ("MDNS: Skipping known answer: v4 PTR\n"));
             reply.host_replies &= ~REPLY_HOST_PTR_V4;
           }
-#endif
 #endif
 #if LWIP_IPV6
           if (match & REPLY_HOST_PTR_V6) {
@@ -1681,14 +1673,12 @@ mdns_handle_question(struct mdns_packet *pkt)
 #endif
         }
       } else if (match & REPLY_HOST_A) {
-#if LWIP_CONFIG_ENABLE_IPV4
 #if LWIP_IPV4
         if (ans.rd_length == sizeof(ip4_addr_t) &&
             pbuf_memcmp(pkt->pbuf, ans.rd_offset, netif_ip4_addr(pkt->netif), ans.rd_length) == 0) {
           LWIP_DEBUGF(MDNS_DEBUG, ("MDNS: Skipping known answer: A\n"));
           reply.host_replies &= ~REPLY_HOST_A;
         }
-#endif
 #endif
       } else if (match & REPLY_HOST_AAAA) {
 #if LWIP_IPV6
@@ -1910,14 +1900,12 @@ mdns_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
     }
   }
 #endif
-#if LWIP_CONFIG_ENABLE_IPV4
 #if LWIP_IPV4
   if (!IP_IS_V6(ip_current_dest_addr())) {
     if (!ip_addr_cmp(ip_current_dest_addr(), &v4group)) {
       packet.recv_unicast = 1;
     }
   }
-#endif
 #endif
 
   if (hdr.flags1 & DNS_FLAG1_RESPONSE) {

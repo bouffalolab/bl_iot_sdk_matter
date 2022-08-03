@@ -10,6 +10,11 @@ CONFIG_SYS_TRACE_MEM_ENTRY_NUM ?= 1000
 CPPFLAGS += -DSYS_TRACE_MEM_ENABLE -DSYS_TRACE_MEM_ENTRY_NUM=$(CONFIG_SYS_TRACE_MEM_ENTRY_NUM)
 endif
 
+ifeq ($(CONFIG_USE_PSRAM), 1)
+CFLAGS   += -DCFG_USE_PSRAM
+CPPFLAGS += -DCFG_USE_PSRAM
+endif
+
 ## These include paths would be exported to project level
 COMPONENT_ADD_INCLUDEDIRS += ./
 
@@ -17,7 +22,7 @@ COMPONENT_ADD_INCLUDEDIRS += ./
 COMPONENT_PRIV_INCLUDEDIRS :=
 
 ## This component's src
-COMPONENT_SRCS := ./syscalls.c ./assert.c ./stdatomic.c
+COMPONENT_SRCS := ./syscalls.c ./assert.c
 
 COMPONENT_OBJS := $(patsubst %.c,%.o, $(COMPONENT_SRCS))
 

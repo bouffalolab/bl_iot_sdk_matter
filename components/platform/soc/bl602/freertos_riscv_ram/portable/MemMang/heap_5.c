@@ -552,7 +552,6 @@ const HeapRegion_t *pxHeapRegion;
 
 	xMinimumEverFreeBytesRemaining = xTotalHeapSize;
 	xFreeBytesRemaining = xTotalHeapSize;
-
 	/* Check something was actually defined before it is accessed. */
 	configASSERT( xTotalHeapSize );
 
@@ -560,3 +559,7 @@ const HeapRegion_t *pxHeapRegion;
 	xBlockAllocatedBit = ( ( size_t ) 1 ) << ( ( sizeof( size_t ) * heapBITS_PER_BYTE ) - 1 );
 }
 
+#ifdef CFG_COMPONENT_BUGKILLER_ENABLE
+#define FREERTOS_HEAP_DUMP
+#include <bugkiller_freertos.inc>
+#endif

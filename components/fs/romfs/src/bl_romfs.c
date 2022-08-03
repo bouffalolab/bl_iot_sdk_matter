@@ -1,32 +1,3 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <stdio.h>
 #include <string.h>
 #include <vfs.h>
@@ -34,7 +5,11 @@
 #include <vfs_register.h>
 #include <fs/vfs_romfs.h>
 #include <aos/kernel.h>
+
+#ifdef ROMFS_STATIC_ROOTADDR
+#else
 #include <bl_mtd.h>
+#endif
 #include <bl_romfs.h>
 
 #include <utils_log.h>
@@ -50,6 +25,8 @@
 #define ROMFH_DIR       1
 #define ROMFH_REG       2
 #define ROMFH_UNKNOW    3
+
+#define HEAD_MAGIC_LEN  (16)    /*romfs header magic num size*/
 
 struct romfh {
     int32_t nextfh;
@@ -68,7 +45,10 @@ typedef struct _rom_dir_t
 } romfs_dir_t;
 
 static char *romfs_root = NULL;         /* The mount point of the physical addr */
+#ifdef ROMFS_STATIC_ROOTADDR
+#else
 static bl_mtd_handle_t handle_romfs;
+#endif
 
 static int is_path_ch(char ch)
 {
@@ -127,6 +107,9 @@ static int filter_format(const char *path, uint32_t size)
 
 static int romfs_mount(void)
 {
+#ifdef ROMFS_STATIC_ROOTADDR
+    romfs_root = (char *)ROMFS_STATIC_ROOTADDR;
+#else
     int ret;
     bl_mtd_info_t info;
 
@@ -150,6 +133,7 @@ static int romfs_mount(void)
     romfs_root = (char *)info.xip_addr;
     ROMFS_DUBUG("xip addr = %p\r\n", romfs_root);
     log_buf(romfs_root, 64);
+#endif
 
     return 0;
 }
@@ -203,7 +187,8 @@ static int file_info(char *path, char **p_addr_start_input, char **p_addr_end_in
     /* /romfs */
     ROMFS_DUBUG("addr_start = %p\r\n", addr_start);
     if (addr_start == romfs_root) {
-        addr_start = (char *)(romfs_root + ALIGNUP16(strlen(romfs_root + 16) + 1) + 16 + 64);
+        /* point first dot file*/
+        addr_start = (char *)(romfs_root + ALIGNUP16(strlen(romfs_root + HEAD_MAGIC_LEN) + 1) + HEAD_MAGIC_LEN);
     }
 
     ROMFS_DUBUG("addr_start = %p, addr_end = %p, path = %s\r\n", addr_start, addr_end, path);
@@ -537,7 +522,8 @@ static aos_dir_t *romfs_opendir(file_t *fp, const char *path)
     if (0 == res) {
         /* need add update dir_addr and current_addr */
         if (start_addr == romfs_root) {
-            dp->dir_start_addr = (char *)(romfs_root + ALIGNUP16(strlen(romfs_root + 16) + 1) + 16 + 64);
+            /* point first dot file*/
+            dp->dir_start_addr = (char *)(romfs_root + ALIGNUP16(strlen(romfs_root + HEAD_MAGIC_LEN) + 1) + HEAD_MAGIC_LEN);
         } else {
             if (0 == dirent_childaddr(start_addr)) {
                 return NULL;

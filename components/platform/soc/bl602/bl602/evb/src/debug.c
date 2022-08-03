@@ -1,39 +1,9 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits.h>
-#include <async_log.h>
 
 //#define CHAR_BIT	8
 //FIXME no ugly declare
@@ -509,6 +479,7 @@ int __attribute__((optimize("O1"))) vsnprintf(char *buffer, size_t n, const char
 	const char *p = format;
 	char ch;
 	char *q = buffer;
+	char *tmp;
 	size_t o = 0;		/* Number of characters output */
 	uintmax_t val = 0;
 	int rank = rank_int;	/* Default rank */
@@ -813,8 +784,10 @@ int __attribute__((optimize("O1"))) vsnprintf(char *buffer, size_t n, const char
 #ifndef DISABLE_PRINT_FLOAT
 				case 'f':
 					{
-						q = flt(q, va_arg(ap, double), width, prec, ch, SIGN);
-        		continue;
+					    tmp = q;
+					    q = flt(q, va_arg(ap, double), width, prec, ch, SIGN);
+					    o += q - tmp;
+					    continue;
 					}
 #endif
 				default:	/* Anything else, including % */
@@ -855,16 +828,11 @@ void vprint(const char *fmt, va_list argp)
     if (sys_log_all_enable) {
         str = string;
         if (0 < vsprintf(string, fmt, argp)) {
-        if (!async_log()) {
             while ('\0' != (ch = *(str++))) {
 #if !defined(DISABLE_PRINT)
                 bl_uart_data_send(0, ch);
 #endif
             }
-        }
-        else {
-            async_log_push(str, strlen(str) + 1);
-        }
         }
     }
 }

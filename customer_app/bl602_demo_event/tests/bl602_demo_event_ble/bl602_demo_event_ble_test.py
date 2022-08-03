@@ -79,6 +79,7 @@ def bl602_demo_event_ble(env, extra_data):
         dut2.write(f'ble_connect 0 {addr}')
         dut2.expect(re.compile(r'Connected: ' + str(a) + '\((\w{6})\)'), timeout=0.5)
         print('[DUT2] Connected')
+        time.sleep(1)
 
         # Security
         dut2.write('ble_security 2')

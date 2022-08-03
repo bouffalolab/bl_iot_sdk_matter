@@ -10,7 +10,6 @@ extern "C" {
 #endif
 
 #include <event_type_code.h>
-#include <stdint.h>
 
 #ifndef AOS_DOXYGEN_MODE
 

@@ -229,8 +229,10 @@ static int __recv_event(void *p_drv, struct pro_event *p_event)
                   blog_info("wifi list end\r\n");
                   break;
               }
-              p_item = &gp_index->ap_item[gp_index->r_ap_item];
-              blog_info("item_nums %d\r\n", gp_index->r_ap_item++);
+              
+              blog_info("item_nums %d\r\n", gp_index->r_ap_item);
+              p_item = &gp_index->ap_item[gp_index->r_ap_item++];
+              
               p_root = cJSON_CreateObject();
 
               sprintf(bssid, "%02X:%02X:%02X:%02X:%02X:%02X",

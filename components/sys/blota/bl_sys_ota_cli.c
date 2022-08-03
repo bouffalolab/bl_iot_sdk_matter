@@ -1,32 +1,3 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <stdio.h>
 #include <string.h>
 
@@ -39,7 +10,6 @@
 #include <lwip/ip_addr.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
-#include <lwipopts.h>
 
 #include <cli.h>
 #include <hal_boot2.h>
@@ -117,8 +87,6 @@ static int _check_ota_header(ota_header_t *ota_header, uint32_t *ota_len, int *u
     return 0;
 }
 
-#if 0
-#define OTA_PROGRAM_SIZE (512)
 static void ota_tcp_api_cmd(char *buf, int len, int argc, char **argv)
 {
     int sockfd;
@@ -146,7 +114,7 @@ static void ota_tcp_api_cmd(char *buf, int len, int argc, char **argv)
     /*---Initialize server address/port struct---*/
     memset(&dest, 0, sizeof(dest));
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(3333);
+    dest.sin_port = htons(OTA_TCP_PORT);
     dest.sin_addr = *((struct in_addr *) hostinfo->h_addr);
     uint32_t address = dest.sin_addr.s_addr;
     char *ip = inet_ntoa(address);
@@ -231,9 +199,7 @@ static void ota_tcp_api_cmd(char *buf, int len, int argc, char **argv)
     close(sockfd);
     vPortFree(recv_buffer);
 }
-#endif
 
-#define OTA_PROGRAM_SIZE (512)
 static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
 {
     int sockfd, i;
@@ -273,7 +239,7 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     /*---Initialize server address/port struct---*/
     memset(&dest, 0, sizeof(dest));
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(3333);
+    dest.sin_port = htons(OTA_TCP_PORT);
     dest.sin_addr = *((struct in_addr *) hostinfo->h_addr);
     uint32_t address = dest.sin_addr.s_addr;
     char *ip = inet_ntoa(address);
@@ -314,7 +280,7 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     printf("[OTA] [TEST] activeIndex is %u, use OTA address=%08x\r\n", ptEntry.activeIndex, (unsigned int)ota_addr);
 
     printf("[OTA] [TEST] Erase flash with size %lu...", bin_size);
-    hal_update_mfg_ptable();    
+    hal_update_mfg_ptable();   
     bl_mtd_erase_all(handle);
     printf("Done\r\n");
 
@@ -391,7 +357,7 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
                 }
             }
 
-            printf("Will Write %u to %08X from %p\r\n", buffer_offset, ota_addr + flash_offset, recv_buffer);
+            printf("Will Write %u to %08X from %p left %lu.\r\n", buffer_offset, ota_addr + flash_offset, recv_buffer, bin_size-total);
             utils_sha256_update(&ctx, recv_buffer, buffer_offset);
             bl_mtd_write(handle, flash_offset, buffer_offset, recv_buffer);
             flash_offset += buffer_offset;
@@ -434,8 +400,7 @@ static void ota_tcp_cmd(char *buf, int len, int argc, char **argv)
     return;
 }
 
-#define OTA_TCP_PORT     3333
-void ota_tcp_server(void)
+void ota_tcp_server_handle(void)
 {
     int sockfd, i;
     int ret;
@@ -444,10 +409,10 @@ void ota_tcp_server(void)
     uint8_t sha256_result[32];
     uint8_t sha256_img[32];
     bl_mtd_handle_t handle;
-    
+
 #if !LWIP_CONFIG_ENABLE_IPV4
     struct sockaddr_in6 server_addr, client_addr;
-#else 
+#else
     struct sockaddr_in server_addr, client_addr;
 #endif
     int connected;
@@ -459,7 +424,7 @@ void ota_tcp_server(void)
         return;
     }
 
-#if !LWIP_CONFIG_ENABLE_IPV4 
+#if !LWIP_CONFIG_ENABLE_IPV4
     if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
         printf("Error in socket\r\n");
         bl_mtd_close(handle);
@@ -475,10 +440,10 @@ void ota_tcp_server(void)
     }
 #endif
 
-#if !LWIP_CONFIG_ENABLE_IPV4 
+#if !LWIP_CONFIG_ENABLE_IPV4
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin6_family = AF_INET6;
-    server_addr.sin6_port   = htons(OTA_TCP_PORT);
+    server_addr.sin6_port = htons(OTA_TCP_PORT);
 #else
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(OTA_TCP_PORT);
@@ -519,7 +484,7 @@ void ota_tcp_server(void)
     ota_addr = ptEntry.Address[!ptEntry.activeIndex];
     bin_size = ptEntry.maxLen[!ptEntry.activeIndex];
     part_size = ptEntry.maxLen[!ptEntry.activeIndex];
-    (void) part_size;
+    (void)part_size;
     /*XXX if you use bin_size is product env, you may want to set bin_size to the actual
      * OTA BIN size, and also you need to splilt XIP_SFlash_Erase_With_Lock into
      * serveral pieces. Partition size vs bin_size check is also needed
@@ -529,7 +494,7 @@ void ota_tcp_server(void)
     printf("[OTA] [TEST] activeIndex is %u, use OTA address=%08x\r\n", ptEntry.activeIndex, (unsigned int)ota_addr);
 
     printf("[OTA] [TEST] Erase flash with size %lu...", bin_size);
-    hal_update_mfg_ptable();    
+    hal_update_mfg_ptable();
     bl_mtd_erase_all(handle);
     printf("Done\r\n");
 
@@ -549,112 +514,111 @@ void ota_tcp_server(void)
     utils_sha256_starts(&ctx);
     memset(sha256_result, 0, sizeof(sha256_result));
 
+    memset(&client_addr, 0, sizeof(client_addr));
+    errno = 0;
     while (1) {
-    connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
-#if !LWIP_CONFIG_ENABLE_IPV4 
-    printf("IPV6 new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin6_addr),ntohs(client_addr.sin6_port));
+        connected = accept(sockfd, (struct sockaddr *)&client_addr, (socklen_t *)&sin_size);
+#if !LWIP_CONFIG_ENABLE_IPV4
+        printf("IPV6 new client connected from (%s: %d)\r\n", inet_ntoa(client_addr.sin6_addr), ntohs(client_addr.sin6_port));
 #else
-    printf("IPV4 new client connected from (%s, %d)\r\n", inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+        printf("IPV4 new client connected from (%s: %d)\r\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 #endif
-    int flag = 1;
-    setsockopt(connected,
-            IPPROTO_TCP,     /* set option at TCP level */
-            TCP_NODELAY,     /* name of option */
-            (void *) &flag,  /* the cast is historical cruft */
-            sizeof(int));    /* length of option value */
+        int flag = 1;
+        setsockopt(connected,
+                   IPPROTO_TCP,   /* set option at TCP level */
+                   TCP_NODELAY,   /* name of option */
+                   (void *)&flag, /* the cast is historical cruft */
+                   sizeof(int));  /* length of option value */
 
-    while (1) {
-        /*first 512 bytes of TCP stream is OTA header*/
-        //ret = read(sockfd, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset);
-        ret = recv(connected, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset, 0);
-        
-        if (ret < 0) {
-            printf("ret = %d, err = %d\n\r", ret, errno);
-            break;
-        } else {
-            total += ret;
-            if (0 == ret) {
-                printf("[OTA] [TEST] seems ota file ends unexpectedly, already transfer %u\r\n", total);
+        while (1) {
+            /*first 512 bytes of TCP stream is OTA header*/
+            ret = recv(connected, recv_buffer + buffer_offset, OTA_PROGRAM_SIZE - buffer_offset, 0);
+
+            if (ret < 0) {
+                printf("ret = %d, err = %d\n\r", ret, errno);
                 break;
-            }
-            printf("total = %d, ret = %d\n\r", total, ret);
-            buffer_offset += ret;
-
-            /*Only handle this case when ota header is NOT found*/
-            if (0 == ota_header_found) {
-                if (buffer_offset < OTA_PROGRAM_SIZE) {
-                    continue;
-                } else if (buffer_offset > OTA_PROGRAM_SIZE) {
-                    printf("[OTA] [TCP] Assert for unexpected error %d\r\n", buffer_offset);
-                    while (1) {
-                        /*empty*/
-                    }
-                }
-                /*ota_header is got, we assume alignment of recv_buffer is OK*/
-                ota_header_found = 1;
-                ota_header = (ota_header_t*)recv_buffer;
-                if (_check_ota_header(ota_header, &bin_size, &use_xz)) {
-                    /*ota header is NOT OK*/
+            } else {
+                total += ret;
+                if (0 == ret) {
+                    printf("[OTA] [TEST] seems ota file ends unexpectedly, already transfer %u\r\n", total);
                     break;
                 }
-                memcpy(sha256_img, ota_header->u.s.sha256, sizeof(sha256_img));
-                /*we think OTA_PROGRAM_SIZE is the same OTA_HEADER_SIZE, and refix total to exclude OTA_PROGRAM_SIZE*/
-                total -= OTA_PROGRAM_SIZE;
+                printf("total = %d, ret = %d\n\r", total, ret);
+                buffer_offset += ret;
+
+                /*Only handle this case when ota header is NOT found*/
+                if (0 == ota_header_found) {
+                    if (buffer_offset < OTA_PROGRAM_SIZE) {
+                        continue;
+                    } else if (buffer_offset > OTA_PROGRAM_SIZE) {
+                        printf("[OTA] [TCP] Assert for unexpected error %d\r\n", buffer_offset);
+                        while (1) {
+                            /*empty*/
+                        }
+                    }
+                    /*ota_header is got, we assume alignment of recv_buffer is OK*/
+                    ota_header_found = 1;
+                    ota_header = (ota_header_t *)recv_buffer;
+                    if (_check_ota_header(ota_header, &bin_size, &use_xz)) {
+                        /*ota header is NOT OK*/
+                        break;
+                    }
+                    memcpy(sha256_img, ota_header->u.s.sha256, sizeof(sha256_img));
+                    /*we think OTA_PROGRAM_SIZE is the same OTA_HEADER_SIZE, and refix total to exclude OTA_PROGRAM_SIZE*/
+                    total -= OTA_PROGRAM_SIZE;
+                    buffer_offset = 0;
+                    printf("[OTA] [TCP] Update bin_size to %lu, file status %s\r\n", bin_size, use_xz ? "XZ" : "RAW");
+                    continue;
+                }
+
+                if (bin_size != total) {
+                    if (buffer_offset < OTA_PROGRAM_SIZE) {
+                        continue;
+                    } else if (buffer_offset > OTA_PROGRAM_SIZE) {
+                        printf("[OTA] [TCP] Assert for unexpected error %d\r\n", buffer_offset);
+                        while (1) {
+                            /*empty*/
+                        }
+                    }
+                } else if (total > bin_size) {
+                    printf("[OTA] [TCP] Server has bug?\r\n");
+                    while (1) {
+                    }
+                }
+
+                printf("Will Write %u to %08X from %p letf %lu bytes.\r\n", buffer_offset, ota_addr + flash_offset, recv_buffer, bin_size-total);
+                utils_sha256_update(&ctx, recv_buffer, buffer_offset);
+                bl_mtd_write(handle, flash_offset, buffer_offset, recv_buffer);
+                flash_offset += buffer_offset;
                 buffer_offset = 0;
-                printf("[OTA] [TCP] Update bin_size to %lu, file status %s\r\n", bin_size, use_xz ? "XZ" : "RAW");
-                continue;
-            }
-
-            if (bin_size != total) {
-                if (buffer_offset < OTA_PROGRAM_SIZE) {
-                    continue;
-                } else if (buffer_offset > OTA_PROGRAM_SIZE) {
-                    printf("[OTA] [TCP] Assert for unexpected error %d\r\n", buffer_offset);
-                    while (1) {
-                        /*empty*/
+                if (bin_size == total) {
+                    utils_sha256_finish(&ctx, sha256_result);
+                    puts("\r\nCalculated SHA256 Checksum:");
+                    for (i = 0; i < sizeof(sha256_result); i++) {
+                        printf("%02X", sha256_result[i]);
                     }
+                    puts("\r\nHeader SET SHA256 Checksum:");
+                    for (i = 0; i < sizeof(sha256_img); i++) {
+                        printf("%02X", sha256_img[i]);
+                    }
+                    puts("\r\n");
+                    if (memcmp(sha256_img, sha256_result, sizeof(sha256_img))) {
+                        /*Error found*/
+                        printf("[OTA] [TCP] SHA256 NOT Correct\r\n");
+                        break;
+                    }
+                    printf("[OTA] [TCP] prepare OTA partition info\r\n");
+                    ptEntry.len = bin_size;
+                    printf("[OTA] [TCP] Update PARTITION, partition len is %lu\r\n", ptEntry.len);
+                    hal_boot2_update_ptable(&ptEntry);
+                    printf("[OTA] [TCP] Rebooting\r\n");
+                    close(sockfd);
+                    vTaskDelay(1000);
+                    hal_reboot();
                 }
-            } else if (total > bin_size) {
-                printf("[OTA] [TCP] Server has bug?\r\n");
-                while (1) {
-                }
-            }
-
-            printf("Will Write %u to %08X from %p\r\n", buffer_offset, ota_addr + flash_offset, recv_buffer);
-            utils_sha256_update(&ctx, recv_buffer, buffer_offset);
-            bl_mtd_write(handle, flash_offset, buffer_offset, recv_buffer);
-            flash_offset += buffer_offset;
-            buffer_offset = 0;
-            if (bin_size == total) {
-                utils_sha256_finish(&ctx, sha256_result);
-                puts("\r\nCalculated SHA256 Checksum:");
-                for (i = 0; i < sizeof(sha256_result); i++) {
-                    printf("%02X", sha256_result[i]);
-                }
-                puts("\r\nHeader SET SHA256 Checksum:");
-                for (i = 0; i < sizeof(sha256_img); i++) {
-                    printf("%02X", sha256_img[i]);
-                }
-                puts("\r\n");
-                if (memcmp(sha256_img, sha256_result, sizeof(sha256_img))) {
-                    /*Error found*/
-                    printf("[OTA] [TCP] SHA256 NOT Correct\r\n");
-                    break;
-                }
-                printf("[OTA] [TCP] prepare OTA partition info\r\n");
-                ptEntry.len = bin_size;
-                printf("[OTA] [TCP] Update PARTITION, partition len is %lu\r\n", ptEntry.len);
-                hal_boot2_update_ptable(&ptEntry);
-                printf("[OTA] [TCP] Rebooting\r\n");
-                close(sockfd);
-                vTaskDelay(1000);
-                hal_reboot();
             }
         }
     }
-
-    }
-
 
     /*---Clean up---*/
     close(sockfd);
@@ -665,6 +629,11 @@ void ota_tcp_server(void)
     return;
 }
 
+static void ota_tcp_server(char *buf, int len, int argc, char **argv)
+{
+    xTaskCreate(ota_tcp_server_handle, (char*)"ota_tcp_server", 1024, NULL, 15, NULL);
+}
+
 static void ota_dump_cmd(char *buf, int len, int argc, char **argv)
 {
     hal_boot2_dump();
@@ -672,8 +641,9 @@ static void ota_dump_cmd(char *buf, int len, int argc, char **argv)
 
 // STATIC_CLI_CMD_ATTRIBUTE makes this(these) command(s) static
 static const struct cli_command cmds_user[] STATIC_CLI_CMD_ATTRIBUTE = {
-    //{"ota_tcp_api", "OTA from TCP server port 3333", ota_tcp_api_cmd},
+    {"ota_tcp_api", "OTA from TCP server port 3333", ota_tcp_api_cmd},
     {"ota_tcp", "OTA from TCP server port 3333", ota_tcp_cmd},
+    {"ota_tcp_server", "start OTA TCP server port 3333", ota_tcp_server},
     {"ota_dump", "dump partitions for ota related", ota_dump_cmd},
 };
 

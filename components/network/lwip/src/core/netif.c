@@ -187,7 +187,6 @@ netif_init(void)
 #define LOOPIF_ADDRINIT
 #endif /* LWIP_IPV4 */
 
-  return;
 #if NO_SYS
   netif_add(&loop_netif, LOOPIF_ADDRINIT NULL, netif_loopif_init, ip_input);
 #else  /* NO_SYS */
@@ -333,7 +332,7 @@ netif_add(struct netif *netif,
 #if LWIP_IPV6
 #if LWIP_IPV6_AUTOCONFIG
   /* IPv6 address autoconfiguration not enabled by default */
-  netif->ip6_autoconfig_enabled = 1;
+  netif->ip6_autoconfig_enabled = 0;
 #endif /* LWIP_IPV6_AUTOCONFIG */
   nd6_restart_netif(netif);
 #endif /* LWIP_IPV6 */

@@ -1,34 +1,5 @@
-/*
- * Copyright (c) 2020 Bouffalolab.
- *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 #include <string.h>
-#include <utils_log.h>
+#include <bl_os_private.h>
 #include <utils_tlv_bl.h>
 #include <bl60x_fw_api.h>
 
@@ -104,24 +75,25 @@ static const struct mac_addr mac_addr_bcst = {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF
 static const struct mac_addr mac_addr_zero = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
 static const struct ieee80211_channel bl_channels_24_General[] = {
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2412, .hw_value = 1, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2417, .hw_value = 2, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2422, .hw_value = 3, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2427, .hw_value = 4, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2432, .hw_value = 5, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2437, .hw_value = 6, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2442, .hw_value = 7, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2447, .hw_value = 8, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2452, .hw_value = 9, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2457, .hw_value = 10, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2462, .hw_value = 11, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2467, .hw_value = 12, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2472, .hw_value = 13, .max_power=16},
-    { .band = NL80211_BAND_2GHZ, .center_freq = 2484, .hw_value = 14, .max_power=16},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2412, .hw_value = 1, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2417, .hw_value = 2, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2422, .hw_value = 3, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2427, .hw_value = 4, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2432, .hw_value = 5, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2437, .hw_value = 6, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2442, .hw_value = 7, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2447, .hw_value = 8, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2452, .hw_value = 9, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2457, .hw_value = 10, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2462, .hw_value = 11, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2467, .hw_value = 12, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2472, .hw_value = 13, .max_power=20},
+    { .band = NL80211_BAND_2GHZ, .center_freq = 2484, .hw_value = 14, .max_power=20},
 };
 
 static const struct ieee80211_dot_d country_list[] = 
 {
+    /*First Country is the default country*/
     {
         .code   = "CN",
         .channel_num = 13,
@@ -146,24 +118,23 @@ static const struct ieee80211_dot_d country_list[] =
 
 static int channel_num_default;
 static const struct ieee80211_channel *channels_default;
+static const struct ieee80211_dot_d *country_default;
 
-static int cfg80211_get_channel_list(const char *code, int *channel_num, const struct ieee80211_channel **channels)
+static int cfg80211_get_channel_list(const char *code, int *channel_num, const struct ieee80211_channel **channels, const struct ieee80211_dot_d **country_default)
 {
-    int i, j;
+    int i;
 
     for (i = 0; i < sizeof(country_list)/sizeof(country_list[0]); i++) {
         if (0 == strcmp(country_list[i].code, code)) {
-            *channel_num = country_list[i].channel_num;
-            struct ieee80211_channel *channels_tmp = NULL;
-            channels_tmp = (struct ieee80211_channel *)os_malloc(*channel_num * sizeof(struct ieee80211_channel));
-            if (NULL == channels_tmp) {
-                os_printf("%s: channels_tmp allocation failed\n", __func__);
-                return -1;
+            if(channel_num){
+                *channel_num = country_list[i].channel_num;
             }
-            for(j = 0; j < *channel_num; j++){
-                channels_tmp[j] = country_list[i].channels[j];
+            if (channels) {
+                *channels = country_list[i].channels;
             }
-            *channels = channels_tmp;
+            if (country_default) {
+                *country_default = &country_list[i];
+            }
             return 0;
         }
     }
@@ -173,13 +144,14 @@ static int cfg80211_get_channel_list(const char *code, int *channel_num, const s
 
 void bl_msg_update_channel_cfg(const char *code)
 {
-    if (cfg80211_get_channel_list(code, &channel_num_default, &channels_default)) {
+    if (cfg80211_get_channel_list(code, &channel_num_default, &channels_default, &country_default)) {
         /*get channel list failed, so we set the default one*/
         channel_num_default = sizeof(bl_channels_24_General)/sizeof(bl_channels_24_General[0]);
         channels_default = bl_channels_24_General;
-        printf("[WF] %s NOT found, using General instead, num of channel %d\r\n", code, channel_num_default);
+        country_default = &country_list[0];
+        bl_os_printf("[WF] %s NOT found, using General instead, num of channel %d\r\n", code, channel_num_default);
     } else {
-        printf("[WF] country code %s used, num of channel %d\r\n", code, channel_num_default);
+        bl_os_printf("[WF] country code %s used, num of channel %d\r\n", code, channel_num_default);
     }
 
 }
@@ -208,7 +180,7 @@ int bl_get_fixed_channels_is_valid(uint16_t *channels, uint16_t channel_num)
     return 1;
 }
 
-static inline uint16_t phy_channel_to_freq(uint8_t band, int channel)
+inline uint16_t phy_channel_to_freq(uint8_t band, int channel)
 {
     uint16_t freq = 0xFFFF;
 
@@ -258,9 +230,9 @@ static inline void *bl_msg_zalloc(ke_msg_id_t const id,
 {
     struct lmac_msg *msg;
 
-    msg = (struct lmac_msg *)os_malloc(sizeof(struct lmac_msg) + param_len);
+    msg = (struct lmac_msg *)bl_os_malloc(sizeof(struct lmac_msg) + param_len);
     if (msg == NULL) {
-        os_printf("%s: msg allocation failed\n", __func__);
+        bl_os_printf("%s: msg allocation failed\n", __func__);
         return NULL;
     }
     memset(msg, 0, sizeof(struct lmac_msg) + param_len);
@@ -303,18 +275,18 @@ static int bl_send_msg(struct bl_hw *bl_hw, const void *msg_params,
     msg = container_of((void *)msg_params, struct lmac_msg, param);
 
     if (!bl_hw->ipc_env) {
-        os_printf("%s: bypassing (restart must have failed)\r\n", __func__);
-        os_free(msg);
+        bl_os_printf("%s: bypassing (restart must have failed)\r\n", __func__);
+        bl_os_free(msg);
         RWNX_DBG(RWNX_FN_LEAVE_STR);
         return -EBUSY;
     }
 
     nonblock = is_non_blocking_msg(msg->id);
 
-    cmd = os_malloc(sizeof(struct bl_cmd));
+    cmd = bl_os_malloc(sizeof(struct bl_cmd));
     if (NULL == cmd) {
-        os_free(msg);
-        os_printf("%s: failed to allocate mem for cmd, size is %d\r\n", __func__, sizeof(struct bl_cmd));
+        bl_os_free(msg);
+        bl_os_printf("%s: failed to allocate mem for cmd, size is %d\r\n", __func__, sizeof(struct bl_cmd));
         return -ENOMEM;
     }
     memset(cmd, 0, sizeof(struct bl_cmd));
@@ -330,7 +302,7 @@ static int bl_send_msg(struct bl_hw *bl_hw, const void *msg_params,
     ret = bl_hw->cmd_mgr.queue(&bl_hw->cmd_mgr, cmd);
 
     if (!nonblock) {
-        os_free(cmd);
+        bl_os_free(cmd);
     } else {
         ret = cmd->result;
     }
@@ -435,14 +407,20 @@ int bl_send_me_config_req(struct bl_hw *bl_hw)
     }
 
     /* Set parameters for the ME_CONFIG_REQ message */
-    os_printf("[ME] HT supp %d, VHT supp %d\r\n", 1, 0);
+    bl_os_printf("[ME] HT supp %d, VHT supp %d\r\n", 1, 0);
 
     req->ht_supp = 1;
     req->vht_supp = 0;
     req->ht_cap.ht_capa_info = cpu_to_le16(bl_hw->ht_cap.cap);
-    req->ht_cap.a_mpdu_param = bl_hw->ht_cap.ampdu_factor |
-                                     (bl_hw->ht_cap.ampdu_density <<
-                                         IEEE80211_HT_AMPDU_PARM_DENSITY_SHIFT);
+
+    /*AMPDU MAX Length:  
+     * 0x0:8K
+     * 0x1:16K
+     * 0x2:32K
+     * 0x3:64K
+     */
+    req->ht_cap.a_mpdu_param = 0x3;
+
     for (i = 0; i < sizeof(bl_hw->ht_cap.mcs); i++) {
         req->ht_cap.mcs_rate[i] = ht_mcs[i];
     }
@@ -518,6 +496,7 @@ int bl_send_me_rate_config_req(struct bl_hw *bl_hw, uint8_t sta_idx, uint16_t fi
     }
     req->sta_idx = sta_idx;
     req->fixed_rate_cfg = fixed_rate_cfg;
+    req->power_table_req = 1;
 
     return bl_send_msg(bl_hw, req, 0, 0, NULL);
 }
@@ -608,7 +587,7 @@ int bl_send_remove_if(struct bl_hw *bl_hw, uint8_t inst_nbr)
     return bl_send_msg(bl_hw, remove_if_req_param, 1, MM_REMOVE_IF_CFM, NULL);
 }
 
-int bl_send_scanu_req(struct bl_hw *bl_hw, uint16_t *channels, uint16_t channel_num, const char *ssid, const uint8_t *mac)
+int bl_send_scanu_req(struct bl_hw *bl_hw, struct bl_send_scanu_para *scanu_para)
 {
     struct scanu_start_req *req;
     int i, index;
@@ -625,29 +604,30 @@ int bl_send_scanu_req(struct bl_hw *bl_hw, uint16_t *channels, uint16_t channel_
     }
 
     /* Set parameters */
-    //FIXME should we use vif_index_sta when NO sta is added or just use 0?
-    req->vif_idx = bl_hw->vif_index_sta;
-    if (0 == channel_num) {
+    // Always use idx 0, because vif_idx in vif_entry could be 0, leading to probe_rep tx fail
+    req->vif_idx = 0;
+    if (0 == scanu_para->channel_num) {
         req->chan_cnt = channel_num_default;
     } else {
-        req->chan_cnt = channel_num;
+        req->chan_cnt = scanu_para->channel_num;
     }
 
-    if (ssid != NULL) {
-      req->ssid_cnt = 1;
-      req->ssid[0].length = strlen(ssid);
-      req->ssid[0].length = req->ssid[0].length > MAC_SSID_LEN ? MAC_SSID_LEN : req->ssid[0].length;
-      memcpy(req->ssid[0].array, ssid, req->ssid[0].length);
+    req->ssid_cnt = 1;
+    if (scanu_para->ssid != NULL && scanu_para->ssid->length) {
+        req->ssid[0].length = scanu_para->ssid->length;
+        memcpy(req->ssid[0].array, scanu_para->ssid->array, req->ssid[0].length);
     } else {
-      req->ssid_cnt = 0;
+        req->ssid[0].length = 0;
+        //if specfied ssid, ignore user setting passive mode
+        if (req->ssid_cnt == 0 || scanu_para->scan_mode == SCAN_PASSIVE) 
+        {
+            chan_flags |= SCAN_PASSIVE_BIT;
+        }
     }
-    req->bssid = mac_addr_bcst;
-    memcpy(&(req->mac), mac, ETH_ALEN);
+    memcpy((uint8_t *)&(req->bssid), (uint8_t *)scanu_para->bssid, ETH_ALEN);
+    memcpy(&(req->mac), scanu_para->mac, ETH_ALEN);
     req->no_cck = true;//FIXME params? talk with firmware guys
 
-    if (req->ssid_cnt == 0) {
-        chan_flags |= SCAN_PASSIVE_BIT;
-    }
 #if 0
     for (i = 0; i < req->ssid_cnt; i++) {
         int j;
@@ -662,7 +642,7 @@ int bl_send_scanu_req(struct bl_hw *bl_hw, uint16_t *channels, uint16_t channel_
     req->add_ies = 0;
 
     for (i = 0; i < req->chan_cnt; i++) {
-        index = (channel_num_default == req->chan_cnt) ? i : (channels[i] - 1);
+        index = (channel_num_default == req->chan_cnt) ? i : (scanu_para->channels[i] - 1);
         chan = &(channels_default[index]);
 
         req->chan[i].band = chan->band;
@@ -670,6 +650,8 @@ int bl_send_scanu_req(struct bl_hw *bl_hw, uint16_t *channels, uint16_t channel_
         req->chan[i].flags = chan_flags | passive_scan_flag(chan->flags);
         req->chan[i].tx_power = chan->max_reg_power;
     }
+
+    req->duration_scan = scanu_para->duration_scan;
 
     /* Send the SCANU_START_REQ message to LMAC FW */
     return bl_send_msg(bl_hw, req, 0, 0, NULL);
@@ -709,7 +691,7 @@ int bl_send_sm_connect_req(struct bl_hw *bl_hw, struct cfg80211_connect_params *
 {
     struct sm_connect_req *req;
     int i;
-    u32_l flags = 0;
+    u32_l flags = sme->flags;
 
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
@@ -719,6 +701,7 @@ int bl_send_sm_connect_req(struct bl_hw *bl_hw, struct cfg80211_connect_params *
     if (!req)
         return -ENOMEM;
 
+#if 0 // useless
     /* Set parameters for the SM_CONNECT_REQ message */
     if (sme->crypto.n_ciphers_pairwise &&
         ((sme->crypto.ciphers_pairwise[0] == WLAN_CIPHER_SUITE_WEP40) ||
@@ -742,6 +725,8 @@ int bl_send_sm_connect_req(struct bl_hw *bl_hw, struct cfg80211_connect_params *
         req->ctrl_port_ethertype = sme->crypto.control_port_ethertype;
     else
         req->ctrl_port_ethertype = ETH_P_PAE;
+#endif
+    req->ctrl_port_ethertype = ETH_P_PAE;
 
     if (sme->bssid && !MAC_ADDR_CMP(sme->bssid, mac_addr_bcst.array) && !MAC_ADDR_CMP(sme->bssid, mac_addr_zero.array)) {
         for (i=0;i<ETH_ALEN;i++)
@@ -761,11 +746,13 @@ int bl_send_sm_connect_req(struct bl_hw *bl_hw, struct cfg80211_connect_params *
         req->ssid.array[i] = sme->ssid[i];
     req->ssid.length = sme->ssid_len;
     req->flags = flags;
+#if 0 // useless
     if (WARN_ON(sme->ie_len > sizeof(req->ie_buf)))
         return -EINVAL;
     if (sme->ie_len)
         memcpy(req->ie_buf, sme->ie, sme->ie_len);
     req->ie_len = sme->ie_len;
+#endif
     req->listen_interval = bl_mod_params.listen_itv;
     req->dont_wait_bcmc = !bl_mod_params.listen_bcmc;
 
@@ -847,6 +834,41 @@ int bl_send_mm_denoise_req(struct bl_hw *bl_hw, int mode)
     return bl_send_msg(bl_hw, req, 1, MM_SET_PS_MODE_CFM, NULL);
 }
 
+/* Country IE definition
+MAC_COUNTRY_2G4_USA       {7,  6, 'U', 'S', 32,  1, 11, 20} // X'10' FCC
+MAC_COUNTRY_2G4_CANADA    {7,  6, 'C', 'A', 32,  1, 11, 20} // X'20' DOC/IC
+MAC_COUNTRY_2G4_EUROPE    {7,  6, 'E', 'U', 32,  1, 13, 20} // X'30' ETSI
+MAC_COUNTRY_2G4_SPAIN     {7,  6, 'S', 'P', 32, 10,  2, 20} // X'31'
+MAC_COUNTRY_2G4_FRANCE    {7,  6, 'F', 'R', 32, 10,  4, 20} // X'32'
+MAC_COUNTRY_2G4_JAPAN     {7,  6, 'J', 'P', 32, 14,  1, 20} // X'40'
+MAC_COUNTRY_2G4_CHINA     {7,  6, 'C', 'N', 32,  1, 13, 20} // X'50'
+*/
+
+static int _fill_country_code_ie(uint8_t *buf, uint8_t buf_len_max)
+{
+    if (NULL == country_default || NULL == channels_default) {
+        return 0;
+    }
+
+    // Tag: Country Informance
+    buf[0] = 7;
+    // Tag lenth
+    buf[1] = 6;
+    //Country Code
+    buf[2] = country_default->code[0];
+    buf[3] = country_default->code[1];
+    //Environment
+    buf[4] = 32;//Any
+    //First Channel
+    buf[5] = 1;
+    //Channel Num
+    buf[6] = buf[5] - 1 + country_default ->channel_num;
+    //Max power
+    buf[7] = channels_default->max_power;
+
+    return 8;
+}
+
 int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *ssid, char *password, int channel, uint8_t vif_index, uint8_t hidden_ssid, uint16_t bcn_int)
 {
     struct apm_start_req *req;
@@ -912,6 +934,7 @@ int bl_send_apm_start_req(struct bl_hw *bl_hw, struct apm_start_cfm *cfm, char *
     req->beacon_period = 0x1; //force AP DTIM period
     req->qos_supported = 1;
 #endif
+    req->bcn_buf_len = _fill_country_code_ie(req->bcn_buf, sizeof(req->bcn_buf));
 
     /* Send the APM_START_REQ message to LMAC FW */
     return bl_send_msg(bl_hw, req, 1, APM_START_CFM, cfm);
@@ -1021,7 +1044,7 @@ int bl_send_cfg_task_req(struct bl_hw *bl_hw, uint32_t ops, uint32_t task, uint3
         default:
         {
             /*empty here*/
-            BL_ASSERT(0);
+            assert(0);
         }
     }
 

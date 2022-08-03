@@ -1,32 +1,11 @@
 
-/*
- * Copyright (c) 2020 Bouffalolab.
+/**
+ ****************************************************************************************
  *
- * This file is part of
- *     *** Bouffalolab Software Dev Kit ***
- *      (see www.bouffalolab.com).
+ * @file bl_rx.c
+ * Copyright (C) Bouffalo Lab 2016-2018
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of Bouffalo Lab nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ****************************************************************************************
  */
 
 #include <stdio.h>
@@ -34,7 +13,6 @@
 
 #include <lwip/inet.h>
 #include <lwip/netifapi.h>
-#include <lwip/dhcp6.h>
 #include <aos/yloop.h>
 #include "bl_main.h"
 #include "bl_defs.h"
@@ -43,8 +21,10 @@
 #include "bl_utils.h"
 #include "ieee80211.h"
 #include <bl60x_fw_api.h>
+#include <supplicant_api.h>
+#include <bl_wpa.h>
 
-#include <blog.h>
+#include <bl_os_private.h>
 #define USER_UNUSED(a) ((void)(a))
 
 static wifi_event_sm_connect_ind_cb_t cb_sm_connect_ind;
@@ -56,6 +36,7 @@ static void* cb_beacon_ind_env;
 static wifi_event_probe_resp_ind_cb_t cb_probe_resp_ind;
 static void* cb_probe_resp_ind_env;
 static wifi_event_pkt_cb_t cb_pkt;
+static wifi_event_pkt_cb_adv_t cb_pkt_adv;
 static void* cb_pkt_env;
 static wifi_event_rssi_cb_t cb_rssi;
 static void* cb_rssi_env;
@@ -63,15 +44,15 @@ static wifi_event_cb_t cb_event;
 static void* cb_event_env;
 extern struct bl_hw wifi_hw;
 
-static const struct sm_reason_code reason_list[] = {
+static const struct reason_code sm_reason_list[] = {
     {WLAN_FW_SUCCESSFUL, "sm connect ind ok"},
     {WLAN_FW_TX_AUTH_FRAME_ALLOCATE_FAIILURE, "tx auth frame alloc failure"},
     {WLAN_FW_AUTHENTICATION_FAIILURE, "Authentication failure"},
     {WLAN_FW_AUTH_ALGO_FAIILURE, "Auth response but auth algo failure"},
     {WLAN_FW_TX_ASSOC_FRAME_ALLOCATE_FAIILURE, "tx assoc frame alloc failure"},
     {WLAN_FW_ASSOCIATE_FAIILURE, "Association failure"},
-    {WLAN_FW_DEAUTH_BY_AP_WHEN_NOT_CONNECTION, "deauth by AP but state error"},
-    {WLAN_FW_DEAUTH_BY_AP_WHEN_CONNECTION, "deauth by AP when connecting"},
+    {WLAN_FW_DEAUTH_BY_AP_WHEN_NOT_CONNECTION, "deauth by AP when connecting"},
+    {WLAN_FW_DEAUTH_BY_AP_WHEN_CONNECTION, "deauth by AP when connected"},
     {WLAN_FW_4WAY_HANDSHAKE_ERROR_PSK_TIMEOUT_FAILURE, "Passwd error, 4-way handshake timeout"},
     {WLAN_FW_4WAY_HANDSHAKE_TX_DEAUTH_FRAME_TRANSMIT_FAILURE, "Passwd error, tx deauth frame transmit failure"},
     {WLAN_FW_4WAY_HANDSHAKE_TX_DEAUTH_FRAME_ALLOCATE_FAIILURE, "Passwd error, tx deauth frame allocate failure"},
@@ -86,8 +67,17 @@ static const struct sm_reason_code reason_list[] = {
     {WLAN_FW_DISCONNECT_BY_USER_WITH_DEAUTH, "user disconnect and send deauth"},
     {WLAN_FW_DISCONNECT_BY_USER_NO_DEAUTH, "user disconnect but no send deauth"},
     {WLAN_FW_DISCONNECT_BY_FW_PS_TX_NULLFRAME_FAILURE, "fw disconnect(tx nullframe failures)"},
+    {WLAN_FW_TRAFFIC_LOSS, "fw disconnect(traffic loss)"},
 };
 
+static const struct reason_code apm_reason_list[] = {
+    {WLAN_FW_APM_SUCCESSFUL, "apm connect ind ok"},
+    {WLAN_FW_APM_DELETESTA_BY_USER, "User delete STA"},
+    {WLAN_FW_APM_DEATUH_BY_STA, "STA send deauth to AP"},
+    {WLAN_FW_APM_DISASSOCIATE_BY_STA, "STA send disassociate to AP"},
+    {WLAN_FW_APM_DELETECONNECTION_TIMEOUT, "timeout and delete connection"},
+    {WLAN_FW_APM_DELETESTA_FOR_NEW_CONNECTION, "Delete STA for new connection"},
+};
 int bl_rx_sm_connect_ind_cb_register(void *env, wifi_event_sm_connect_ind_cb_t cb)
 {
     cb_sm_connect_ind = cb;
@@ -169,6 +159,22 @@ int bl_rx_pkt_cb_register(void *env, wifi_event_pkt_cb_t cb)
 int bl_rx_pkt_cb_unregister(void *env)
 {
     cb_pkt = NULL;
+    cb_pkt_env = NULL;
+
+    return 0;
+}
+
+int bl_rx_pkt_adv_cb_register(void *env, wifi_event_pkt_cb_adv_t cb)
+{
+    cb_pkt_adv = cb;
+    cb_pkt_env = env;
+
+    return 0;
+}
+
+int bl_rx_pkt_adv_cb_unregister(void *env)
+{
+    cb_pkt_adv = NULL;
     cb_pkt_env = NULL;
 
     return 0;
@@ -274,7 +280,7 @@ static int bl_rx_rssi_status_ind(struct bl_hw *bl_hw,
 
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
-    //os_printf("------> rssi_status %u:%u:%d\r\n", ind->vif_index, ind->rssi_status, ind->rssi);
+    //bl_os_printf("------> rssi_status %u:%u:%d\r\n", ind->vif_index, ind->rssi_status, ind->rssi);
     if (cb_rssi) {
         cb_rssi(cb_rssi_env, ind->rssi);
     }
@@ -374,10 +380,6 @@ static int find_ie_ds(uint8_t *buffer, int len, uint8_t *result)
 
 extern uint32_t mac_vsie_find(uint32_t addr, uint16_t buflen, uint8_t const *oui, uint8_t ouilen);
 extern uint32_t mac_ie_find(uint32_t addr, uint16_t buflen, uint8_t ie_id);
-int process_rsn_ie(uint8_t *rsn_ie, uint8_t ie_len, uint8_t *rsn_ie_out, uint8_t *len_out, Cipher_t *mcstCipher,
-			      Cipher_t *ucstCipher, bool *is_pmf_required, AkmType_e *akm, SecurityMode_t *security_mode, bool wpa3_prefered);
-int process_wpa_ie(uint8_t *wpa_ie, uint8_t ie_len, uint8_t *wpa_ie_out, uint8_t *len_in_out, Cipher_t *mcstCipher,
-			      Cipher_t *ucstCipher, AkmType_e *akm);
 static uint8_t co_read8p(uint32_t addr)
 {
     return (*(uint8_t *)addr);
@@ -389,14 +391,10 @@ static uint8_t co_read8p(uint32_t addr)
 static void _rx_handle_beacon(struct scanu_result_ind *ind, struct ieee80211_mgmt *mgmt)
 {
     struct wifi_event_beacon_ind ind_new;
-    uint32_t elmt_addr, var_part_addr, var_part_len;
-    uint8_t ctype = 0;
-    uint8_t rsn_wpa_ie_len = 0;
-    uint8_t is_pmf_required = 0;
-    bool wpa3_prefered = false;
-    AkmType_e akm;
-    SecurityMode_t security_mode;
-    memset(&security_mode, 0, sizeof(SecurityMode_t));
+    uint32_t var_part_addr, var_part_len;
+    uint32_t elmt_addr;
+    uint32_t rsn_wpa_ie_len;
+    wifi_wpa_ie_t wpa_ie, rsn_ie;
 
     memset(&ind_new, 0, sizeof(ind_new));
 
@@ -405,120 +403,105 @@ static void _rx_handle_beacon(struct scanu_result_ind *ind, struct ieee80211_mgm
 
     find_ie_ssid(mgmt->u.beacon.variable, ind->length, ind_new.ssid, &ind_new.ssid_len);
     find_ie_ds(mgmt->u.beacon.variable, ind->length, &ind_new.channel);
+
+    elmt_addr = mac_vsie_find(var_part_addr, var_part_len, (const uint8_t *) "\x00\x50\xF2\x04", 4);
+    if (elmt_addr != 0)
+    {
+        /*wps is suoported*/
+        ind_new.wps = 1;
+    } else {
+        /*wps isn't supported*/
+        ind_new.wps = 0;
+    }
+
+    /* TODO: Only consider 2.4G and bgn mode 
+     * (NO 5G and a/ac/ax) / (NO g-only and n-only difference)
+     */
+    #define MAC_ELTID_HT_CAPA                45
+    #define MAC_ELTID_EXT_RATES              50
+    if (mac_ie_find(var_part_addr, var_part_len, MAC_ELTID_HT_CAPA))
+    {
+        ind_new.mode = (WIFI_MODE_802_11B | WIFI_MODE_802_11G | WIFI_MODE_802_11N_2_4);
+    }
+    else if (mac_ie_find(var_part_addr, var_part_len, MAC_ELTID_EXT_RATES))
+    {
+        ind_new.mode = (WIFI_MODE_802_11B | WIFI_MODE_802_11G);
+    }
+    else
+    {
+        ind_new.mode = (WIFI_MODE_802_11B);
+    }
+
     if (WLAN_CAPABILITY_PRIVACY & (le16_to_cpu(mgmt->u.beacon.capab_info))) {
-        // retrieve RSN field
+        wifi_wpa_ie_t *parsed_wpa_ie[2] = {};
+        int parsed_wpa_ie_len = 0;
+        int i;
+        bool tkip = false, ccmp = false;
+
         #define MAC_ELTID_RSN_IEEE               48
         elmt_addr = mac_ie_find(var_part_addr, var_part_len, MAC_ELTID_RSN_IEEE);
         if (elmt_addr != 0) {
             rsn_wpa_ie_len = co_read8p(elmt_addr + MAC_INFOELT_LEN_OFT) + MAC_INFOELT_INFO_OFT;
-            process_rsn_ie((uint8_t *)elmt_addr, rsn_wpa_ie_len, NULL, NULL,
-                    (Cipher_t *)&ind_new.rsn_mcstCipher,
-                    (Cipher_t *)&ind_new.rsn_ucstCipher, (bool *)&is_pmf_required, &akm, &security_mode, wpa3_prefered);
-            ind_new.sec_mode.wpa2 = security_mode.wpa2;
-
+            memset(&rsn_ie, 0, sizeof(rsn_ie));
+            wpa_parse_wpa_ie_wrapper((uint8_t *)elmt_addr, rsn_wpa_ie_len, &rsn_ie);
+            parsed_wpa_ie[parsed_wpa_ie_len++] = &rsn_ie;
         }
-
 
         elmt_addr = mac_vsie_find(var_part_addr, var_part_len, (uint8_t const *)"\x00\x50\xF2\x01", 4);
         if (elmt_addr != 0) {
-            ind_new.sec_mode.wpa = 1;
+            rsn_wpa_ie_len = co_read8p(elmt_addr + MAC_INFOELT_LEN_OFT) + MAC_INFOELT_INFO_OFT;
+            wpa_parse_wpa_ie_wrapper((uint8_t *)elmt_addr, rsn_wpa_ie_len, &wpa_ie);
+            parsed_wpa_ie[parsed_wpa_ie_len++] = &wpa_ie;
+        }
 
-            if(!rsn_wpa_ie_len)
-            {
-                rsn_wpa_ie_len = co_read8p(elmt_addr + MAC_INFOELT_LEN_OFT) + MAC_INFOELT_INFO_OFT;
-                process_wpa_ie((uint8_t *)elmt_addr, rsn_wpa_ie_len, NULL, NULL,
-                        (Cipher_t *)&ind_new.wpa_mcstCipher, (Cipher_t *)&ind_new.wpa_ucstCipher, &akm);
+        for (i = 0; i < parsed_wpa_ie_len; ++i) {
+            wifi_wpa_ie_t *ie = parsed_wpa_ie[i];
+            int pc = ie->pairwise_cipher;
+            int gc = ie->group_cipher;
+            int ciphers[2] = { pc, gc };
+            int j;
+
+            if (ie->proto == WPA_PROTO_WPA) {
+                ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK;
+            } else if (ie->proto == WPA_PROTO_RSN) {
+                if (ie->key_mgmt & (WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_PSK_SHA256)) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK;
+                    if (ie->key_mgmt & WPA_KEY_MGMT_SAE) {
+                        ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK_WPA3_SAE;
+                    }
+                } else if (ie->key_mgmt & WPA_KEY_MGMT_SAE) {
+                    ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA3_SAE;
+                }
+            }
+
+            for (j = 0; j < sizeof(ciphers) / sizeof(ciphers[0]); ++j) {
+                int cipher = ciphers[j];
+                if (cipher == WIFI_CIPHER_TYPE_TKIP) {
+                    tkip = true;
+                }
+                if (cipher == WIFI_CIPHER_TYPE_CCMP) {
+                    ccmp = true;
+                }
+                if (cipher == WIFI_CIPHER_TYPE_TKIP_CCMP) {
+                    tkip = ccmp = true;
+                }
             }
         }
-        if (ind_new.sec_mode.wpa == 1 && ind_new.sec_mode.wpa2 == 1) {
+        if (parsed_wpa_ie_len == sizeof(parsed_wpa_ie) / sizeof(parsed_wpa_ie[0])) {
             ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_WPA2_PSK;
-            if (ind_new.rsn_ucstCipher.ccmp == 1 || ind_new.wpa_ucstCipher.ccmp == 1){
-                ctype++;
-            }
-
-            if (ind_new.rsn_ucstCipher.tkip == 1 || ind_new.wpa_ucstCipher.tkip == 1){
-                ctype++;
-                if (ctype == 2) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
-                } else if(ctype == 1) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
-                }
-                goto next;
-            }
-            if (ctype == 1) {
-                if (ind_new.rsn_mcstCipher.ccmp == 1 || ind_new.wpa_mcstCipher.ccmp == 1){
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-                } else if(ind_new.rsn_mcstCipher.tkip == 1 || ind_new.wpa_mcstCipher.tkip == 1) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
-                } else {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-                }
-            }
-        } else if (ind_new.sec_mode.wpa == 1) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK;
-            if (ind_new.wpa_ucstCipher.ccmp == 1){
-                ctype++;
-            }
-            if (ind_new.wpa_ucstCipher.tkip == 1){
-                ctype++;
-                if (ctype == 2) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
-                } else if(ctype == 1) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
-                }
-                goto next;
-            }
-            if (ctype == 1) {
-                if (ind_new.wpa_mcstCipher.ccmp == 1){
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-                } else if(ind_new.wpa_mcstCipher.tkip == 1) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
-                } else {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-                }
-            }
-        } else if (ind_new.sec_mode.wpa2 == 1) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK;
-            if (ind_new.rsn_ucstCipher.ccmp == 1){
-                ctype++;
-            }
-            if (ind_new.rsn_ucstCipher.tkip == 1){
-                ctype++;
-                if (ctype == 2) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
-                } else if(ctype == 1) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
-                }
-                goto next;
-            }
-            if (ctype == 1) {
-                if (ind_new.rsn_mcstCipher.ccmp == 1){
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-                } else if(ind_new.rsn_mcstCipher.tkip == 1) {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
-                } else {
-                    ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-                }
-            }
-        } else if (security_mode.wpa3){
-            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
-        } else {
+        } else if (parsed_wpa_ie_len == 0) {
             ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WEP;
             ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_WEP;
         }
-next:
-    if(security_mode.wpa3 && !(ind_new.sec_mode.wpa2)) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA3_SAE;
-    } else if(security_mode.wpa3 && ind_new.sec_mode.wpa2) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK_WPA3_SAE;
-        } else if (ind_new.sec_mode.wpa2 && ind_new.sec_mode.wpa) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_WPA2_PSK;
-        } else if (ind_new.sec_mode.wpa2) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA2_PSK;
-        } else if (ind_new.sec_mode.wpa) {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WPA_PSK;
-        } else {
-            ind_new.auth = WIFI_EVENT_BEACON_IND_AUTH_WEP;
+
+        if (ccmp) {
+            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_AES;
+        }
+        if (tkip) {
+            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP;
+        }
+        if (tkip && ccmp) {
+            ind_new.cipher = WIFI_EVENT_BEACON_IND_CIPHER_TKIP_AES;
         }
     } else {
         /*This is an open BSS*/
@@ -552,7 +535,7 @@ static int bl_rx_scanu_result_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struc
     } else if (ieee80211_is_probe_resp(mgmt->frame_control)) {
         _rx_handle_probersp(ind, mgmt);
     } else {
-        os_printf("Bug Scan IND?\r\n");
+        bl_os_printf("Bug Scan IND?\r\n");
     }
 
     return 0;
@@ -569,17 +552,30 @@ const static msg_cb_fct me_hdlrs[MSG_I(ME_MAX)] = {
     [MSG_I(ME_TX_CREDITS_UPDATE_IND)] = bl_comman_ind,
 };
 
-const char* wifi_mgmr_get_status_code_str(uint16_t status_code)
+static const char* _get_status_code_str(const struct reason_code list[], uint16_t len, uint16_t status_code)
 {
-    int index = 0;
+    int i;
 
-    for(int i = 0;i < sizeof(reason_list)/sizeof(reason_list[0]);i++) {
-        if(reason_list[i].reason_code == status_code) {
-            index = i;
+    for (i = 0; i < len; i++) {
+        if (list[i].reason_code == status_code) {
             break;
         }
     }
-    return reason_list[index].action;
+    if (len == i) {
+        return "Unknown Code";
+    }
+
+    return list[i].action;
+}
+
+const char* wifi_mgmr_get_sm_status_code_str(uint16_t status_code)
+{
+    return _get_status_code_str(sm_reason_list, sizeof(sm_reason_list)/sizeof(sm_reason_list[0]), status_code);
+}
+
+const char* wifi_mgmr_get_apm_status_code_str(uint16_t status_code)
+{
+    return _get_status_code_str(apm_reason_list, sizeof(apm_reason_list)/sizeof(apm_reason_list[0]), status_code);
 }
 
 static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
@@ -594,11 +590,11 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
     USER_UNUSED(index);
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
-    os_printf("[RX] Connection Status\r\n");
-    os_printf("[RX]   status_code %u\r\n", ind->status_code);
-    os_printf("[RX]   reason_code %u\r\n", ind->reason_code);
-    os_printf("[RX]   connect result: %s\r\n", wifi_mgmr_get_status_code_str(ind->status_code));
-    os_printf("[RX]   MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+    bl_os_printf("[RX] Connection Status\r\n");
+    bl_os_printf("[RX]   status_code %u\r\n", ind->status_code);
+    bl_os_printf("[RX]   reason_code %u\r\n", ind->reason_code);
+    bl_os_printf("[RX]   connect result: %s\r\n", wifi_mgmr_get_sm_status_code_str(ind->status_code));
+    bl_os_printf("[RX]   MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
             ind->bssid.array[0],
             ind->bssid.array[1],
             ind->bssid.array[2],
@@ -606,19 +602,19 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
             ind->bssid.array[4],
             ind->bssid.array[5]
     );
-    os_printf("[RX]   vif_idx %u\r\n", ind->vif_idx);
-    os_printf("[RX]   ap_idx %u\r\n", ind->ap_idx);
-    os_printf("[RX]   ch_idx %u\r\n", ind->ch_idx);
-    os_printf("[RX]   qos %u\r\n", ind->qos);
-    os_printf("[RX]   acm %u\r\n", ind->acm);
-    os_printf("[RX]   assoc_req_ie_len %u\r\n", ind->assoc_req_ie_len);
-    os_printf("[RX]   assoc_rsp_ie_len %u\r\n", ind->assoc_rsp_ie_len);
-    os_printf("[RX]   aid %u\r\n", ind->aid);
-    os_printf("[RX]   band %u\r\n", ind->band);
-    os_printf("[RX]   center_freq %u\r\n", ind->center_freq);
-    os_printf("[RX]   width %u\r\n", ind->width);
-    os_printf("[RX]   center_freq1 %u\r\n", (unsigned int)ind->center_freq1);
-    os_printf("[RX]   center_freq2 %u\r\n", (unsigned int)ind->center_freq2);
+    bl_os_printf("[RX]   vif_idx %u\r\n", ind->vif_idx);
+    bl_os_printf("[RX]   ap_idx %u\r\n", ind->ap_idx);
+    bl_os_printf("[RX]   ch_idx %u\r\n", ind->ch_idx);
+    bl_os_printf("[RX]   qos %u\r\n", ind->qos);
+    bl_os_printf("[RX]   acm %u\r\n", ind->acm);
+    bl_os_printf("[RX]   assoc_req_ie_len %u\r\n", ind->assoc_req_ie_len);
+    bl_os_printf("[RX]   assoc_rsp_ie_len %u\r\n", ind->assoc_rsp_ie_len);
+    bl_os_printf("[RX]   aid %u\r\n", ind->aid);
+    bl_os_printf("[RX]   band %u\r\n", ind->band);
+    bl_os_printf("[RX]   center_freq %u\r\n", ind->center_freq);
+    bl_os_printf("[RX]   width %u\r\n", ind->width);
+    bl_os_printf("[RX]   center_freq1 %u\r\n", (unsigned int)ind->center_freq1);
+    bl_os_printf("[RX]   center_freq2 %u\r\n", (unsigned int)ind->center_freq2);
 
     if (0 == ind->status_code) {
         bl_hw->sta_idx = ind->ap_idx;
@@ -662,10 +658,8 @@ static int bl_rx_sm_connect_ind(struct bl_hw *bl_hw,
         if (bl_vif && bl_vif->dev) {
             netifapi_netif_set_link_up(bl_vif->dev);
             netifapi_netif_set_default(bl_vif->dev);
-            netif_create_ip6_linklocal_address(bl_vif->dev, 1);
-            bl_vif->dev->ip6_autoconfig_enabled = 1;
         } else {
-            os_printf("[RX]  -------- CRITICAL when check netif. ptr is %p:%p\r\n",
+            bl_os_printf("[RX]  -------- CRITICAL when check netif. ptr is %p:%p\r\n",
                     bl_vif,
                     bl_vif ? bl_vif->dev : NULL
             );
@@ -686,11 +680,12 @@ static int bl_rx_sm_disconnect_ind(struct bl_hw *bl_hw,
     RWNX_DBG(RWNX_FN_ENTRY_STR);
 
     addr_any.addr = inet_addr("0.0.0.0");
-    os_printf("[RX]   sm_disconnect_ind\r\n"
-                "     status_code %u\r\n"
-                "     802.11 reason_code %u\r\n", ind->status_code, ind->reason_code);
-    os_printf("[RX]   vif_idx %u\r\n", ind->vif_idx);
-    os_printf("[RX]   ft_over_ds %u\r\n", ind->ft_over_ds);
+    bl_os_printf("[RX]   sm_disconnect_ind\r\n"
+              "       status_code %u\r\n"
+              "       802.11 reason_code %u\r\n", ind->status_code, ind->reason_code);
+    bl_os_printf("[RX]   disconnect reason: %s\r\n", wifi_mgmr_get_sm_status_code_str(ind->status_code));
+    bl_os_printf("[RX]   vif_idx %u\r\n", ind->vif_idx);
+    bl_os_printf("[RX]   ft_over_ds %u\r\n", ind->ft_over_ds);
 
     if (cb_sm_disconnect_ind) {
         memset(&ind_new, 0, sizeof(ind_new));
@@ -721,9 +716,9 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
     struct apm_sta_add_ind *ind = (struct apm_sta_add_ind*)msg->param;
     struct bl_sta *sta;
 
-    os_printf("[WF] APM_STA_ADD_IND\r\n");
-    os_printf("[WF]    flags %08X\r\n", (unsigned int)ind->flags);
-    os_printf("[WF]    MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+    bl_os_printf("[WF] APM_STA_ADD_IND\r\n");
+    bl_os_printf("[WF]    flags %08X\r\n", (unsigned int)ind->flags);
+    bl_os_printf("[WF]    MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
             ind->sta_addr.array[0] & 0xFF,
             ind->sta_addr.array[1] & 0xFF,
             ind->sta_addr.array[2] & 0xFF,
@@ -731,17 +726,17 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
             ind->sta_addr.array[4] & 0xFF,
             ind->sta_addr.array[5] & 0xFF
     );
-    blog_info("[WF]    tsflo: 0x%lx\r\n", ind->tsflo);
-    blog_info("[WF]    tsfhi: 0x%lx\r\n", ind->tsfhi);
-    blog_info("[WF]    rssi: %d\r\n", ind->rssi);
-    blog_info("[WF]    data rate: 0x%x\r\n", ind->data_rate);
+    bl_os_log_info("[WF]    tsflo: 0x%lx\r\n", ind->tsflo);
+    bl_os_log_info("[WF]    tsfhi: 0x%lx\r\n", ind->tsfhi);
+    bl_os_log_info("[WF]    rssi: %d\r\n", ind->rssi);
+    bl_os_log_info("[WF]    data rate: 0x%x\r\n", ind->data_rate);
 
-    os_printf("[WF]    vif_idx %u\r\n", ind->vif_idx);
-    os_printf("[WF]    sta_idx %u\r\n", ind->sta_idx);
+    bl_os_printf("[WF]    vif_idx %u\r\n", ind->vif_idx);
+    bl_os_printf("[WF]    sta_idx %u\r\n", ind->sta_idx);
     if (ind->sta_idx < sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0])) {
         sta = &(bl_hw->sta_table[ind->sta_idx]);
         if (sta->is_used) {
-            blog_info("-------------------------Warning: sta_idx already used: %d\r\n", ind->sta_idx);
+            bl_os_log_info("-------------------------Warning: sta_idx already used: %d\r\n", ind->sta_idx);
         }
         memcpy(sta->sta_addr.array, ind->sta_addr.array, 6);
         sta->sta_idx = ind->sta_idx;
@@ -752,7 +747,7 @@ static int bl_rx_apm_sta_add_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
         sta->tsfhi = ind->tsfhi;
         sta->data_rate = ind->data_rate;
     } else {
-        os_printf("[WF]    ------ Potential illegal sta_idx\r\n");
+        bl_os_printf("[WF]    ------ Potential illegal sta_idx\r\n");
     }
     aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STA_ADD, ind->sta_idx);
 
@@ -764,17 +759,20 @@ static int bl_rx_apm_sta_del_ind(struct bl_hw *bl_hw, struct bl_cmd *cmd, struct
     struct apm_sta_del_ind *ind = (struct apm_sta_del_ind*)msg->param;
     struct bl_sta *sta;
 
-    os_printf("[WF] APM_STA_DEL_IND\r\n");
-    os_printf("[WF]    sta_idx %u\r\n", ind->sta_idx);
+    bl_os_printf("[WF] APM_STA_DEL_IND\r\n");
+    bl_os_printf("[WF]    sta_idx %u\r\n", ind->sta_idx);
+    bl_os_printf("[WF]    statuts_code %u\r\n", ind->status_code);
+    bl_os_printf("[WF]    reason_code %u\r\n", ind->reason_code);
+    bl_os_printf("[RX]    disconnect reason: %s\r\n", wifi_mgmr_get_apm_status_code_str(ind->status_code));
 
     if (ind->sta_idx < sizeof(bl_hw->sta_table)/sizeof(bl_hw->sta_table[0])) {
         sta = &(bl_hw->sta_table[ind->sta_idx]);
         if (0 == sta->is_used) {
-            blog_info("[WF]    -------------------------Warning: sta_idx already empty: %d\r\n", ind->sta_idx);
+            bl_os_log_info("[WF]    -------------------------Warning: sta_idx already empty: %d\r\n", ind->sta_idx);
         }
         sta->is_used = 0;
     } else {
-        os_printf("[WF]    --------- Potential illegal sta_idx\r\n");
+        bl_os_printf("[WF]    --------- Potential illegal sta_idx\r\n");
     }
     aos_post_event(EV_WIFI, CODE_WIFI_ON_AP_STA_DEL, ind->sta_idx);
 
@@ -811,9 +809,12 @@ void bl_rx_e2a_handler(void *arg)
     wifi_hw.cmd_mgr.msgind(&wifi_hw.cmd_mgr, msg, msg_hdlrs[MSG_T(msg->id)][MSG_I(msg->id)]);
 }
 
-void bl_rx_pkt_cb(uint8_t *pkt, int len)
+void bl_rx_pkt_cb(uint8_t *pkt, int len, void *pkt_wrap, bl_rx_info_t *info)
 {
     if (cb_pkt) {
-        cb_pkt(cb_pkt_env, pkt, len);
+        cb_pkt(cb_pkt_env, pkt, len, info);
+    }
+    if (cb_pkt_adv) {
+        cb_pkt_adv(cb_pkt_env, pkt_wrap, info);
     }
 }
