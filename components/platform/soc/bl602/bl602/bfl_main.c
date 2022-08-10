@@ -51,7 +51,7 @@ static HeapRegion_t xHeapRegions[] =
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName )
 {
-    puts("Stack Overflow checked\r\n");
+    printf("Stack Overflow checked: %s\r\n", pcTaskName);
     while (1) {
         /*empty here*/
     }
@@ -125,6 +125,12 @@ void __attribute__((weak)) vAssertCalled(void)
 {
     taskDISABLE_INTERRUPTS();
     abort();
+}
+
+void setup_heap(void)
+{
+    // Invoked during system boot via start.S
+    vPortDefineHeapRegions(xHeapRegions);
 }
 
 #ifdef SYS_VFS_UART_ENABLE
@@ -287,7 +293,7 @@ void bfl_main()
 
     _dump_boot_info();
 
-    vPortDefineHeapRegions(xHeapRegions);
+    //vPortDefineHeapRegions(xHeapRegions);
 
     system_early_init();
 

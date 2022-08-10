@@ -30,6 +30,7 @@ extern "C" {
 
 #include "bl_pds.h"
 #include "bl_efuse.h"
+#include <hosal_adc.c>
 
 /****************************************************************************
  * Definition

@@ -332,6 +332,19 @@ static inline struct pbuf *_handle_frame_from_stack_with_zerocopy(void *swdesc, 
     return h;
 }
 
+static int tcpip_src_addr_cmp(struct ethhdr *hdr, uint8_t addr[])
+{
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        if ((uint8_t)(hdr->h_source[i]) != addr[i]) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 #define MAC_FMT "%02X%02X%02X%02X%02X%02X"
 #define MAC_LIST(arr) (arr)[0], (arr)[1], (arr)[2], (arr)[3], (arr)[4], (arr)[5]
 

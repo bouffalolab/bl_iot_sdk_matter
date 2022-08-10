@@ -12,6 +12,7 @@
 #include <string.h>
 #include <lwip/netifapi.h>
 #include <lwip/dns.h>
+#include <lwip/dhcp6.h>
 #include <aos/yloop.h>
 #include <bl60x_fw_api.h>
 #include <dns_server.h>
@@ -439,6 +440,7 @@ static bool stateSnifferGuard_ChannelSet( void *ch, struct event *event )
     return false;
 }
 
+static struct dhcp6 bl_dhcp6;
 static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
 {
     wifi_mgmr_msg_t *msg;
@@ -457,6 +459,8 @@ static bool stateSnifferGuard_raw_send(void *ch, struct event *event)
         bl_os_log_info("------>>>>>> RAW Send CMD, pkt %p, len %d\r\n", pkt, len);
         bl_main_raw_send(pkt, len);
     }
+    dhcp6_set_struct(&(wifiMgmr.wlan_sta.netif), &bl_dhcp6);
+    netifapi_netif_common(&(wifiMgmr.wlan_sta.netif), dhcp6_enable_stateless, NULL);
 
     return false;
 }

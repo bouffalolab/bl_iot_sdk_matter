@@ -1150,6 +1150,7 @@ struct sm_disconnect_ind
     bool_l ft_over_ds;
 };
 
+#if 0
 struct
 {
     /// TASK 
@@ -1161,6 +1162,7 @@ struct
     /// buffer
     uint32_t buf[];
 } cfg_start_req_u_tlv_t;
+#endif
 
 struct cfg_start_req
 {

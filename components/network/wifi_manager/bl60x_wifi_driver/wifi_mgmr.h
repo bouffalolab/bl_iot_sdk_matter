@@ -10,7 +10,7 @@
 #define WIFI_MGMR_SCAN_ITEMS_MAX (50)
 #define WIFI_MGMR_PROFILES_MAX (1)
 #define WIFI_MGMR_MQ_MSG_SIZE (128 + 64 + 32)
-#define WIFI_MGMR_MQ_MSG_COUNT (1)
+#define WIFI_MGMR_MQ_MSG_COUNT (6)
 
 #define MAC_ADDR_LIST(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
 #define WIFI_MGMR_CONNECT_PMF_CAPABLE_BIT       (1 << 0)

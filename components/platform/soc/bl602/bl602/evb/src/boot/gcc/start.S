@@ -119,6 +119,8 @@ bl602_start:
 	sd ra, 8(sp)
 #endif
 
+    call setup_heap
+
 // call global obj constructors
     la s1, __preinit_array_start
     la s2, __preinit_array_end

@@ -3,6 +3,10 @@
 #include <lwip/netif.h>
 #include <wifi_hosal.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 enum ap_info_type {
     /* The current AP information is advisory. When the AP fails to connect
     * through its specified parameters, the information is no longer used
@@ -263,4 +267,7 @@ int wifi_mgmr_pm_ops_register(void);
 int wifi_mgmr_fw_affair_ops(void);
 int wifi_mgmr_bcnind_auth_to_ext(int auth);
 int wifi_mgmr_bcnind_cipher_to_ext(int cipher);
+#if defined(__cplusplus)
+}
+#endif
 #endif
