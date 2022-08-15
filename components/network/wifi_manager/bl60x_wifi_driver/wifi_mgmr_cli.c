@@ -285,7 +285,7 @@ int wifi_mgmr_get_scan_ap_num(void)
     return count;
 }
 
-void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num)
+void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int *num, uint8_t scan_type, char *ssid)
 {
     int i, count, iter;
 
@@ -294,6 +294,11 @@ void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num)
 
     for (i = 0; i < count; i ++) {
         if (wifiMgmr.scan_items[i].is_used && (!wifi_mgmr_scan_item_is_timeout(&wifiMgmr, &wifiMgmr.scan_items[i]))) {
+            if (scan_type) {
+                if (memcmp(ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len) != 0) {
+                    continue;
+                }
+            }
             memcpy(result[iter].ssid, wifiMgmr.scan_items[i].ssid, wifiMgmr.scan_items[i].ssid_len);        
             result[iter].ssid[wifiMgmr.scan_items[i].ssid_len] = 0;
             result[iter].ssid_tail[0] = 0;        
@@ -305,6 +310,8 @@ void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num)
             iter++;
         }
     }
+    
+    *num = iter;
 }
 
 int wifi_mgmr_get_scan_result_filter(wifi_mgmr_ap_item_t *result, char *ssid)

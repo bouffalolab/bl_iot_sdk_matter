@@ -236,7 +236,7 @@ int wifi_mgmr_cfg_req(uint32_t ops, uint32_t task, uint32_t element, uint32_t ty
 int wifi_mgmr_scan_complete_callback();
 int wifi_mgmr_cli_scanlist(void);
 int wifi_mgmr_get_scan_ap_num(void);
-void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int num);
+void wifi_mgmr_get_scan_result(wifi_mgmr_ap_item_t *result, int *num, uint8_t scan_type, char *ssid);
 int wifi_mgmr_cli_init(void);
 int wifi_mgmr_scan_ap(char *ssid, wifi_mgmr_ap_item_t *item);
 int wifi_mgmr_scan_ap_all(wifi_mgmr_ap_item_t *env, uint32_t *param1, scan_item_cb_t cb);
