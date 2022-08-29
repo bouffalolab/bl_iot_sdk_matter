@@ -88,7 +88,7 @@ a lot of data that needs to be copied, this should be set high. */
 #ifdef CFG_ETHERNET_ENABLE
 #define PBUF_POOL_SIZE          12
 #else
-#define PBUF_POOL_SIZE          12
+#define PBUF_POOL_SIZE          16
 #endif /*CFG_ETHERNET_ENABLE*/
 #endif
 
