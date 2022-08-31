@@ -329,7 +329,7 @@ void bfl_main()
     system_early_init();
 
     puts("[OS] Starting aos_loop_proc task...\r\n");
-    xTaskCreate(aos_loop_proc, (char*)"event_loop", 1024, NULL, 15, &aos_loop_proc_task);
+    xTaskCreate(aos_loop_proc, (char*)"event_loop", 512, NULL, 15, &aos_loop_proc_task);
 
     puts("[OS] Starting OS Scheduler...\r\n");
     vTaskStartScheduler();
